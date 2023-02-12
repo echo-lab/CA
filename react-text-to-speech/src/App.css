@@ -29,6 +29,19 @@
   padding-left: 20px;
  }
 
+ table {
+  border: 0px solid rgb(255, 255, 255);
+  width: 600px;
+  height: 200px;
+}
+  
+th {
+  border-bottom: 1px solid black;
+}
+  
+td {
+  text-align: center;
+}
  
 
 .App-header {
