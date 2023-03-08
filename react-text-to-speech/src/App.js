@@ -1,10 +1,25 @@
 import "./App.css"
-import { useState } from "react"
 import mainPicture from "./Pictures/pinnochio.png"; 
 import arrow  from "./Pictures/arrow.png"; 
 import React from "react";
 
 
+
+class Page {
+  constructor(img,text){
+    this.imgage = img;
+    this.text = text;
+  }
+}
+
+
+class Book {
+  constructor(name,pages,characters) {
+    this.name = name;
+    this.pages = pages;
+  }
+}
+/* Create Data structure
 
 
 
@@ -26,6 +41,17 @@ import React from "react";
   }
 }*/
 
+var firstPageContent = [ { Reading: false, Character: "Narrator", Dialogue: "One day, Geppetto made a little boy of wood. \n When he finished, Geppetto sighed"}, 
+  {Reading: false,Character:"Geppetto", Dialogue: "I wish this wooden boy were real and could live here with me"},
+  {Reading: false, Character: "Narrator", Dialogue: "Suddenly it happened! The little wooden boy came to life!. \n Geppetto shouted with joy and, with the laughter of happiness, said"},
+  {Reading: false,Character:"Geppetto", Dialogue: "Be Welcome! I’ll call you Pinocchio"}
+];
+
+var Characters = ["Narrator", "Geppetto", "Pinocchio"];
+
+var firstPage = new Page(mainPicture, firstPageContent);
+
+var Pinnochio_Book = new Book("Pinnochio", firstPage,Characters);
 
 
 class Reader extends React.Component{
@@ -78,7 +104,7 @@ class Reader extends React.Component{
       </div>
       <button onClick={
         () => {
-          newindex = continueReading(firstPage, this.state.currentCARole, this.state.index )
+          newindex = continueReading(firstPageContent, this.state.currentCARole, this.state.index )
           this.setState({index : newindex, currentCARole: this.state.currentCARole});
         }
         
@@ -106,19 +132,16 @@ function continueReading(page, role, index) {
   const msg = new SpeechSynthesisUtterance()
   msg.lang = 'en-US'
   console.log("role ", role)
-
+  if(index > 0) {
+    page[index-1].Reading = false;
+  }
+  page[index].Reading = true;
   if(page[index].Character === role) {
     msg.text = page[index].Dialogue
     console.log("Reading ", msg.text)
     window.speechSynthesis.speak(msg)
-    page[index].Reading = false;
-    index = index+1;
-    page[index].Reading = true;
-  } else {
-    page[index].Reading = false;
-    index = index+1;
-    page[index].Reading = true;
   }
+  index +=1
   return index;
 }
 
@@ -135,7 +158,7 @@ class Table extends React.Component{
         return (
           <div className="table">
           <table>
-        {firstPage.map((val, key) => {
+        {firstPageContent.map((val, key) => {
           return (
             <tr key={key}>
               <td>{val.Reading && <img style={{ width: 20, height: 20 }} src ={arrow} />} </td>
@@ -150,7 +173,7 @@ class Table extends React.Component{
       }
     }
 
-var firstPage = [ { Reading: true, Character: "Narrator", Dialogue: "One day, Geppetto made a little boy of wood. \n When he finished, Geppetto sighed"}, 
+var firstPageContent = [ { Reading: false, Character: "Narrator", Dialogue: "One day, Geppetto made a little boy of wood. \n When he finished, Geppetto sighed"}, 
   {Reading: false,Character:"Geppetto", Dialogue: "I wish this wooden boy were real and could live here with me"},
   {Reading: false, Character: "Narrator", Dialogue: "Suddenly it happened! The little wooden boy came to life!. \n Geppetto shouted with joy and, with the laughter of happiness, said"},
   {Reading: false,Character:"Geppetto", Dialogue: "Be Welcome! I’ll call you Pinocchio"}
