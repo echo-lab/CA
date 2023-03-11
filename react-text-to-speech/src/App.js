@@ -1,13 +1,14 @@
 import "./App.css"
 import mainPicture from "./Pictures/pinnochio.png"; 
 import arrow  from "./Pictures/arrow.png"; 
+import secondPicture from "./Pictures/SecondPicture.gif"; 
 import React from "react";
 
 
 
 class Page {
   constructor(img,text){
-    this.imgage = img;
+    this.image = img;
     this.text = text;
   }
 
@@ -55,7 +56,7 @@ var secondPageContent = [ {Reading: false, Character: "Narrator", Dialogue: "Gep
 var Characters = ["Narrator", "Geppetto", "Pinocchio","Blue Fairy"];
 
 var firstPage = new Page(mainPicture, firstPageContent);
-var secondPage = new Page(mainPicture, secondPageContent);
+var secondPage = new Page(secondPicture, secondPageContent);
 
 var Pages = [firstPage,secondPage];
 
@@ -88,10 +89,10 @@ class Reader extends React.Component{
 
       return(
         <div className='App'>
-      <h1>Pinnochio</h1>
+      <h1> {CurrentBook.name} </h1>
       
       <label>
-      VA         
+      VA:        
       <select
       value = {this.state.currentCARole}
       onChange= { e => this.getState(e.target.value)}
@@ -106,9 +107,21 @@ class Reader extends React.Component{
       </label>
 
       <div className="container">
-      <Table/>
+      <div className="table">
+          <table>
+        {CurrentBook.pages[this.state.page].text.map((val, key) => { /*Check this*/ 
+          return (
+            <tr key={key}>
+              <td>{val.Reading && <img style={{ width: 20, height: 20 }} src ={arrow} />} </td>
+              <td>{val.Character}</td>
+              <td>{val.Dialogue}</td>
+            </tr>
+          )
+        })}
+        </table>
+        </div>
         <div className="image">
-      <img src={mainPicture} alt="Pinnochio" />
+      <img src={CurrentBook.pages[this.state.page].image} alt="Pinnochio" />
     </div>
 
       </div>
@@ -169,15 +182,17 @@ class Table extends React.Component{
   constructor(props) {
     super(props);
     this.state = {
-      update : true
+      update : true,
+      page : 0
     };
   }
 
       render(){
+        console.log(Reader.state);
         return (
           <div className="table">
           <table>
-        {CurrentBook.pages[Reader.state.page].map((val, key) => { /*Check this*/ 
+        {CurrentBook.pages[this.state.page].text.map((val, key) => { /*Check this*/ 
           return (
             <tr key={key}>
               <td>{val.Reading && <img style={{ width: 20, height: 20 }} src ={arrow} />} </td>
