@@ -21,7 +21,6 @@ class Book {
     this.name = name;
     this.pages = pages;
     this.characters = characters;
-    this.currentPage = 0;
   }
 
   getCharacters(){
@@ -86,18 +85,17 @@ class Reader extends React.Component{
     
     render(){
      var newindex =0
-
       return(
         <div className='App'>
-      <h1> {CurrentBook.name} </h1>
+      <h1> {CurrentBook.name} </h1> 
       
       <label>
       VA:        
       <select
-      value = {this.state.currentCARole}
-      onChange= { e => this.getState(e.target.value)}
+      value = {this.state.currentCARole /* Get the CA Rol */}
+      onChange= { e => this.getState(e.target.value) /*When we change the value of the CA, we update the state of the Reader */}
       >
-      {CurrentBook.getCharacters().map((val) => {
+      {CurrentBook.getCharacters().map((val) => { /*Map the values from the Book to the CA option selection */
         return(
           <option value={val}>{val}</option>
         )
@@ -109,7 +107,7 @@ class Reader extends React.Component{
       <div className="container">
       <div className="table">
           <table>
-        {CurrentBook.pages[this.state.page].text.map((val, key) => { /*Check this*/ 
+        {CurrentBook.pages[this.state.page].text.map((val, key) => { /*Map the current Page on the Table*/ 
           return (
             <tr key={key}>
               <td>{val.Reading && <img style={{ width: 20, height: 20 }} src ={arrow} />} </td>
@@ -121,7 +119,7 @@ class Reader extends React.Component{
         </table>
         </div>
         <div className="image">
-      <img src={CurrentBook.pages[this.state.page].image} alt="Pinnochio" />
+      <img src={CurrentBook.pages[this.state.page].image /*Map the current picture of the Page*/ } alt="Pinnochio" /> 
     </div>
 
       </div>
@@ -129,12 +127,15 @@ class Reader extends React.Component{
         () => {
           console.log("Page: ",this.state.page);
           console.log("Index: ",this.state.index)
-          if (CurrentBook.pages[this.state.page].text.length > this.state.index){
-          newindex = continueReading(CurrentBook.pages[this.state.page], this.state.currentCARole, this.state.index )
+          if (CurrentBook.pages[this.state.page].text.length > this.state.index){ 
+            // Check if the current reading position  is not exceding the ammount of elements in the page
+          newindex = continueReading(CurrentBook.pages[this.state.page], this.state.currentCARole, this.state.index ) 
+          // If it does not exceds, we read the dialogue based on the CA role
 
           this.setState({...this.state,index : newindex});
           } else {
             this.setState( { ...this.state, page : +1, index: 0  }  )
+            //If it exceds, we just move to a new page
           }
         }
         
@@ -177,35 +178,7 @@ function continueReading(page, role, index) {
   return index;
 }
 
-class Table extends React.Component{
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      update : true,
-      page : 0
-    };
-  }
-
-      render(){
-        console.log(Reader.state);
-        return (
-          <div className="table">
-          <table>
-        {CurrentBook.pages[this.state.page].text.map((val, key) => { /*Check this*/ 
-          return (
-            <tr key={key}>
-              <td>{val.Reading && <img style={{ width: 20, height: 20 }} src ={arrow} />} </td>
-              <td>{val.Character}</td>
-              <td>{val.Dialogue}</td>
-            </tr>
-          )
-        })}
-        </table>
-        </div>
-        );
-      }
-    }
 
 
 
