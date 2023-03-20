@@ -1,7 +1,5 @@
 import "./App.css"
-import mainPicture from "./Pictures/pinnochio.png"; 
 import arrow  from "./Pictures/arrow.png"; 
-import secondPicture from "./Pictures/SecondPicture.gif"; 
 import React from "react";
 import { data } from "./Book/PinnochioBook.js";
 
@@ -31,28 +29,7 @@ function Book (CuurentBook) {
 
 
 
-var firstPageContent = [ { Reading: false, Character: "Narrator", Dialogue: "One day, Geppetto made a little boy of wood. \n When he finished, Geppetto sighed"}, 
-  {Reading: false,Character:"Geppetto", Dialogue: "I wish this wooden boy were real and could live here with me"},
-  {Reading: false, Character: "Narrator", Dialogue: "Suddenly it happened! The little wooden boy came to life!. \n Geppetto shouted with joy and, with the laughter of happiness, said"},
-  {Reading: false,Character:"Geppetto", Dialogue: "Be Welcome! I’ll call you Pinocchio"}
-];
 
-var secondPageContent = [ {Reading: false, Character: "Narrator", Dialogue: "Geppetto helped Pinocchio dress, gave him some books, \n kissed him on the cheek, and sent him to school to learn to read and write. \n But he warned him:"},
-{Reading: false, Character:"Geppetto", Dialogue:"As soon as school is finished, \n Pinocchio will come home" },
-{Reading: false, Character: "Pinocchio", Dialogue: "Yes! I will do that"},
-{Reading: false, Character: "Narrator", Dialogue: "Pinocchio happily walked towards the school."}
-];
-
-
-/*Make this dynamic, so we only see Characters avaliable in each page */
-var Characters = ["Narrator", "Geppetto", "Pinocchio","Blue Fairy"];
-
-var firstPage = new Page(mainPicture, firstPageContent);
-var secondPage = new Page(secondPicture, secondPageContent);
-
-var Pages = [firstPage,secondPage];
-/*Map the book, from json file to create this class
-We want to load the book from this file */
 var CurrentBook = new Book(data);
 
 
@@ -66,16 +43,16 @@ class Reader extends React.Component{
   constructor(props) {
     super(props);
     this.state = {
-      page: 0,
+      page: 7,
       index : 0,
       currentCARole: "Narrator",
       pagesKeys: Object.keys(CurrentBook.pages),
       pagesValues : Object.values(CurrentBook.pages),
+      stop: false
     };
   }
 
   getState(narrator){
-    console.log("role ", narrator)
     this.setState({
       ...this.state,
       currentCARole: narrator
@@ -84,7 +61,6 @@ class Reader extends React.Component{
   }
     
     render(){
-      console.log(CurrentBook.pages)
       
       var newindex =0
       return(
@@ -130,17 +106,25 @@ class Reader extends React.Component{
       </div>
       <button onClick={
         () => {
+          console.log(this.state.pagesValues.length -1)
+          console.log(this.state.pagesValues[this.state.page].text.length -1 )
           console.log("Page: ",this.state.page);
-          console.log("Index: ",this.state.index)
-          if (this.state.pagesValues[this.state.page].text.length > this.state.index){ 
+          console.log("Index: ",this.state.index);
+          
+            if (this.state.pagesValues[this.state.page].text.length -1 >= this.state.index){ 
             // Check if the current reading position  is not exceding the ammount of elements in the page
-          newindex = continueReading(this.state.pagesValues[this.state.page], this.state.currentCARole, this.state.index ) 
+          newindex = continueReading(this.state.pagesValues[this.state.page], this.state.currentCARole, this.state.index) 
           // If it does not exceds, we read the dialogue based on the CA role
-
-          this.setState({...this.state,index : newindex});
+          console.log(newindex)
+          this.setState({...this.state, index : newindex});
+          console.log("Index: ",this.state.index);
           } else {
+            if(this.state.page < this.state.pagesValues.length-1){
             this.setState( { ...this.state, page : this.state.page+1, index: 0  }  )
             //If it exceds, we just move to a new page
+            }else {
+              this.setState( { ...this.state, page : 0, index: 0  }  )
+            }
           }
         }
         
@@ -165,20 +149,17 @@ class Reader extends React.Component{
 function continueReading(page, role, index) {
   const msg = new SpeechSynthesisUtterance()
   msg.lang = 'en-US'
-  console.log("role ", role)
-  console.log(page);
-  console.log(index)
   if(index > 0) {
     page.text[index-1].Reading = false;
   }
   page.text[index].Reading = true;
   if(page.text[index].Character === role) {
     msg.text = page.text[index].Dialogue
-    console.log("Reading ", msg.text)
     window.speechSynthesis.speak(msg)
   }
   index +=1
   return index;
+  
 }
 
 
