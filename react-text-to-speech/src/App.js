@@ -3,39 +3,32 @@ import mainPicture from "./Pictures/pinnochio.png";
 import arrow  from "./Pictures/arrow.png"; 
 import secondPicture from "./Pictures/SecondPicture.gif"; 
 import React from "react";
+import { data } from "./Book/PinnochioBook.js";
 
 
 
-class Page {
-  constructor(img,text){
+
+function Page (img,text){
     this.image = img;
     this.text = text;
   }
 
 
-}
+/*Change class to function components */
+/* Read about function components*/
+function Book (CuurentBook) {
+      data.map( val => {
+        return(
+          this.name = val.Book.Name,
+          this.characters = val.Book.Characters,
+          this.pages = val.Book.Pages
+        )
+          }
+          )
+        
+      }
+  
 
-
-class Book {
-  constructor(name,pages,characters) {
-    this.name = name;
-    this.pages = pages;
-    this.characters = characters;
-  }
-
-  getCharacters(){
-    return this.characters;
-  }
-
-  getNextPage(currentPage){
-    if(currentPage < this.pages.lenght){
-      return this.pages[currentPage+1];
-    } else{
-      return null;
-    }
-
-  }
-}
 
 
 var firstPageContent = [ { Reading: false, Character: "Narrator", Dialogue: "One day, Geppetto made a little boy of wood. \n When he finished, Geppetto sighed"}, 
@@ -51,15 +44,20 @@ var secondPageContent = [ {Reading: false, Character: "Narrator", Dialogue: "Gep
 ];
 
 
-
+/*Make this dynamic, so we only see Characters avaliable in each page */
 var Characters = ["Narrator", "Geppetto", "Pinocchio","Blue Fairy"];
 
 var firstPage = new Page(mainPicture, firstPageContent);
 var secondPage = new Page(secondPicture, secondPageContent);
 
 var Pages = [firstPage,secondPage];
+/*Map the book, from json file to create this class
+We want to load the book from this file */
+var CurrentBook = new Book(data);
 
-var CurrentBook = new Book("Pinnochio", Pages,Characters);
+
+
+
 
 
 class Reader extends React.Component{
@@ -70,7 +68,9 @@ class Reader extends React.Component{
     this.state = {
       page: 0,
       index : 0,
-      currentCARole: "Narrator"
+      currentCARole: "Narrator",
+      pagesKeys: Object.keys(CurrentBook.pages),
+      pagesValues : Object.values(CurrentBook.pages),
     };
   }
 
@@ -84,7 +84,9 @@ class Reader extends React.Component{
   }
     
     render(){
-     var newindex =0
+      console.log(CurrentBook.pages)
+      
+      var newindex =0
       return(
         <div className='App'>
       <h1> {CurrentBook.name} </h1> 
@@ -95,7 +97,7 @@ class Reader extends React.Component{
       value = {this.state.currentCARole /* Get the CA Rol */}
       onChange= { e => this.getState(e.target.value) /*When we change the value of the CA, we update the state of the Reader */}
       >
-      {CurrentBook.getCharacters().map((val) => { /*Map the values from the Book to the CA option selection */
+      {CurrentBook.characters.map((val) => { /*Map the values from the Book to the CA option selection */
         return(
           <option value={val}>{val}</option>
         )
@@ -107,7 +109,7 @@ class Reader extends React.Component{
       <div className="container">
       <div className="table">
           <table>
-        {CurrentBook.pages[this.state.page].text.map((val, key) => { /*Map the current Page on the Table*/ 
+        {this.state.pagesValues[this.state.page].text.map((val, key) => { /*Map the current Page on the Table*/ 
           return (
             <tr key={key}>
               <td>{val.Reading && <img style={{ width: 20, height: 20 }} src ={arrow} />} </td>
@@ -119,7 +121,10 @@ class Reader extends React.Component{
         </table>
         </div>
         <div className="image">
-      <img src={CurrentBook.pages[this.state.page].image /*Map the current picture of the Page*/ } alt="Pinnochio" /> 
+      <img src={
+        this.state.pagesValues[this.state.page].img
+     /*Map the current picture of the Page*/ 
+        } alt="Pinnochio" /> 
     </div>
 
       </div>
@@ -127,14 +132,14 @@ class Reader extends React.Component{
         () => {
           console.log("Page: ",this.state.page);
           console.log("Index: ",this.state.index)
-          if (CurrentBook.pages[this.state.page].text.length > this.state.index){ 
+          if (this.state.pagesValues[this.state.page].text.length > this.state.index){ 
             // Check if the current reading position  is not exceding the ammount of elements in the page
-          newindex = continueReading(CurrentBook.pages[this.state.page], this.state.currentCARole, this.state.index ) 
+          newindex = continueReading(this.state.pagesValues[this.state.page], this.state.currentCARole, this.state.index ) 
           // If it does not exceds, we read the dialogue based on the CA role
 
           this.setState({...this.state,index : newindex});
           } else {
-            this.setState( { ...this.state, page : +1, index: 0  }  )
+            this.setState( { ...this.state, page : this.state.page+1, index: 0  }  )
             //If it exceds, we just move to a new page
           }
         }
@@ -144,6 +149,7 @@ class Reader extends React.Component{
         Continue
       
       </button>
+      
       </div>
       );
     }
@@ -151,9 +157,6 @@ class Reader extends React.Component{
 
 }
 
-
-  
-  
 
 
 
@@ -177,6 +180,8 @@ function continueReading(page, role, index) {
   index +=1
   return index;
 }
+
+
 
 
 
