@@ -1,7 +1,8 @@
-import arrow from "../Pictures/arrow.png";
 import React from "react";
 import "../styles/Story.css";
 import { data } from "../Book/PinnochioBook.js";
+import "bootstrap/dist/css/bootstrap.css";
+import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 
 function Page(img, text) {
   this.image = img;
@@ -45,46 +46,8 @@ class Reader extends React.Component {
   render() {
     var newindex = 0;
     return (
-      <div className="App">
-        <h1> {CurrentBook.name} </h1>
-
-        <label>
-          VA:
-          <select
-            value={this.state.currentCARole /* Get the CA Rol */}
-            onChange={
-              (e) =>
-                this.getState(
-                  e.target.value
-                ) /*When we change the value of the CA, we update the state of the Reader */
-            }
-          >
-            {CurrentBook.characters.map((val) => {
-              /*Map the values from the Book to the CA option selection */
-              return <option value={val}>{val}</option>;
-            })}
-          </select>
-        </label>
-
-        <div className="container">
-          <div className="table">
-            <table>
-              {this.state.pagesValues[this.state.page].text.map((val, key) => {
-                /*Map the current Page on the Table*/
-                return (
-                  <tr key={key}>
-                    <td>
-                      {val.Reading && (
-                        <img style={{ width: 20, height: 20 }} src={arrow} />
-                      )}{" "}
-                    </td>
-                    <td>{val.Character}</td>
-                    <td>{val.Dialogue}</td>
-                  </tr>
-                );
-              })}
-            </table>
-          </div>
+      <div className="story">
+        <div className="leftSide">
           <div className="image">
             <img
               src={
@@ -95,45 +58,104 @@ class Reader extends React.Component {
             />
           </div>
         </div>
-        <button
-          onClick={() => {
-            console.log(this.state.pagesValues.length - 1);
-            console.log(
-              this.state.pagesValues[this.state.page].text.length - 1
-            );
-            console.log("Page: ", this.state.page);
-            console.log("Index: ", this.state.index);
+        <div className="rightSide">
+          <h1> {CurrentBook.name} </h1>
 
-            if (
-              this.state.pagesValues[this.state.page].text.length - 1 >=
-              this.state.index
-            ) {
-              // Check if the current reading position  is not exceding the ammount of elements in the page
-              newindex = continueReading(
-                this.state.pagesValues[this.state.page],
-                this.state.currentCARole,
-                this.state.index
-              );
-              // If it does not exceds, we read the dialogue based on the CA role
-              console.log(newindex);
-              this.setState({ ...this.state, index: newindex });
-              console.log("Index: ", this.state.index);
-            } else {
-              if (this.state.page < this.state.pagesValues.length - 1) {
-                this.setState({
-                  ...this.state,
-                  page: this.state.page + 1,
-                  index: 0,
-                });
-                //If it exceds, we just move to a new page
-              } else {
-                this.setState({ ...this.state, page: 0, index: 0 });
+          <div className="container mb-4">
+            <label>VA:</label>
+            <select
+              value={this.state.currentCARole /* Get the CA Rol */}
+              onChange={
+                (e) =>
+                  this.getState(
+                    e.target.value
+                  ) /*When we change the value of the CA, we update the state of the Reader */
               }
-            }
-          }}
-        >
-          Continue
-        </button>
+            >
+              {CurrentBook.characters.map((val) => {
+                /*Map the values from the Book to the CA option selection */
+                return <option value={val}>{val}</option>;
+              })}
+            </select>
+          </div>
+
+          <div className="container-fluid">
+            <div>
+              {this.state.pagesValues[this.state.page].text.map((val, key) => {
+                /*Map the current Page on the Table*/
+                return (
+                  <div className="row g-2" key={key}>
+                    <div className="col-1">
+                      <div className="p-3 ">
+                        {val.Reading && <KeyboardDoubleArrowRightIcon />}{" "}
+                      </div>
+                    </div>
+                    <div className="col-2">
+                      <div className="p-3 border bg-light">{val.Character}</div>
+                    </div>
+                    <div className="col-9">
+                      <div className="p-3 border bg-light">{val.Dialogue}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="p-3 d-md-flex justify-content-md-end">
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-secondary">
+                  Previous
+                </button>
+                <button type="button" class="btn btn-secondary">
+                  1
+                </button>
+                <button type="button" class="btn btn-secondary">
+                  2
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  onClick={() => {
+                    console.log(this.state.pagesValues.length - 1);
+                    console.log(
+                      this.state.pagesValues[this.state.page].text.length - 1
+                    );
+                    console.log("Page: ", this.state.page);
+                    console.log("Index: ", this.state.index);
+
+                    if (
+                      this.state.pagesValues[this.state.page].text.length - 1 >=
+                      this.state.index
+                    ) {
+                      // Check if the current reading position  is not exceding the ammount of elements in the page
+                      newindex = continueReading(
+                        this.state.pagesValues[this.state.page],
+                        this.state.currentCARole,
+                        this.state.index
+                      );
+                      // If it does not exceds, we read the dialogue based on the CA role
+                      console.log(newindex);
+                      this.setState({ ...this.state, index: newindex });
+                      console.log("Index: ", this.state.index);
+                    } else {
+                      if (this.state.page < this.state.pagesValues.length - 1) {
+                        this.setState({
+                          ...this.state,
+                          page: this.state.page + 1,
+                          index: 0,
+                        });
+                        //If it exceds, we just move to a new page
+                      } else {
+                        this.setState({ ...this.state, page: 0, index: 0 });
+                      }
+                    }
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
