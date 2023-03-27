@@ -27,7 +27,7 @@ class Reader extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      page: 7,
+      page: 0,
       index: 0,
       currentCARole: "Narrator",
       pagesKeys: Object.keys(CurrentBook.pages),
