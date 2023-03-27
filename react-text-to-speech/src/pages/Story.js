@@ -72,7 +72,8 @@ class Reader extends React.Component {
                   ) /*When we change the value of the CA, we update the state of the Reader */
               }
             >
-              {CurrentBook.characters.map((val) => {
+              {/*CurrentBook.characters.map((val)*/ 
+              extractCurrentCharacters(this.state.pagesValues[this.state.page]).map((val) => {
                 /*Map the values from the Book to the CA option selection */
                 return <option value={val}>{val}</option>;
               })}
@@ -174,6 +175,15 @@ function continueReading(page, role, index) {
   }
   index += 1;
   return index;
+}
+
+function extractCurrentCharacters(page){
+  var currentCharacters = [];
+  for (var i = 0; i < page.text.length; i++) {
+    if(currentCharacters.indexOf(page.text[i].Character) === -1) 
+    { currentCharacters.push(page.text[i].Character);}
+  }
+  return currentCharacters;
 }
 
 export default Reader;
