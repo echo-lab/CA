@@ -13,7 +13,6 @@ function NavigationBar() {
         
       <div className='rightSide'>
         <Link to="/">Home</Link>
-        <Link to="/story">Story</Link>
         <Link to="/profile">Profile</Link>       
       </div>
     </div>
