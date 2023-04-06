@@ -1,0 +1,12 @@
+.card-input-element {
+    display: none;
+  }
+  
+.card:hover {
+    cursor: pointer;
+  }
+  
+.card-input-element:checked + .card {
+    border: 2px solid #007bff; /* Change border color to blue */
+    color: #841414; /* Add light gray background color */
+  }

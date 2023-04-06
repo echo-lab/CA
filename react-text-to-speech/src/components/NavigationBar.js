@@ -1,22 +1,17 @@
 import React from 'react'
 import {Link} from 'react-router-dom'
 import Logo from '../Pictures/logo.png'
-import '../styles/NavigationBar.css'
 
 function NavigationBar() {
 
   return (
-    <div className='navbar'>
-      <div className='leftSide'>
-        <img src={Logo}></img>
-      </div>
-        
-      <div className='rightSide'>
-        <Link to="/">Home</Link>
-        <Link to="/profile">Profile</Link>       
-      </div>
-    </div>
-    
+        <nav class="navbar navbar-light bg-light" >
+            <ul class="nav navbar-nav navbar-right"></ul>
+            <a class="navbar-brand" href="#">
+            <img src={Logo} width="30" height="30" class="d-inline-block align-top" alt=""/>
+              App Name
+            </a>
+    </nav>
   );
 }
 

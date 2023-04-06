@@ -1,8 +1,10 @@
 import React from "react";
+import { Link } from 'react-router-dom'
 import "../styles/Story.css";
 import { data } from "../Book/PinnochioBook.js";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
+import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 
 function Page(img, text) {
   this.image = img;
@@ -46,8 +48,14 @@ class Reader extends React.Component {
   render() {
     var newindex = 0;
     return (
-      <div className="story">
-        <div className="leftSide">
+      <div className="story container">
+        <div className="row row1">
+           <div className="home btn col-1"><Link to="/"><button className="btn btn-primary"><i><KeyboardDoubleArrowLeftIcon /></i></button></Link></div> 
+           <div className=" title col-9 font-weight-bold display-3"> {CurrentBook.name} </div>
+        </div>
+        
+        <div className="row">
+        <div className="col">
           <div className="image">
             <img
               src={
@@ -58,9 +66,7 @@ class Reader extends React.Component {
             />
           </div>
         </div>
-        <div className="rightSide">
-          <h1> {CurrentBook.name} </h1>
-
+        <div className="col">
           <div className="container mb-4">
             <label>VA:</label>
             <select
@@ -155,7 +161,8 @@ class Reader extends React.Component {
                 </button>
               </div>
             </div>
-          </div>
+        </div>
+        </div>
         </div>
       </div>
     );
