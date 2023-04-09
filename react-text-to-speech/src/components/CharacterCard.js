@@ -13,7 +13,7 @@ const renderCharacter = (character, index) => {
 
   return (
    <div className="m-2" key={index}>
-      <div className="CharacterCards">
+      <div className={`CharacterCards ${checked ? 'checked' : ''}`}>
          <label className=" card card-input shadow p-2 mb-5 bg-white rounded" style={{ width: "9rem" }}>
             <input type="checkbox" name="checked" className="card-input-element" onChange={handleChange}/>
             <img src={character.img} className="card-img-top" alt="..." />

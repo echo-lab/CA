@@ -17,7 +17,7 @@ function CharaterSelecter() {
           <Link to="/"><button className="btn btn-primary"><i><KeyboardDoubleArrowLeftIcon /></i></button></Link>
         </div>
         <div className='col-8'>
-        <div className='font-weight-bold font-italic display-3 m-5'>Select Character</div>
+        <div className='sectionTitle display-3 m-5'>Select Character</div>
           <CharacterCard id={id}></CharacterCard>
         </div>
         <div className='leftbutton col-1'>
