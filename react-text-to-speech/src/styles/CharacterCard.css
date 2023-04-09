@@ -6,7 +6,8 @@
     cursor: pointer;
   }
   
-.card-input-element:checked + .card {
-    border: 2px solid #007bff; /* Change border color to blue */
-    color: #841414; /* Add light gray background color */
+.checked{
+    color: #2f0def;
+    box-shadow: 0px 0px 10px 2px rgb(13, 110, 253);
+    font-weight: bold;
   }

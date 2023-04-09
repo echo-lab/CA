@@ -1,10 +1,12 @@
-import React from "react";
+import React,  { useState } from "react";
 import { Link } from 'react-router-dom'
 import "../styles/Story.css";
 import { data } from "../Book/PinnochioBook.js";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 
 function Page(img, text) {
   this.image = img;
@@ -35,8 +37,13 @@ class Reader extends React.Component {
       pagesKeys: Object.keys(CurrentBook.pages),
       pagesValues: Object.values(CurrentBook.pages),
       stop: false,
+      isVolumnOn: false,
     };
   }
+
+  handleClick = () => {
+    this.setState({ isVolumnOn: !this.state.isVolumnOn });
+  };
 
   getState(narrator) {
     this.setState({
@@ -51,7 +58,7 @@ class Reader extends React.Component {
       <div className="story container">
         <div className="row row1">
            <div className="home btn col-1"><Link to="/"><button className="btn btn-primary"><i><KeyboardDoubleArrowLeftIcon /></i></button></Link></div> 
-           <div className=" title col-9 font-weight-bold display-3"> {CurrentBook.name} </div>
+           <div className=" storyTitle col-9 font-weight-bold display-3"> {CurrentBook.name} </div>
         </div>
         
         <div className="row">
@@ -84,6 +91,7 @@ class Reader extends React.Component {
                 return <option value={val}>{val}</option>;
               })}
             </select>
+            <button className="volumnBtn" onClick={this.handleClick}>{this.state.isVolumnOn ? <VolumeUpIcon /> : <VolumeOffIcon />} </button>
           </div>
 
           <div className="container-fluid">
@@ -91,14 +99,14 @@ class Reader extends React.Component {
               {this.state.pagesValues[this.state.page].text.map((val, key) => {
                 /*Map the current Page on the Table*/
                 return (
-                  <div className="row g-2" key={key}>
+                  <div className="row gx-3" key={key}>
                     <div className="col-1">
                       <div className="p-3 ">
                         {val.Reading && <KeyboardDoubleArrowRightIcon />}{" "}
                       </div>
                     </div>
                     <div className="col-2">
-                      <div className="p-3 border bg-light">{val.Character}</div>
+                      <div className="p-3 borderless">{val.Character}</div>
                     </div>
                     <div className="col-9">
                       <div className="p-3 border bg-light">{val.Dialogue}</div>
