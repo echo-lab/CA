@@ -9,7 +9,7 @@ function NavigationBar() {
             <ul class="nav navbar-nav navbar-right"></ul>
             <a class="navbar-brand" href="#">
             <img src={Logo} width="30" height="30" class="d-inline-block align-top" alt=""/>
-              App Name
+              Tale Mate
             </a>
     </nav>
   );

@@ -9,7 +9,7 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 function CharaterSelecter() {
   const location = useLocation()
   const { id } = location.state
-  console.log("CharaterSelecter:",id)
+  console.log("CharaterSelecter:", id)
   return (
     <div>
       <div className='row'>
@@ -17,13 +17,13 @@ function CharaterSelecter() {
           <Link to="/"><button className="btn btn-primary"><i><KeyboardDoubleArrowLeftIcon /></i></button></Link>
         </div>
         <div className='col-8'>
-        <div className='sectionTitle display-3 m-5'>Select Character</div>
+          <div className='sectionTitle display-3 m-5'>Select Character</div>
           <CharacterCard id={id}></CharacterCard>
         </div>
         <div className='leftbutton col-1'>
           <Link to="/story"><button className="btn btn-primary"><i><KeyboardDoubleArrowRightIcon /></i></button></Link>
-        </div> 
-      </div>  
+        </div>
+      </div>
     </div>
   )
 }
