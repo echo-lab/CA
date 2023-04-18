@@ -34,7 +34,7 @@ function Home() {
   return (
     //style={{ backgroundImage:`url(${backgroundImage})` }}
     <div className='home'>
-      <p className='title display-3'>App Name</p>
+      <p className='title display-3'>Tale Mate</p>
       <div className= "d-flex justify-content-center">
             {cardInfo.map(renderCard)}
       </div>  

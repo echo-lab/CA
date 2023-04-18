@@ -11,3 +11,28 @@
     box-shadow: 0px 0px 10px 2px rgb(13, 110, 253);
     font-weight: bold;
   }
+
+ /* Add this to your CharacterCard.css file */
+.character-card .card-img-top {
+  width: 75%;
+  height: auto;
+  object-fit: cover;
+  max-height: 2000px;
+}
+
+/* Add these styles to your CharacterCard.css file */
+.character-card .card-img-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  overflow: hidden;
+}
+
+
+.character-card img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  max-height: 150px;
+}

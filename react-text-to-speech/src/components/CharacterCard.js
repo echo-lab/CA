@@ -1,47 +1,53 @@
-import React, { useState } from "react";
+import React from "react";
 import "../styles/CharacterCard.css";
-import { booksSummery } from "../Book/BooksSummery";
 
-function CharacterCards({ id }) {
-  console.log("CharacterCards", id);
-  let result = booksSummery.find((result) => result.id === id);
-  console.log("Result:", result.Characters);
+function CharacterCard({ character, onOptionChange }) {
+  const options = [
+    "Parent",
+    "Child",
+    "Mate 1",
+    "Mate 2",
+    "Mate 3",
+    "Mate 4",
+    "Mate 5",
+    "Mate 6",
+    "None",
+  ];
 
-  const renderCharacter = (character, index) => {
-    const [selectedOption, setSelectedOption] = useState("");
-
-    const handleChange = (event) => {
-      setSelectedOption(event.target.value);
-      console.log(selectedOption);
-    };
-
-    return (
-      <div className={`col-md-4 mb-3`} key={index}>
-        <div className={`CharacterCards card card-input shadow p-2 mb-5 bg-white rounded`} style={{ width: "18rem", height: "100%" }}>
-          <img src={character.img} className="card-img-top" alt="..." />
-          <div className="card-body">
-            <div className="d-flex justify-content-between align-items-center">
-              <p className="card-text mb-0">{character.charater_name}</p>
-              <select value={selectedOption} onChange={handleChange} className="form-select form-select-sm">
-                <option value="Parent">Parent</option>
-                <option value="Child">Child</option>
-                <option value="None">None</option>
-                <option value="VA1">VA1</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  const handleChange = (event) => {
+    onOptionChange(event.target.value);
   };
 
   return (
-    <div className="w-100">
-      <div className="row">
-        {result.Characters.map(renderCharacter)}
+    <div className="character-card">
+      <div className="card">
+        <div className="card-img-container">
+          <img
+            src={character.img}
+            className="card-img-top"
+            alt={character.charater_name}
+          />
+        </div>
+        <div className="card-body">
+          <h5 className="card-title">{character.charater_name}</h5>
+          <div className="mb-3">
+            <label htmlFor="exampleFormControlSelect1">Role</label>
+            <select
+              className="form-control"
+              id="exampleFormControlSelect1"
+              onChange={handleChange}
+            >
+              {options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-export default CharacterCards;
+export default CharacterCard;

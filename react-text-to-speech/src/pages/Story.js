@@ -57,7 +57,15 @@ class Reader extends React.Component {
     return (
       <div className="story container">
         <div className="row row1">
-           <div className="home btn col-1"><Link to="/"><button className="btn btn-primary"><i><KeyboardDoubleArrowLeftIcon /></i></button></Link></div> 
+        <div className="home btn col-1">
+        <Link to={{ pathname: "/.", state: { id: 1 } }}>
+        <button className="btn btn-primary">
+        <i>
+      <KeyboardDoubleArrowLeftIcon />
+        </i>
+        </button>
+      </Link>
+          </div>
            <div className=" storyTitle col-9 font-weight-bold display-3"> {CurrentBook.name} </div>
         </div>
         
