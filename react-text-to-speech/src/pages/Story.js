@@ -8,6 +8,8 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 
+
+
 function Page(img, text) {
   this.image = img;
   this.text = text;
@@ -153,11 +155,12 @@ class Reader extends React.Component {
                       newindex = continueReading(
                         this.state.pagesValues[this.state.page],
                         this.state.currentCARole,
-                        this.state.index
+                        this.state.index,
+                        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg'
                       );
                       // If it does not exceds, we read the dialogue based on the CA role
-                      console.log(newindex);
-                      this.setState({ ...this.state, index: newindex });
+                      console.log("NewIndex: ", newindex);
+                      this.setState({ ...this.state, index: this.state.index+1 });
                       console.log("Index: ", this.state.index);
                     } else {
                       if (this.state.page < this.state.pagesValues.length - 1) {
@@ -185,20 +188,40 @@ class Reader extends React.Component {
   }
 }
 
-function continueReading(page, role, index) {
-  const msg = new SpeechSynthesisUtterance();
-  msg.lang = "en-US";
+async function continueReading(page, role, index, apiKey) {
   if (index > 0) {
     page.text[index - 1].Reading = false;
   }
   page.text[index].Reading = true;
   if (page.text[index].Character === role) {
-    msg.text = page.text[index].Dialogue;
-    window.speechSynthesis.speak(msg);
+    try {
+      const request = {
+        input: { text: page.text[index].Dialogue },
+        voice: { languageCode: 'en-US', ssmlGender: 'NEUTRAL' },
+        audioConfig: { audioEncoding: 'MP3' },
+      };
+
+      const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      audio.play();
+    } catch (error) {
+      console.error('Error in Google Text-to-Speech:', error);
+    }
   }
-  index += 1;
-  return index;
 }
+
 
 function extractCurrentCharacters(page){
   var currentCharacters = [];
