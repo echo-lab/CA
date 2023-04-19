@@ -29,207 +29,195 @@ function Book(CuurentBook) {
 
 var CurrentBook = new Book(data);
 
-class Reader extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      page: 0,
-      index: 0,
-      currentCARole: "Narrator",
-      pagesKeys: Object.keys(CurrentBook.pages),
-      pagesValues: Object.values(CurrentBook.pages),
-      stop: false,
-      isVolumnOn: false,
-    };
+function Reader() {
+  const [state, setState] = useState({
+    page: 0,
+    index: 0,
+    currentCARole: "Narrator",
+    pagesKeys: Object.keys(CurrentBook.pages),
+    pagesValues: Object.values(CurrentBook.pages),
+    stop: false,
+    isVolumnOn: false,
+  });
+
+  function handleClick() {
+    setState({ ...state, isVolumnOn: !state.isVolumnOn });
   }
 
-  handleClick = () => {
-    this.setState({ isVolumnOn: !this.state.isVolumnOn });
-  };
-
-  getState(narrator) {
-    this.setState({
-      ...this.state,
+  function getState(narrator) {
+    setState({
+      ...state,
       currentCARole: narrator,
     });
   }
 
-  render() {
-    var newindex = 0;
-    return (
-      <div className="story container">
-        <div className="row row1">
-        <div className="home btn col-1">
-        <Link to={{ pathname: "/.", state: { id: 1 } }}>
-        <button className="btn btn-primary">
-        <i>
-      <KeyboardDoubleArrowLeftIcon />
-        </i>
-        </button>
-      </Link>
+  function renderCharactersOptions() {
+    return extractCurrentCharacters(state.pagesValues[state.page]).map((val) => {
+      return <option value={val}>{val}</option>;
+    });
+  }
+
+  function handleNextClick() {
+    if (state.pagesValues[state.page].text.length - 1 >= state.index) {
+      continueReading(
+        state.pagesValues[state.page],
+        state.currentCARole,
+        state.index,
+        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg'
+      );
+      setState({ ...state, index: state.index + 1 });
+      console.log("Index: ", state.index);
+    } else {
+      if (state.page < state.pagesValues.length - 1) {
+        setState({
+          ...state,
+          page: state.page + 1,
+          index: 0,
+        });
+      } else {
+        setState({ ...state, page: 0, index: 0 });
+      }
+    }
+  }
+  
+
+  function renderPageRows() {
+    return state.pagesValues[state.page].text.map((val, key) => {
+      return (
+        <div className="row gx-3" key={key}>
+          <div className="col-1">
+            <div className="p-3 ">
+              {val.Reading && <KeyboardDoubleArrowRightIcon />}{" "}
+            </div>
           </div>
-           <div className=" storyTitle col-9 font-weight-bold display-3"> {CurrentBook.name} </div>
+          <div className="col-2">
+            <div className="p-3 borderless">{val.Character}</div>
+          </div>
+          <div className="col-9">
+            <div className="p-3 border bg-light">{val.Dialogue}</div>
+          </div>
         </div>
-        
-        <div className="row">
+      );
+    });
+  }
+
+  async function continueReading(page, role, index, apiKey) {
+    if (index > 0) {
+      page.text[index - 1].Reading = false;
+    }
+    page.text[index].Reading = true;
+    if (page.text[index].Character === role) {
+      try {
+        const request = {
+          input: { text: page.text[index].Dialogue },
+          voice: { languageCode: 'en-US', ssmlGender: 'NEUTRAL' },
+          audioConfig: { audioEncoding: 'MP3' },
+        };
+  
+        const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+  
+        const data = await response.json();
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        audio.play();
+      } catch (error) {
+        console.error('Error in Google Text-to-Speech:', error);
+      }
+    }
+  }
+  
+  
+  function extractCurrentCharacters(page){
+    var currentCharacters = [];
+    for (var i = 0; i < page.text.length; i++) {
+      if(currentCharacters.indexOf(page.text[i].Character) === -1) 
+      { currentCharacters.push(page.text[i].Character);}
+    }
+    return currentCharacters;
+  }
+
+  function renderNavigationButtons() {
+    return (
+      <div className="p-3 d-md-flex justify-content-md-end">
+        <div className="btn-group" role="group">
+          <button type="button" className="btn btn-secondary">
+            Previous
+          </button>
+          <button type="button" className="btn btn-secondary">
+            1
+          </button>
+          <button type="button" className="btn btn-secondary">
+            2
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleNextClick}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+    
+  return (
+    <div className="story container">
+      <div className="row row1">
+        <div className="home btn col-1">
+          <Link to={{ pathname: "/.", state: { id: 1 } }}>
+            <button className="btn btn-primary">
+              <i>
+                <KeyboardDoubleArrowLeftIcon />
+              </i>
+            </button>
+          </Link>
+        </div>
+        <div className="storyTitle col-9 font-weight-bold display-3">
+          {CurrentBook.name}
+        </div>
+      </div>
+
+      <div className="row">
         <div className="col">
           <div className="image">
-            <img
-              src={
-                this.state.pagesValues[this.state.page].img
-                /*Map the current picture of the Page*/
-              }
-              alt="Pinnochio"
-            />
+            <img src={state.pagesValues[state.page].img} alt="Pinnochio" />
           </div>
         </div>
         <div className="col">
           <div className="container mb-4">
             <label>VA:</label>
             <select
-              value={this.state.currentCARole /* Get the CA Rol */}
-              onChange={
-                (e) =>
-                  this.getState(
-                    e.target.value
-                  ) /*When we change the value of the CA, we update the state of the Reader */
-              }
+              value={state.currentCARole}
+              onChange={(e) => getState(e.target.value)}
             >
-              {/*CurrentBook.characters.map((val)*/ 
-              extractCurrentCharacters(this.state.pagesValues[this.state.page]).map((val) => {
-                /*Map the values from the Book to the CA option selection */
-                return <option value={val}>{val}</option>;
-              })}
+              {renderCharactersOptions()}
             </select>
-            <button className="volumnBtn" onClick={this.handleClick}>{this.state.isVolumnOn ? <VolumeUpIcon /> : <VolumeOffIcon />} </button>
+            <button className="volumnBtn" onClick={handleClick}>
+              {state.isVolumnOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
+            </button>
           </div>
 
-          <div className="container-fluid">
-            <div>
-              {this.state.pagesValues[this.state.page].text.map((val, key) => {
-                /*Map the current Page on the Table*/
-                return (
-                  <div className="row gx-3" key={key}>
-                    <div className="col-1">
-                      <div className="p-3 ">
-                        {val.Reading && <KeyboardDoubleArrowRightIcon />}{" "}
-                      </div>
-                    </div>
-                    <div className="col-2">
-                      <div className="p-3 borderless">{val.Character}</div>
-                    </div>
-                    <div className="col-9">
-                      <div className="p-3 border bg-light">{val.Dialogue}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="p-3 d-md-flex justify-content-md-end">
-              <div class="btn-group" role="group">
-                <button type="button" class="btn btn-secondary">
-                  Previous
-                </button>
-                <button type="button" class="btn btn-secondary">
-                  1
-                </button>
-                <button type="button" class="btn btn-secondary">
-                  2
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-secondary"
-                  onClick={() => {
-                    console.log(this.state.pagesValues.length - 1);
-                    console.log(
-                      this.state.pagesValues[this.state.page].text.length - 1
-                    );
-                    console.log("Page: ", this.state.page);
-                    console.log("Index: ", this.state.index);
-
-                    if (
-                      this.state.pagesValues[this.state.page].text.length - 1 >=
-                      this.state.index
-                    ) {
-                      // Check if the current reading position  is not exceding the ammount of elements in the page
-                      newindex = continueReading(
-                        this.state.pagesValues[this.state.page],
-                        this.state.currentCARole,
-                        this.state.index,
-                        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg'
-                      );
-                      // If it does not exceds, we read the dialogue based on the CA role
-                      console.log("NewIndex: ", newindex);
-                      this.setState({ ...this.state, index: this.state.index+1 });
-                      console.log("Index: ", this.state.index);
-                    } else {
-                      if (this.state.page < this.state.pagesValues.length - 1) {
-                        this.setState({
-                          ...this.state,
-                          page: this.state.page + 1,
-                          index: 0,
-                        });
-                        //If it exceds, we just move to a new page
-                      } else {
-                        this.setState({ ...this.state, page: 0, index: 0 });
-                      }
-                    }
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-        </div>
-        </div>
+          <div className="container-fluid">{renderPageRows()}</div>
+          {renderNavigationButtons()}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+  
+
+
+
+
 }
-
-async function continueReading(page, role, index, apiKey) {
-  if (index > 0) {
-    page.text[index - 1].Reading = false;
-  }
-  page.text[index].Reading = true;
-  if (page.text[index].Character === role) {
-    try {
-      const request = {
-        input: { text: page.text[index].Dialogue },
-        voice: { languageCode: 'en-US', ssmlGender: 'NEUTRAL' },
-        audioConfig: { audioEncoding: 'MP3' },
-      };
-
-      const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-      audio.play();
-    } catch (error) {
-      console.error('Error in Google Text-to-Speech:', error);
-    }
-  }
-}
-
-
-function extractCurrentCharacters(page){
-  var currentCharacters = [];
-  for (var i = 0; i < page.text.length; i++) {
-    if(currentCharacters.indexOf(page.text[i].Character) === -1) 
-    { currentCharacters.push(page.text[i].Character);}
-  }
-  return currentCharacters;
-}
-
 export default Reader;
