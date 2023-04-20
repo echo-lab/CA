@@ -46,9 +46,41 @@ function Reader() {
     voiceOptions: voices
   });
 
+  React.useEffect(() => {
+    function handleAudioStateChange(event) {
+      if (event.data.type === "MUTE_TAB") {
+        Array.from(document.querySelectorAll("audio")).forEach((audio) => {
+          audio.muted = true;
+        });
+      } else if (event.data.type === "UNMUTE_TAB") {
+        Array.from(document.querySelectorAll("audio")).forEach((audio) => {
+          audio.muted = false;
+        });
+      }
+    }
+  
+    window.addEventListener("message", handleAudioStateChange);
+  
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener("message", handleAudioStateChange);
+    };
+  }, []);
+
   
   function handleClick() {
     setState({ ...state, isVolumnOn: !state.isVolumnOn });
+    window.audioState = !window.audioState; // Toggle audio state
+    if (window.audioState === undefined) {
+      window.audioState = true; // Set initial audio state to true (not muted)
+    }
+    if (window.audioState) {
+      // Mute tab
+      window.postMessage({ type: "MUTE_TAB" }, "*");
+    } else {
+      // Unmute tab
+      window.postMessage({ type: "UNMUTE_TAB" }, "*");
+    }
   }
 
 
@@ -200,7 +232,7 @@ function Reader() {
         <div className="col table-column">
           <div className="container mb-4">
             <button className="volumnBtn" onClick={handleClick}>
-              {state.isVolumnOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
+              {state.isVolumnOn ? <VolumeOffIcon /> : <VolumeUpIcon />}
             </button>
           </div>
 
