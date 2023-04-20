@@ -69,7 +69,7 @@ function Reader() {
         state.pagesValues[state.page],
         state.currentCARole,
         state.index,
-        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg'
+        ''
       );
       setState({ ...state, index: state.index + 1 });
       console.log("Index: ", state.index);
