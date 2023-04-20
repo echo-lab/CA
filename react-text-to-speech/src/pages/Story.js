@@ -156,30 +156,23 @@ function Reader() {
   
 
   function renderNavigationButtons() {
+    const isLastIndex = state.pagesValues[state.page].text.length === state.index;
+  
     return (
       <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
         <div className="btn-group" role="group">
-          <button type="button" className="btn btn-secondary">
-            Previous
-          </button>
-          <button type="button" className="btn btn-secondary">
-            1
-          </button>
-          <button type="button" className="btn btn-secondary">
-            2
-          </button>
           <button
             type="button"
             className="btn btn-secondary"
             onClick={handleNextClick}
           >
-            Next
+            {isLastIndex ? "Next Page" : "Next"}
           </button>
         </div>
       </div>
     );
   }
-
+  
     
   return (
     <div className="story container reader-container">
