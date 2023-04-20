@@ -130,10 +130,10 @@ function Reader() {
     }
     page.text[index].Reading = true;
     if (
-        currentCharacter[0].VA != "None" 
-    &&  currentCharacter[0].VA!= "Parent" 
-    &&  currentCharacter[0].VA!= "Child" 
-    &&  currentCharacter[0].VA!= "") {
+        currentCharacter[0].VA !== "None" 
+    &&  currentCharacter[0].VA!== "Parent" 
+    &&  currentCharacter[0].VA!== "Child" 
+    &&  currentCharacter[0].VA!== "") {
       try {
         console.log("Parameters", currentVoice[0].VoiceParameter)
         const request = {
