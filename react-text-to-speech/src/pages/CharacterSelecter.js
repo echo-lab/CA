@@ -36,7 +36,11 @@ function CharaterSelecter() {
   const navigate = useNavigate();
 
   const handleNextButtonClick = () => {
-    navigate("/story", { state: { selectedOptions: characterValues } });
+    const selectedOptions = Object.keys(characterValues).map((characterName) => ({
+      Character: characterName,
+      VA: characterValues[characterName],
+    }));
+    navigate("/story", { state: { selectedOptions } });
   };
 
   return (

@@ -32,16 +32,25 @@ var CurrentBook = new Book(data);
 function Reader() {
   const location = useLocation();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
-  
+  const voices = [
+     
+    {Voice:  "Mate 1", VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-C'  }},
+    {Voice:  "Mate 2" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-B'  }},
+    {Voice:  "Mate 3" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-A'  }},
+    {Voice:  "Mate 4" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-D'  }},
+    {Voice:  "Mate 5" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-E'  }},
+    {Voice:  "Mate 6" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-G'  }},
+  ]
   const [state, setState] = useState({
     page: 0,
     index: 0,
     currentCARole: "Narrator",
-    CharacterRoles: Object.values(selectedOptions),
+    CharacterRoles: selectedOptions,
     pagesKeys: Object.keys(CurrentBook.pages),
     pagesValues: Object.values(CurrentBook.pages),
     stop: false,
     isVolumnOn: false,
+    voiceOptions: voices
   });
 
   
@@ -63,13 +72,15 @@ function Reader() {
   }
 
   function handleNextClick() {
-    console.log("Characters:",Object.entries(selectedOptions).map(([key, value]) => ({ [key]: value })));
+    
     if (state.pagesValues[state.page].text.length - 1 >= state.index) {
       continueReading(
         state.pagesValues[state.page],
         state.currentCARole,
         state.index,
-        ''
+        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
+        state.CharacterRoles,
+        state.voiceOptions
       );
       setState({ ...state, index: state.index + 1 });
       console.log("Index: ", state.index);
@@ -107,16 +118,27 @@ function Reader() {
     });
   }
 
-  async function continueReading(page, role, index, apiKey) {
+  async function continueReading(page, role, index, apiKey, roles, options) {
+    //console.log("Characters:",roles.filter(obj => obj.Character === page.text[index].Character));
+    var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
+    var currentVoice = options.filter( obj => obj.Voice ==  currentCharacter[0].VA);
+    //console.log("VA",currentCharacter[0].VA);
+    //console.log("Options",options.filter( obj => obj.Voice ==  currentCharacter[0].VA));
+    
     if (index > 0) {
       page.text[index - 1].Reading = false;
     }
     page.text[index].Reading = true;
-    if (page.text[index].Character === role) {
+    if (
+        currentCharacter[0].VA != "None" 
+    &&  currentCharacter[0].VA!= "Parent" 
+    &&  currentCharacter[0].VA!= "Child" 
+    &&  currentCharacter[0].VA!= "") {
       try {
+        console.log("Parameters", currentVoice[0].VoiceParameter)
         const request = {
           input: { text: page.text[index].Dialogue },
-          voice: { languageCode: 'en-US', ssmlGender: 'NEUTRAL' },
+          voice: currentVoice[0].VoiceParameter,
           audioConfig: { audioEncoding: 'MP3' },
         };
   
