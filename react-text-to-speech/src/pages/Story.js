@@ -9,12 +9,6 @@ import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import { Link, useLocation } from 'react-router-dom';
 
 
-
-function Page(img, text) {
-  this.image = img;
-  this.text = text;
-}
-
 /*Change class to function components */
 /* Read about function components*/
 function Book(CuurentBook) {
@@ -44,7 +38,6 @@ function Reader() {
   const [state, setState] = useState({
     page: 0,
     index: 0,
-    currentCARole: "Narrator",
     CharacterRoles: selectedOptions,
     pagesKeys: Object.keys(CurrentBook.pages),
     pagesValues: Object.values(CurrentBook.pages),
@@ -58,25 +51,12 @@ function Reader() {
     setState({ ...state, isVolumnOn: !state.isVolumnOn });
   }
 
-  function getState(narrator) {
-    setState({
-      ...state,
-      currentCARole: narrator,
-    });
-  }
-
-  function renderCharactersOptions() {
-    return extractCurrentCharacters(state.pagesValues[state.page]).map((val) => {
-      return <option value={val}>{val}</option>;
-    });
-  }
 
   function handleNextClick() {
     
     if (state.pagesValues[state.page].text.length - 1 >= state.index) {
       continueReading(
         state.pagesValues[state.page],
-        state.currentCARole,
         state.index,
         'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
         state.CharacterRoles,
@@ -99,29 +79,39 @@ function Reader() {
   
 
   function renderPageRows() {
-    return state.pagesValues[state.page].text.map((val, key) => {
-      return (
-        <div className="row gx-3" key={key}>
-          <div className="col-1">
-            <div className="p-3 ">
-              {val.Reading && <KeyboardDoubleArrowRightIcon />}{" "}
+    return (
+      <div className="table-column">
+        {state.pagesValues[state.page].text.map((val, key) => {
+          const isActiveRow = val.Reading;
+          return (
+            <div
+              className={`row gx-3${isActiveRow ? " active-row" : ""}`}
+              key={key}
+            >
+              <div className="col-1">
+                <div className="p-3">
+                  {val.Reading && <KeyboardDoubleArrowRightIcon />}{" "}
+                </div>
+              </div>
+              <div className="col-2">
+                <div className="p-3 borderless">{val.Character}</div>
+              </div>
+              <div className="col-9">
+                <div className="p-3 borderless">{val.Dialogue}</div>
+              </div>
             </div>
-          </div>
-          <div className="col-2">
-            <div className="p-3 borderless">{val.Character}</div>
-          </div>
-          <div className="col-9">
-            <div className="p-3 border bg-light">{val.Dialogue}</div>
-          </div>
-        </div>
-      );
-    });
+          );
+        })}
+      </div>
+    );
   }
+  
+  
 
-  async function continueReading(page, role, index, apiKey, roles, options) {
+  async function continueReading(page, index, apiKey, roles, options) {
     //console.log("Characters:",roles.filter(obj => obj.Character === page.text[index].Character));
     var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
-    var currentVoice = options.filter( obj => obj.Voice ==  currentCharacter[0].VA);
+    var currentVoice = options.filter( obj => obj.Voice ===  currentCharacter[0].VA);
     //console.log("VA",currentCharacter[0].VA);
     //console.log("Options",options.filter( obj => obj.Voice ==  currentCharacter[0].VA));
     
@@ -164,18 +154,10 @@ function Reader() {
   }
   
   
-  function extractCurrentCharacters(page){
-    var currentCharacters = [];
-    for (var i = 0; i < page.text.length; i++) {
-      if(currentCharacters.indexOf(page.text[i].Character) === -1) 
-      { currentCharacters.push(page.text[i].Character);}
-    }
-    return currentCharacters;
-  }
 
   function renderNavigationButtons() {
     return (
-      <div className="p-3 d-md-flex justify-content-md-end">
+      <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
         <div className="btn-group" role="group">
           <button type="button" className="btn btn-secondary">
             Previous
@@ -200,7 +182,7 @@ function Reader() {
 
     
   return (
-    <div className="story container">
+    <div className="story container reader-container">
       <div className="row row1">
         <div className="home btn col-1">
           <Link to={{ pathname: "/.", state: { id: 1 } }}>
@@ -217,20 +199,13 @@ function Reader() {
       </div>
 
       <div className="row">
-        <div className="col">
+        <div className="col image-column">
           <div className="image">
             <img src={state.pagesValues[state.page].img} alt="Pinnochio" />
           </div>
         </div>
-        <div className="col">
+        <div className="col table-column">
           <div className="container mb-4">
-            <label>VA:</label>
-            <select
-              value={state.currentCARole}
-              onChange={(e) => getState(e.target.value)}
-            >
-              {renderCharactersOptions()}
-            </select>
             <button className="volumnBtn" onClick={handleClick}>
               {state.isVolumnOn ? <VolumeUpIcon /> : <VolumeOffIcon />}
             </button>
