@@ -3,6 +3,7 @@ import "../styles/CharacterCard.css";
 
 function CharacterCard({ character, onOptionChange }) {
   const options = [
+    "",
     "Parent",
     "Child",
     "Mate 1",

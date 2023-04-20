@@ -1,5 +1,4 @@
 import React,  { useState } from "react";
-import { Link } from 'react-router-dom'
 import "../styles/Story.css";
 import { data } from "../Book/PinnochioBook.js";
 import "bootstrap/dist/css/bootstrap.css";
@@ -7,6 +6,7 @@ import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArro
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import { Link, useLocation } from 'react-router-dom';
 
 
 
@@ -30,16 +30,21 @@ function Book(CuurentBook) {
 var CurrentBook = new Book(data);
 
 function Reader() {
+  const location = useLocation();
+  const selectedOptions = location.state ? location.state.selectedOptions : {};
+  
   const [state, setState] = useState({
     page: 0,
     index: 0,
     currentCARole: "Narrator",
+    CharacterRoles: Object.values(selectedOptions),
     pagesKeys: Object.keys(CurrentBook.pages),
     pagesValues: Object.values(CurrentBook.pages),
     stop: false,
     isVolumnOn: false,
   });
 
+  
   function handleClick() {
     setState({ ...state, isVolumnOn: !state.isVolumnOn });
   }
@@ -58,6 +63,7 @@ function Reader() {
   }
 
   function handleNextClick() {
+    console.log("Characters:",Object.entries(selectedOptions).map(([key, value]) => ({ [key]: value })));
     if (state.pagesValues[state.page].text.length - 1 >= state.index) {
       continueReading(
         state.pagesValues[state.page],
