@@ -58,7 +58,7 @@ function Reader() {
       continueReading(
         state.pagesValues[state.page],
         state.index,
-        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
+        '',
         state.CharacterRoles,
         state.voiceOptions
       );
