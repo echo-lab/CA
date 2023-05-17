@@ -98,6 +98,7 @@ function Reader() {
       console.log("Index: ", state.index);
     } else {
       if (state.page < state.pagesValues.length - 1) {
+        state.pagesValues[state.page].text[state.index-1].Reading = false;
         setState({
           ...state,
           page: state.page + 1,
