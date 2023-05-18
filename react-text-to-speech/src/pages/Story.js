@@ -1,6 +1,6 @@
 import React,  { useState } from "react";
 import "../styles/Story.css";
-import { data } from "../Book/PinnochioBook.js";
+import { data } from "../Book/Book1";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
