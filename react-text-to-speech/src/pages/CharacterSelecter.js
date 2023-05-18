@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import CharacterCard from "../components/CharacterCard.js";
-import "../styles/CharacterSelecter.css";
+import "../styles/CharacterSelecter.css"; // Path to your CSS file
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import { booksSummery } from "../Book/BooksSummery";
 import { useNavigate } from "react-router-dom";
+import {roles} from "../Book/Roles.js"
+import { DragDropContext, Droppable } from "react-beautiful-dnd";
+import RoleDraggable from "../components/RoleDraggable.js"; // Your RoleDraggable component
+
 
 function CharaterSelecter() {
   const location = useLocation();
@@ -30,9 +34,19 @@ function CharaterSelecter() {
   }, [book]);
 
   const handleOptionChange = (characterName, value) => {
+    
     setCharacterValues({ ...characterValues, [characterName]: value });
   };
 
+  const handleDragEnd = (result) => {
+    // Check if the item was dropped outside of a droppable area
+    if (!result.destination) {
+      return;
+    }
+  
+    // TODO: add logic to handle the result of a drag and drop operation
+    // For ex
+  };
   const navigate = useNavigate();
 
   const handleNextButtonClick = () => {
@@ -44,6 +58,7 @@ function CharaterSelecter() {
   };
 
   return (
+    <DragDropContext onDragEnd={handleDragEnd}>
     <div>
       <div className="row">
         <div className="rightbutton col-1">
@@ -57,6 +72,20 @@ function CharaterSelecter() {
         </div>
         <div className="col-8">
           <div className="sectionTitle display-3 m-5">Select Character's Role</div>
+          <Droppable droppableId="roles">
+        {(provided) => (
+          <div 
+            {...provided.droppableProps} 
+            ref={provided.innerRef}
+            className="DraggableContainer" // Apply the CSS class
+          >
+            {roles.map((role, index) => (
+              <RoleDraggable key={role.Role} role={role} index={index} />
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
           <div className="row">
             {book &&
               book.Characters.map((character, index) => (
@@ -78,6 +107,7 @@ function CharaterSelecter() {
         </div>
       </div>
     </div>
+    </DragDropContext>
   );
 }
 

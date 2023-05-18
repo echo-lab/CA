@@ -12,3 +12,16 @@
     font-style: italic;
     text-align: left;
   }
+
+  .DraggableContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin-bottom: 20px;
+  }
+  
+  .RoleDraggable {
+    flex-basis: calc(100% / 7); /* This will create 6 items per row, adjust as needed */
+    box-sizing: border-box;
+    margin: 5px; /* Optional, for some space between the items */
+  }
