@@ -1,23 +1,12 @@
 import React from "react";
 import "../styles/CharacterCard.css";
+import { Droppable } from "react-beautiful-dnd";
+import RoleDraggable from "../components/RoleDraggable.js";
 
-function CharacterCard({ character, onOptionChange }) {
-  const options = [
-    "",
-    "Parent",
-    "Child",
-    "Mate 1",
-    "Mate 2",
-    "Mate 3",
-    "Mate 4",
-    "Mate 5",
-    "Mate 6",
-    "None",
-  ];
 
-  const handleChange = (event) => {
-    onOptionChange(event.target.value);
-  };
+
+function CharacterCard({ character, role  }) {
+
 
   return (
     <div className="character-card">
@@ -31,20 +20,18 @@ function CharacterCard({ character, onOptionChange }) {
         </div>
         <div className="card-body">
           <h5 className="card-title">{character.charater_name}</h5>
-          <div className="mb-3">
-            <label htmlFor="exampleFormControlSelect1">Role</label>
-            <select
-              className="form-control"
-              id="exampleFormControlSelect1"
-              onChange={handleChange}
-            >
-              {options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Droppable droppableId={character.charater_name}>
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="droppable-area"
+              >
+                {role && <RoleDraggable draggableId={role.Role} role={role} index={0} />}
+              {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
         </div>
       </div>
     </div>

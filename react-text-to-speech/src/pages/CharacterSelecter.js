@@ -7,7 +7,7 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import { booksSummery } from "../Book/BooksSummery";
 import { useNavigate } from "react-router-dom";
 import {roles} from "../Book/Roles.js"
-import { DragDropContext, Droppable } from "react-beautiful-dnd";
+import { DragDropContext, Draggable ,Droppable } from "react-beautiful-dnd";
 import RoleDraggable from "../components/RoleDraggable.js"; // Your RoleDraggable component
 
 
@@ -41,19 +41,24 @@ function CharaterSelecter() {
   const handleDragEnd = (result) => {
     // Check if the item was dropped outside of a droppable area
     if (!result.destination) {
-      return;
+        return;
     }
-  
-    // TODO: add logic to handle the result of a drag and drop operation
-    // For ex
-  };
+    const newCharacterValues = { ...characterValues };
+    console.log(newCharacterValues)
+    const role = roles.find(role => role.Role === result.draggableId); // find the actual role object
+    newCharacterValues[result.destination.droppableId] = role; // store the role object instead of id
+    setCharacterValues(newCharacterValues);
+    console.log(newCharacterValues)
+};
+
   const navigate = useNavigate();
 
   const handleNextButtonClick = () => {
     const selectedOptions = Object.keys(characterValues).map((characterName) => ({
       Character: characterName,
-      VA: characterValues[characterName],
+      VA: characterValues[characterName].RoleParameter,
     }));
+    console.log("Print",selectedOptions);
     navigate("/story", { state: { selectedOptions } });
   };
 
@@ -80,23 +85,23 @@ function CharaterSelecter() {
             className="DraggableContainer" // Apply the CSS class
           >
             {roles.map((role, index) => (
-              <RoleDraggable key={role.Role} role={role} index={index} />
+               <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} />
             ))}
             {provided.placeholder}
           </div>
         )}
       </Droppable>
-          <div className="row">
-            {book &&
-              book.Characters.map((character, index) => (
+      <div className="row">
+          {book &&
+            book.Characters.map((character, index) => {
+              const role = characterValues[character.charater_name];
+              return (
                 <div key={index} className="col-md-4">
-                  <CharacterCard
-                    character={character}
-                    onOptionChange={(value) => handleOptionChange(character.charater_name, value)}
-                  />
+                  <CharacterCard character={character} role={role} />
                 </div>
-              ))}
-          </div>
+              );
+            })}
+      </div>
         </div>
         <div className="leftbutton col-1">
           <button className="btn btn-primary" onClick={handleNextButtonClick}>

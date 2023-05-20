@@ -45,7 +45,6 @@ function Reader() {
     isVolumnOn: false,
     voiceOptions: voices
   });
-
   React.useEffect(() => {
     function handleAudioStateChange(event) {
       if (event.data.type === "MUTE_TAB") {
@@ -90,7 +89,7 @@ function Reader() {
       continueReading(
         state.pagesValues[state.page],
         state.index,
-        '',
+        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
         state.CharacterRoles,
         state.voiceOptions
       );
@@ -144,7 +143,9 @@ function Reader() {
   async function continueReading(page, index, apiKey, roles, options) {
     //console.log("Characters:",roles.filter(obj => obj.Character === page.text[index].Character));
     var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
-    var currentVoice = options.filter( obj => obj.Voice ===  currentCharacter[0].VA);
+    var currentVoice = currentCharacter[0].VA
+    console.log("currentChar",currentCharacter[0].VA);
+    console.log("currentVoice",currentVoice);
     //console.log("VA",currentCharacter[0].VA);
     //console.log("Options",options.filter( obj => obj.Voice ==  currentCharacter[0].VA));
     
@@ -158,10 +159,10 @@ function Reader() {
     &&  currentCharacter[0].VA!== "Child" 
     &&  currentCharacter[0].VA!== "") {
       try {
-        console.log("Parameters", currentVoice[0].VoiceParameter)
+        console.log("Parameters", currentVoice)
         const request = {
           input: { text: page.text[index].Dialogue },
-          voice: currentVoice[0].VoiceParameter,
+          voice: currentVoice,
           audioConfig: { audioEncoding: 'MP3' },
         };
   
