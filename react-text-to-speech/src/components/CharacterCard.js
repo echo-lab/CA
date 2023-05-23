@@ -11,15 +11,17 @@ function CharacterCard({ character, role  }) {
   return (
     <div className="character-card">
       <div className="card">
-        <div className="card-img-container">
-          <img
-            src={character.img}
-            className="card-img-top"
-            alt={character.charater_name}
-          />
-        </div>
-        <div className="card-body">
-          <h5 className="card-title">{character.charater_name}</h5>
+        <div className="card-content">
+          <div className="left-column">
+            <h5 className="card-title">{character.charater_name}</h5>
+            <div className="card-img-container">
+              <img
+                src={character.img}
+                className="card-img-top"
+                alt={character.charater_name}
+              />
+            </div>
+          </div>
           <Droppable droppableId={character.charater_name}>
             {(provided) => (
               <div

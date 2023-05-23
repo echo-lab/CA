@@ -76,7 +76,7 @@ function CharaterSelecter() {
           </Link>
         </div>
         <div className="col-8">
-          <div className="sectionTitle display-3 m-5">Select Character's Role</div>
+          <div className="sectionTitle display-3 m-7">Select Character's Role</div>
           <Droppable droppableId="roles">
         {(provided) => (
           <div 
@@ -91,17 +91,18 @@ function CharaterSelecter() {
           </div>
         )}
       </Droppable>
-      <div className="row">
+      <div className="character-cards-container">
+
           {book &&
             book.Characters.map((character, index) => {
               const role = characterValues[character.charater_name];
               return (
-                <div key={index} className="col-md-4">
+                <div key={index}>
                   <CharacterCard character={character} role={role} />
                 </div>
               );
             })}
-      </div>
+        </div>
         </div>
         <div className="leftbutton col-1">
           <button className="btn btn-primary" onClick={handleNextButtonClick}>

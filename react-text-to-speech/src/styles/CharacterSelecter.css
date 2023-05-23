@@ -26,4 +26,12 @@
     margin: 5px; /* Optional, for some space between the items */
   }
 
+  .character-cards-container {
+    display: flex;
+    flex-direction: column; /* stack cards vertically */
+    justify-content: center; /* center vertically */
+    align-items: center; /* center horizontally */
+    height: 100%; /* take full vertical space */
+  }
+
   

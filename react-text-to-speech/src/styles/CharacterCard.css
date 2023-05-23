@@ -1,45 +1,60 @@
-Adjust the CSS for me please
-.card-input-element {
-    display: none;
-  }
-  
-.card:hover {
-    cursor: pointer;
-  }
-  
-.checked{
-    color: #2f0def;
-    box-shadow: 0px 0px 10px 2px rgb(13, 110, 253);
-    font-weight: bold;
-  }
+/* CSS for CharacterCard */
 
- /* Add this to your CharacterCard.css file */
-.character-card .card-img-top {
-  width: 75%;
-  height: auto;
-  object-fit: cover;
-  max-height: 2000px;
+.card-input-element {
+  display: none;
 }
 
-/* Add these styles to your CharacterCard.css file */
+.card:hover {
+  cursor: pointer;
+}
+
+.checked {
+  color: #2f0def;
+  box-shadow: 0px 0px 10px 2px rgb(13, 110, 253);
+  font-weight: bold;
+}
+
+.character-card .card-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start; /* adjust as needed */
+  border: none; /* add this line */
+}
+
+.character-card .left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* centers content horizontally */
+  justify-content: center; /* centers content vertically */
+  margin-right: 20px; /* creates space between the column and the droppable area */
+  border: none; /* add this line */
+}
+
 .character-card .card-img-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 150px;
-  overflow: hidden;
+  width: 100%; /* adjust as needed */
+  border: none; /* add this line */
 }
 
-
-.character-card img {
+.character-card .card-img-top {
   width: 100%;
   height: auto;
   object-fit: cover;
-  max-height: 150px;
+  border: none; /* add this line */
 }
 
-.droppable-area {
-  width: 100%;
-  height: 100%;
-  
+.character-card .card-title {
+  align-self: flex-start; /* aligns title to the top */
+  border: none; /* add this line */
+}
+
+.character-card .droppable-area {
+  flex-grow: 1; /* allows droppable area to take remaining space */
+  border: none; /* add this line */
+  min-height: 50%; /* adjust to desired minimum height */
+  min-width: 50%; /* adjust to desired minimum height */
+
 }
