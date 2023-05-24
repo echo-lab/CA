@@ -36,6 +36,7 @@
   align-items: center;
   justify-content: center;
   width: 100%; /* adjust as needed */
+  height: 100%;
   border: none; /* add this line */
 }
 
@@ -52,9 +53,9 @@
 }
 
 .character-card .droppable-area {
-  flex-grow: 1; /* allows droppable area to take remaining space */
+  flex-grow: 0; /* allows droppable area to take remaining space */
   border: none; /* add this line */
-  min-height: 50%; /* adjust to desired minimum height */
+  min-height: 100%; /* adjust to desired minimum height */
   min-width: 50%; /* adjust to desired minimum height */
 
 }

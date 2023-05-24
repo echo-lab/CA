@@ -1,37 +1,54 @@
-.rightbutton{
-    margin-top: 20%;
-    margin-left: 5%;
+.rightbutton,
+.leftbutton {
+  width: 50px; /* adjust as needed */
+  height: 50px; /* adjust as needed */
 }
 
-.leftbutton{
-    margin-top: 20%;
-    margin-right: 5%;
+
+.sectionTitle {
+  font-style: italic;
+  text-align: left;
 }
 
-.sectionTitle{
-    font-style: italic;
-    text-align: left;
-  }
+.DraggableContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  height: 100px;
+  width: 100px;
+}
 
-  .DraggableContainer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    margin-bottom: 20px;
-  }
-  
-  .RoleDraggable {
-    flex-basis: calc(100% / 7); /* This will create 6 items per row, adjust as needed */
-    box-sizing: border-box;
-    margin: 5px; /* Optional, for some space between the items */
-  }
+.RoleDraggable {
+  flex-basis: 100%; /* This will create 1 item per row, adjust as needed */
+  box-sizing: border-box;
+  margin: 5px; /* Optional, for some space between the items */
+}
 
-  .character-cards-container {
-    display: flex;
-    flex-direction: column; /* stack cards vertically */
-    justify-content: center; /* center vertically */
-    align-items: center; /* center horizontally */
-    height: 100%; /* take full vertical space */
-  }
+.character-cards-container {
+  display: flex;
+  flex-direction: column; /* stack cards vertically */
+  justify-content: center; /* center vertically */
+  align-items: center; /* center horizontally */
+  height: 100%; /* take full vertical space */
+  width: 30%;
+}
 
-  
+.row.justify-content-between {
+  display: flex;
+  justify-content: space-between;
+}
+
+.navigation-buttons {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.title-container {
+  position: absolute;
+  top: 10px; /* Adjust according to your needs */
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1; /* Ensure it's above other elements */
+}

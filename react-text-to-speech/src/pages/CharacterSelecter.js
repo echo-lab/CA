@@ -17,6 +17,8 @@ function CharaterSelecter() {
 
   const book = booksSummery.find((book) => book.id === id);
   const [characterValues, setCharacterValues] = useState({});
+  const [availableRoles, setAvailableRoles] = useState(roles);
+
 
   // Populate default character values
   useEffect(() => {
@@ -33,22 +35,31 @@ function CharaterSelecter() {
     }
   }, [book]);
 
-  const handleOptionChange = (characterName, value) => {
-    
-    setCharacterValues({ ...characterValues, [characterName]: value });
-  };
+  
+
+
 
   const handleDragEnd = (result) => {
-    // Check if the item was dropped outside of a droppable area
-    if (!result.destination) {
-        return;
-    }
-    const newCharacterValues = { ...characterValues };
-    console.log(newCharacterValues)
-    const role = roles.find(role => role.Role === result.draggableId); // find the actual role object
-    newCharacterValues[result.destination.droppableId] = role; // store the role object instead of id
-    setCharacterValues(newCharacterValues);
-    console.log(newCharacterValues)
+  // Check if the item was dropped outside of a droppable area
+  if (!result.destination) {
+    return;
+  }
+
+  const newCharacterValues = { ...characterValues };
+
+  // Find the actual role object
+  const role = availableRoles.find((role) => role.Role === result.draggableId);
+
+  // Update the character value with the selected role
+  newCharacterValues[result.destination.droppableId] = role;
+
+  // Remove the selected role from the available roles
+  const updatedAvailableRoles = availableRoles.filter(
+    (r) => r.Role !== result.draggableId
+  );
+
+  setCharacterValues(newCharacterValues);
+  setAvailableRoles(updatedAvailableRoles);
 };
 
   const navigate = useNavigate();
@@ -58,63 +69,66 @@ function CharaterSelecter() {
       Character: characterName,
       VA: characterValues[characterName].RoleParameter,
     }));
-    console.log("Print",selectedOptions);
     navigate("/story", { state: { selectedOptions } });
   };
+  const handleBackButtonClick = () => {
+    navigate('/');
+  };
 
+    
+  
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-    <div>
-      <div className="row">
-        <div className="rightbutton col-1">
-          <Link to="/">
-            <button className="btn btn-primary">
-              <i>
-                <KeyboardDoubleArrowLeftIcon />
-              </i>
+      <div className="d-flex flex-column align-items-stretch min-vh-100">
+        <div className="d-flex justify-content-between p-3 bg-light">
+            <button className="btn btn-primary" onClick={handleBackButtonClick}>
+              <KeyboardDoubleArrowLeftIcon />
             </button>
-          </Link>
-        </div>
-        <div className="col-8">
-          <div className="sectionTitle display-3 m-7">Select Character's Role</div>
-          <Droppable droppableId="roles">
-        {(provided) => (
-          <div 
-            {...provided.droppableProps} 
-            ref={provided.innerRef}
-            className="DraggableContainer" // Apply the CSS class
-          >
-            {roles.map((role, index) => (
-               <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} />
-            ))}
-            {provided.placeholder}
+          <div className="text-center">
+            <div className="sectionTitle display-3">Select a Role</div>
+            <p>Select a role from the left side, then drag and drop it onto a character on the right to assign voices.</p>
           </div>
-        )}
-      </Droppable>
-      <div className="character-cards-container">
-
-          {book &&
-            book.Characters.map((character, index) => {
-              const role = characterValues[character.charater_name];
-              return (
-                <div key={index}>
-                  <CharacterCard character={character} role={role} />
-                </div>
-              );
-            })}
-        </div>
-        </div>
-        <div className="leftbutton col-1">
           <button className="btn btn-primary" onClick={handleNextButtonClick}>
-            <i>
-              <KeyboardDoubleArrowRightIcon />
-            </i>
+            <KeyboardDoubleArrowRightIcon />
           </button>
         </div>
+  
+        <div className="d-flex flex-row justify-content-around flex-grow-1">
+          <div className="col-3">
+            <Droppable droppableId="roles">
+              {(provided) => (
+                <div 
+                  {...provided.droppableProps} 
+                  ref={provided.innerRef}
+                  className="DraggableContainer"
+                >
+                  {availableRoles.map((role, index) => (
+                     <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} />
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </div>
+    
+          <div className="col-9">
+            <div className="character-cards-container">
+              {book && book.Characters.map((character, index) => {
+                const role = characterValues[character.charater_name];
+                return (
+                  <CharacterCard character={character} role={role} key={index}/>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
     </DragDropContext>
   );
+  
+  
+  
+  
 }
 
 export default CharaterSelecter;
