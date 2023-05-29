@@ -7,6 +7,7 @@ import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrow
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import { Link, useLocation } from 'react-router-dom';
+import {roles} from "../Book/Roles.js"
 
 
 /*Change class to function components */
@@ -26,15 +27,6 @@ var CurrentBook = new Book(data);
 function Reader() {
   const location = useLocation();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
-  const voices = [
-     
-    {Voice:  "Mate 1", VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-C'  }},
-    {Voice:  "Mate 2" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-B'  }},
-    {Voice:  "Mate 3" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-A'  }},
-    {Voice:  "Mate 4" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-D'  }},
-    {Voice:  "Mate 5" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-E'  }},
-    {Voice:  "Mate 6" ,VoiceParameter: {languageCode: 'en-US', name :'en-US-Standard-G'  }},
-  ]
   const [state, setState] = useState({
     page: 0,
     index: 0,
@@ -42,8 +34,7 @@ function Reader() {
     pagesKeys: Object.keys(CurrentBook.pages),
     pagesValues: Object.values(CurrentBook.pages),
     stop: false,
-    isVolumnOn: false,
-    voiceOptions: voices
+    isVolumnOn: false
   });
   React.useEffect(() => {
     function handleAudioStateChange(event) {
@@ -90,8 +81,7 @@ function Reader() {
         state.pagesValues[state.page],
         state.index,
         'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
-        state.CharacterRoles,
-        state.voiceOptions
+        state.CharacterRoles
       );
       setState({ ...state, index: state.index + 1 });
       console.log("Index: ", state.index);
@@ -109,8 +99,43 @@ function Reader() {
     }
   }
   
-
   function renderPageRows() {
+    return (
+      <div className="table-column">
+        {state.pagesValues[state.page].text.map((val, key) => {
+          const isActiveRow = val.Reading;
+          const currentRole = selectedOptions.find(
+            (option) => option.Character === val.Character
+          );
+          console.log(currentRole.img)
+          const roleImage = currentRole ? currentRole.img : "";
+          const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
+          return (
+            <div
+              className={`row gx-3${isActiveRow ? " active-row" : ""}`}
+              key={key}
+            >
+              <div className="col-3">
+                <div className="p-3 role-image-container">
+                  { <img src={roleImage} alt={roleName} />}
+                </div>
+              </div>
+              <div className="col-2">
+                <div className="p-3 borderless">{val.Character}</div>
+              </div>
+              <div className="col-7">
+                <div className="p-3 borderless">{val.Dialogue}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  
+  
+  
+ /* function renderPageRows() {
     return (
       <div className="table-column">
         {state.pagesValues[state.page].text.map((val, key) => {
@@ -136,11 +161,11 @@ function Reader() {
         })}
       </div>
     );
-  }
+  }*/
   
   
 
-  async function continueReading(page, index, apiKey, roles, options) {
+  async function continueReading(page, index, apiKey, roles) {
     //console.log("Characters:",roles.filter(obj => obj.Character === page.text[index].Character));
     var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
     var currentVoice = currentCharacter[0].VA

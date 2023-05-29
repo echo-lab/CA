@@ -73,6 +73,7 @@ function CharaterSelecter() {
     const selectedOptions = Object.keys(characterValues).map((characterName) => ({
       Character: characterName,
       VA: characterValues[characterName].RoleParameter,
+      img: characterValues[characterName].img
     }));
     navigate("/story", { state: { selectedOptions } });
   };

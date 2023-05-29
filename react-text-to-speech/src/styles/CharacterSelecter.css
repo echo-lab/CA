@@ -13,14 +13,14 @@
 .DraggableContainer {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
+  justify-content: space-between;
   margin-bottom: 20px;
-  height: 100px;
-  width: 100px;
+  height: auto;
+  width: auto;
 }
 
 .RoleDraggable {
-  flex-basis: 100%; /* This will create 1 item per row, adjust as needed */
+  flex-basis: calc(50% - 10px); /* Adjust as needed */
   box-sizing: border-box;
   margin: 5px; /* Optional, for some space between the items */
 }
@@ -52,5 +52,5 @@
 }
 
 .character-card {
-  width: calc(50%); /* adjust this value as needed */
+  width: calc(90%); /* adjust this value as needed */
 }
