@@ -17,8 +17,8 @@
 .character-card .card-content {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
-  align-items: flex-start; /* adjust as needed */
+  justify-content: space-between;
+  align-items: center; /* adjust as needed */
   border: none; /* add this line */
 }
 
@@ -35,13 +35,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%; /* adjust as needed */
-  height: 100%;
-  border: none; /* add this line */
+  width: auto; /* adjust as needed */
+  height: auto;
 }
 
 .character-card .card-img-top {
-  width: 100%;
+  width: auto;
   height: auto;
   object-fit: cover;
   border: none; /* add this line */
@@ -53,9 +52,12 @@
 }
 
 .character-card .droppable-area {
-  flex-grow: 0; /* allows droppable area to take remaining space */
-  border: none; /* add this line */
-  min-height: 100%; /* adjust to desired minimum height */
-  min-width: 50%; /* adjust to desired minimum height */
-
+  flex-grow: 0;
+  width: 100%; /* the width of the square */
+  height: 100%; /* the height of the square */
+  border: 2px solid #0d6efd; 
+  background-color: #fdfdfd; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

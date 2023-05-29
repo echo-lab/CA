@@ -26,12 +26,10 @@
 }
 
 .character-cards-container {
-  display: flex;
-  flex-direction: column; /* stack cards vertically */
-  justify-content: center; /* center vertically */
-  align-items: center; /* center horizontally */
-  height: 100%; /* take full vertical space */
-  width: 30%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* create a 2 column grid */
+  gap: 20px; /* space between the cards */
+  width: 100%;
 }
 
 .row.justify-content-between {
@@ -51,4 +49,8 @@
   transform: translateX(-50%);
   text-align: center;
   z-index: 1; /* Ensure it's above other elements */
+}
+
+.character-card {
+  width: calc(50%); /* adjust this value as needed */
 }

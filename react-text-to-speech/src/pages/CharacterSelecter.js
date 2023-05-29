@@ -40,27 +40,32 @@ function CharaterSelecter() {
 
 
   const handleDragEnd = (result) => {
-  // Check if the item was dropped outside of a droppable area
-  if (!result.destination) {
-    return;
-  }
-
-  const newCharacterValues = { ...characterValues };
-
-  // Find the actual role object
-  const role = availableRoles.find((role) => role.Role === result.draggableId);
-
-  // Update the character value with the selected role
-  newCharacterValues[result.destination.droppableId] = role;
-
-  // Remove the selected role from the available roles
-  const updatedAvailableRoles = availableRoles.filter(
-    (r) => r.Role !== result.draggableId
-  );
-
-  setCharacterValues(newCharacterValues);
-  setAvailableRoles(updatedAvailableRoles);
-};
+    if (!result.destination) {
+      return;
+    }
+  
+    const newCharacterValues = { ...characterValues };
+    const role = availableRoles.find((role) => role.Role === result.draggableId);
+    const currentRole = newCharacterValues[result.destination.droppableId];
+  
+    // If there is already a role, prepare it to be added back to the available roles
+    let rolesToAddBack = [];
+    if (currentRole) {
+      rolesToAddBack = [currentRole];
+    }
+  
+    // Update the character value with the selected role
+    newCharacterValues[result.destination.droppableId] = role;
+  
+    // Remove the selected role from the available roles and add back the old role (if any)
+    const updatedAvailableRoles = [...availableRoles, ...rolesToAddBack].filter((r) => r.Role !== result.draggableId);
+  
+    setCharacterValues(newCharacterValues);
+    setAvailableRoles(updatedAvailableRoles);
+  };
+  
+  
+  
 
   const navigate = useNavigate();
 
