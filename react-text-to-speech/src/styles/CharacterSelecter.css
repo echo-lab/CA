@@ -13,10 +13,11 @@
 .DraggableContainer {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  height: 50%;
-  width: 50%;
+  justify-content: center;
+  height: auto;
+  width: auto;
+  
+
 }
 
 .RoleDraggable {
@@ -26,10 +27,18 @@
 }
 
 .character-cards-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* create a 2 column grid */
-  gap: 20px; /* space between the cards */
-  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between; /* Adjusts space between cards */
+  width: 90%;
+  margin: 20px;
+}
+
+.character-cards-container > div {
+  flex-basis: calc(50% - 30px); /* Allocate half of the space to each card, subtracting for any margins */
+  box-sizing: border-box; /* Make sure padding and border are included in the above width */
+  margin: 10px; /* Small margin for some space around the cards */
+  
 }
 
 .row.justify-content-between {
@@ -51,6 +60,4 @@
   z-index: 1; /* Ensure it's above other elements */
 }
 
-.character-card {
-  width: calc(50%); /* adjust this value as needed */
-}
+

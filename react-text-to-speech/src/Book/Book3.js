@@ -7,9 +7,6 @@ export const data = [
         {Name:"Narrator", img: require("../Pictures/pinnochio.png")},
         {Name:"Geppetto",img: require("../Pictures/pinnochio.png")},
         {Name:"Pinocchio",img: require("../Pictures/pinnochio.png")},
-        {Name:"Blue Fairy",img: require("../Pictures/pinnochio.png")},
-        {Name:"Bad Men",img: require("../Pictures/pinnochio.png")},
-        {Name:"Fish",img: require("../Pictures/pinnochio.png")}
       ],
 
       Pages: {

@@ -9,25 +9,55 @@ import { useNavigate } from "react-router-dom";
 import {roles} from "../Book/Roles.js"
 import { DragDropContext, Draggable ,Droppable } from "react-beautiful-dnd";
 import RoleDraggable from "../components/RoleDraggable.js"; // Your RoleDraggable component
+import { data as data1 } from "../Book/Book1";
+import { data as data2 } from "../Book/Book2";
+import { data as data3 } from "../Book/Book3";
 
 
+function Book(data) {
+  data.map((val) => {
+    return (
+      (this.name = val.Book.Name),
+      (this.characters = val.Book.Characters),
+      (this.pages = val.Book.Pages)
+    );
+  });
+}
 function CharaterSelecter() {
   const location = useLocation();
   const id = location.state ? location.state.id : null;
 
-  const book = booksSummery.find((book) => book.id === id);
+
+   // Generate book based on id
+   let bookData
+   switch (id) {
+     case 1:
+       bookData = data1;
+       break;
+     case 2:
+       bookData = data2;
+       break;
+     case 3:
+       bookData = data3;
+       break;
+     default:
+       throw new Error("Invalid book id");
+   }
+
+   const book = React.useMemo(() => new Book(bookData), [bookData]);
+
+
   const [characterValues, setCharacterValues] = useState({});
   const [availableRoles, setAvailableRoles] = useState(roles);
-
 
   // Populate default character values
   useEffect(() => {
     if (book) {
-      const defaultValues = book.Characters.reduce((acc, character) => {
+      const defaultValues = book.characters.reduce((acc, character) => {
         if (character.roles && character.roles.length > 0) {
-          acc[character.charater_name] = character.roles[0];
+          acc[character.Name] = character.roles[0];
         } else {
-          acc[character.charater_name] = "";
+          acc[character.Name] = "";
         }
         return acc;
       }, {});
@@ -59,7 +89,8 @@ function CharaterSelecter() {
   
     // Remove the selected role from the available roles and add back the old role (if any)
     const updatedAvailableRoles = [...availableRoles, ...rolesToAddBack].filter((r) => r.Role !== result.draggableId);
-  
+    
+    console.log(newCharacterValues)
     setCharacterValues(newCharacterValues);
     setAvailableRoles(updatedAvailableRoles);
   };
@@ -70,13 +101,22 @@ function CharaterSelecter() {
   const navigate = useNavigate();
 
   const handleNextButtonClick = () => {
+    const hasAllRolesAssigned = Object.values(characterValues).every(value => value !== "");
+  
+    if (!hasAllRolesAssigned) {
+      alert("Please assign one role to each character before continuing");
+      return;
+    }
+  
     const selectedOptions = Object.keys(characterValues).map((characterName) => ({
       Character: characterName,
       VA: characterValues[characterName].RoleParameter,
       img: characterValues[characterName].img
     }));
-    navigate("/story", { state: { selectedOptions } });
+    console.log(selectedOptions)
+    navigate("/story", { state: { selectedOptions,id } });
   };
+  
   const handleBackButtonClick = () => {
     navigate('/');
   };
@@ -100,7 +140,7 @@ function CharaterSelecter() {
         </div>
   
         <div className="d-flex flex-row justify-content-around flex-grow-1">
-          <div className="col-4">
+          <div className="col-2">
             <Droppable droppableId="roles">
               {(provided) => (
                 <div 
@@ -117,10 +157,10 @@ function CharaterSelecter() {
             </Droppable>
           </div>
     
-          <div className="col-8">
+          <div className="col-9">
             <div className="character-cards-container">
-              {book && book.Characters.map((character, index) => {
-                const role = characterValues[character.charater_name];
+              {book && book.characters.map((character, index) => {
+                const role = characterValues[character.Name];
                 return (
                   <CharacterCard character={character} role={role} key={index}/>
                 );

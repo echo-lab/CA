@@ -2,14 +2,9 @@ export const data = [
   {
     Book: {
       id: 1,
-      Name: "Pinnochio",
+      Name: "BOOK2",
       Characters: [
-        {Name:"Narrator", img: require("../Pictures/pinnochio.png")},
-        {Name:"Geppetto",img: require("../Pictures/pinnochio.png")},
-        {Name:"Pinocchio",img: require("../Pictures/pinnochio.png")},
-        {Name:"Blue Fairy",img: require("../Pictures/pinnochio.png")},
-        {Name:"Bad Men",img: require("../Pictures/pinnochio.png")},
-        {Name:"Fish",img: require("../Pictures/pinnochio.png")}
+        {Name:"Narrator", img: require("../Pictures/pinnochio.png")}
       ],
 
       Pages: {
@@ -20,7 +15,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "One day, Geppetto made a little boy of wood. \n When he finished, Geppetto sighed",
+                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
             },
             {
               Reading: false,

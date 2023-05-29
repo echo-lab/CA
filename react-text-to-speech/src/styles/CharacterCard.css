@@ -19,7 +19,6 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center; /* adjust as needed */
-  border: none; /* add this line */
 }
 
 .character-card .left-column {
@@ -27,37 +26,35 @@
   flex-direction: column;
   align-items: center; /* centers content horizontally */
   justify-content: center; /* centers content vertically */
-  margin-right: 20px; /* creates space between the column and the droppable area */
-  border: none; /* add this line */
 }
 
 .character-card .card-img-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: auto; /* adjust as needed */
-  height: auto;
+  width:60%; /* adjust as needed */
+  height: 50%;
 }
 
 .character-card .card-img-top {
   width: auto;
   height: auto;
   object-fit: cover;
-  border: none; /* add this line */
 }
 
 .character-card .card-title {
-  align-self: flex-start; /* aligns title to the top */
-  border: none; /* add this line */
+  align-self: center; /* aligns title to the top */
+  margin-left :20px;
 }
 
 .character-card .droppable-area {
   flex-grow: 0;
-  width: 100%; /* the width of the square */
-  height: 100%; /* the height of the square */
+  width: 90%; /* the width of the square */
+  height: 150px; /* the height of the square */
   border: 2px solid #0d6efd; 
   background-color: #fdfdfd; 
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 10px;
 }

@@ -7,29 +7,32 @@ import RoleDraggable from "../components/RoleDraggable.js";
 
 function CharacterCard({ character, role  }) {
 
+  const defaultMessage = "Select a role from the left side, then drag and drop it onto this character to assign voices.";
+
+
 
   return (
     <div className="character-card">
       <div className="card">
         <div className="card-content">
           <div className="left-column">
-            <h5 className="card-title">{character.charater_name}</h5>
+            <h5 className="card-title">{character.Name}</h5>
             <div className="card-img-container">
               <img
                 src={character.img}
                 className="card-img-top"
-                alt={character.charater_name}
+                alt={character.Name}
               />
             </div>
           </div>
-          <Droppable droppableId={character.charater_name}>
+          <Droppable droppableId={character.Name}>
             {(provided) => (
               <div
                 {...provided.droppableProps}
                 ref={provided.innerRef}
                 className="droppable-area"
               >
-                {role && <RoleDraggable draggableId={role.Role} role={role} index={0} />}
+                {role ? <RoleDraggable draggableId={role.Role} role={role} index={0} /> : <p>{defaultMessage}</p>}
               {provided.placeholder}
               </div>
             )}

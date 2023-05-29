@@ -1,6 +1,6 @@
 import React,  { useState } from "react";
 import "../styles/Story.css";
-import { data } from "../Book/Book1";
+
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -8,11 +8,13 @@ import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import { Link, useLocation } from 'react-router-dom';
 import {roles} from "../Book/Roles.js"
+import { data as data1 } from "../Book/Book1";
+import { data as data2 } from "../Book/Book2";
+import { data as data3 } from "../Book/Book3";
 
 
-/*Change class to function components */
-/* Read about function components*/
-function Book(CuurentBook) {
+
+function Book(data) {
   data.map((val) => {
     return (
       (this.name = val.Book.Name),
@@ -22,11 +24,30 @@ function Book(CuurentBook) {
   });
 }
 
-var CurrentBook = new Book(data);
 
 function Reader() {
   const location = useLocation();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
+  const id = location.state ? location.state.id : {};
+  console.log(id)
+  let bookData
+
+  switch (id) {
+    case 1:
+      bookData = data1;
+      break;
+    case 2:
+      bookData = data2;
+      break;
+    case 3:
+      bookData = data3;
+      break;
+    default:
+      throw new Error("Invalid book id");
+  }
+
+  var CurrentBook = new Book(bookData);
+
   const [state, setState] = useState({
     page: 0,
     index: 0,
@@ -107,7 +128,6 @@ function Reader() {
           const currentRole = selectedOptions.find(
             (option) => option.Character === val.Character
           );
-          console.log(currentRole.img)
           const roleImage = currentRole ? currentRole.img : "";
           const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
           return (
