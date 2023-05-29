@@ -15,8 +15,8 @@
   flex-wrap: wrap;
   justify-content: space-between;
   margin-bottom: 20px;
-  height: auto;
-  width: auto;
+  height: 50%;
+  width: 50%;
 }
 
 .RoleDraggable {
@@ -52,5 +52,5 @@
 }
 
 .character-card {
-  width: calc(90%); /* adjust this value as needed */
+  width: calc(50%); /* adjust this value as needed */
 }

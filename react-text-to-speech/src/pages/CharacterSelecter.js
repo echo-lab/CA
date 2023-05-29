@@ -100,7 +100,7 @@ function CharaterSelecter() {
         </div>
   
         <div className="d-flex flex-row justify-content-around flex-grow-1">
-          <div className="col-3">
+          <div className="col-4">
             <Droppable droppableId="roles">
               {(provided) => (
                 <div 
@@ -117,7 +117,7 @@ function CharaterSelecter() {
             </Droppable>
           </div>
     
-          <div className="col-9">
+          <div className="col-8">
             <div className="character-cards-container">
               {book && book.Characters.map((character, index) => {
                 const role = characterValues[character.charater_name];
