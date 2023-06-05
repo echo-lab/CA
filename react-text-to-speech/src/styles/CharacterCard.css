@@ -58,3 +58,8 @@
   align-items: center;
   margin: 10px;
 }
+
+.character-card .default-message {
+  padding: 10px; /* adjust as needed */
+  text-align: center; /* if you want the text to be centered */
+}

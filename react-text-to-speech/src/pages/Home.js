@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom'
 import '../styles/Home.css';
-//import backgroundImage from '../Pictures/bookbackgroung.jpg'
 import { bookInfo } from "../Book/Books.js"; // assuming that Books.js is in the same directory as Home.js
 
 
@@ -28,7 +27,7 @@ function Home() {
       <p className='title display-3'>Tale Mate</p>
       <div className= "d-flex justify-content-center">
             {bookInfo.map(renderCard)}
-      </div>  
+      </div>
     </div>
   )
 }

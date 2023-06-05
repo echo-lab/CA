@@ -54,5 +54,12 @@ img {
   background-color: #90ff90;
 }
 
+.text-size {
+  font-size: 28px; /* adjust as needed */
+}
+
+.row.d-flex {
+  display: flex;
+}
 
 

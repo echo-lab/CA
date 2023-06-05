@@ -135,16 +135,16 @@ function Reader() {
               className={`row gx-3${isActiveRow ? " active-row" : ""}`}
               key={key}
             >
-              <div className="col-3">
+              <div className="col-2">
                 <div className="p-3 role-image-container">
                   { <img src={roleImage} alt={roleName} />}
                 </div>
               </div>
               <div className="col-2">
-                <div className="p-3 borderless">{val.Character}</div>
+                <div className="p-3 borderless text-size">{val.Character}</div>
               </div>
-              <div className="col-7">
-                <div className="p-3 borderless">{val.Dialogue}</div>
+              <div className="col-8">
+                <div className="p-3 borderless text-size">{val.Dialogue}</div>
               </div>
             </div>
           );
@@ -154,35 +154,7 @@ function Reader() {
   }
   
   
-  
- /* function renderPageRows() {
-    return (
-      <div className="table-column">
-        {state.pagesValues[state.page].text.map((val, key) => {
-          const isActiveRow = val.Reading;
-          return (
-            <div
-              className={`row gx-3${isActiveRow ? " active-row" : ""}`}
-              key={key}
-            >
-              <div className="col-1">
-                <div className="p-3">
-                  {val.Reading && <KeyboardDoubleArrowRightIcon />}{" "}
-                </div>
-              </div>
-              <div className="col-2">
-                <div className="p-3 borderless">{val.Character}</div>
-              </div>
-              <div className="col-9">
-                <div className="p-3 borderless">{val.Dialogue}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }*/
-  
+
   
 
   async function continueReading(page, index, apiKey, roles) {
@@ -254,7 +226,7 @@ function Reader() {
   
     
   return (
-    <div className="story container reader-container">
+    <div className="story container-fluid reader-container">
       <div className="row row1">
         <div className="home btn col-1">
           <Link to={{ pathname: "/.", state: { id: 1 } }}>
@@ -271,17 +243,13 @@ function Reader() {
       </div>
 
       <div className="row">
-        <div className="col image-column">
+        <div className="col-md-5 image-column">
           <div className="image">
             <img src={state.pagesValues[state.page].img} alt="Pinnochio" />
           </div>
         </div>
-        <div className="col table-column">
-          <div className="container mb-4">
-            <button className="volumnBtn" onClick={handleClick}>
-              {state.isVolumnOn ? <VolumeOffIcon /> : <VolumeUpIcon />}
-            </button>
-          </div>
+        <div className="col-md-7 table-column">
+        
 
           <div className="container-fluid">{renderPageRows()}</div>
           {renderNavigationButtons()}
