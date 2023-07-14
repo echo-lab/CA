@@ -15,55 +15,78 @@ export const data = [
           text: [
             {
               Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara the chameleon found Zoe making a BIG mess",
+            },
+            {
+              Reading: false,
               Character: "Clara",
               Dialogue:
                 "Hey, what are these decorations for?",
             },
+
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara asked",
+            },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Ummm, a surprise party for… uhhh… someone said Zoe. Come help!",
+                "Ummm, a surprise party for… uhhh… someone",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Said Zoe",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Let’s choose a cake! squawked Zoe. This one has the birthday girl’s favorite colors. Purple, green, purple, green!",
-            },
-            {
-              Reading: false,
-              Character: "Clara",
-              Dialogue: "Those are my favorite colors, too! said Clara. And it’s my birthday",
-            },
+                "Come help!",
+            }
           ],
         },
 
         PageTwo: {
-          img: require("../Pictures/book1/Page_3.jpg"),
+          img: require("../Pictures/book1/Page_2.jpg"),
           text: [
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Oh… it’s your birthday? Zoe turned to the streamers.\n Um… look! Purple, green, purple, green! Same as the cake! Let’s add more!",
+                "Let’s choose a cake!",
             },
             {
               Reading: false,
-              Character: "Clara",
+              Character: "Narrator",
               Dialogue:
-                "Clara hugged her tail. Who else could the party be for?",
+                "Squawked Zoe",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "A perfect pattern! Zoe said. “The birthday girl will love it!",
+              Dialogue: "This one has the birthday girl’s favorite colors. Purple, green, purple, green!",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "Clara looked down. Had Zoe really forgotten her birthday?",
+              Dialogue: "Those are my favorite colors, too!",
             },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "Said Clara",
+            }, {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "And it’s my birthday",
+            }
           ],
         },
         PageThree: {

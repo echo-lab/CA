@@ -4,25 +4,22 @@ import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
-import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation } from 'react-router-dom';
-import {roles} from "../Book/Roles.js"
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
 
 
-function Book(data) {
-  data.map((val) => {
-    return (
-      (this.name = val.Book.Name),
-      (this.characters = val.Book.Characters),
-      (this.pages = val.Book.Pages)
-    );
-  });
+class Book {
+  constructor(data) {
+    this.name = data.Book.Name;
+    this.characters = data.Book.Characters;
+    this.pages = data.Book.Pages;
+  }
 }
+
 
 
 function Reader() {
@@ -46,7 +43,7 @@ function Reader() {
       throw new Error("Invalid book id");
   }
 
-  var CurrentBook = new Book(bookData);
+  var CurrentBook = new Book(bookData[0]);
 
   const [state, setState] = useState({
     page: 0,
@@ -79,25 +76,44 @@ function Reader() {
   }, []);
 
   
-  function handleClick() {
-    setState({ ...state, isVolumnOn: !state.isVolumnOn });
-    window.audioState = !window.audioState; // Toggle audio state
-    if (window.audioState === undefined) {
-      window.audioState = true; // Set initial audio state to true (not muted)
-    }
-    if (window.audioState) {
-      // Mute tab
-      window.postMessage({ type: "MUTE_TAB" }, "*");
-    } else {
-      // Unmute tab
-      window.postMessage({ type: "UNMUTE_TAB" }, "*");
+  useHotkeys("space", (event) => {
+    event.preventDefault();
+    handleNextClick();
+  });
+
+  function handlePreviousClick() {
+    console.log("Index: ", state.index);
+    if (state.index > 0) {
+      let newState = {...state}; // copy the state
+      if (state.pagesValues[state.page] && state.pagesValues[state.page].text[state.index-1]) {
+        state.pagesValues[state.page].text[state.index-1].Reading = false;
+      }
+      
+      if (state.pagesValues[state.page] && state.pagesValues[state.page].text[state.index-2]) {
+        state.pagesValues[state.page].text[state.index-2].Reading = true;
+      }
+      newState.index = state.index - 1;
+      setState(newState); // update state
+      continueReading(
+        state.pagesValues[state.page],
+        state.index-2,
+        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
+        state.CharacterRoles
+      );
+    } else if (state.page > 0) {
+      let prevPage = state.pagesValues[state.page - 1];
+    setState({
+      ...state,
+      page: state.page - 1,
+      index: prevPage.text.length+1, // index of the last sentence
+    });
     }
   }
 
 
+
   function handleNextClick() {
-    
-    if (state.pagesValues[state.page].text.length - 1 >= state.index) {
+    if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
       continueReading(
         state.pagesValues[state.page],
         state.index,
@@ -108,42 +124,55 @@ function Reader() {
       console.log("Index: ", state.index);
     } else {
       if (state.page < state.pagesValues.length - 1) {
-        state.pagesValues[state.page].text[state.index-1].Reading = false;
+        if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
+          state.pagesValues[state.page].text[state.index-1].Reading = false;
+        }
         setState({
           ...state,
           page: state.page + 1,
           index: 0,
         });
       } else {
+        if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
+          state.pagesValues[state.page].text[state.index-1].Reading = false;
+        }
         setState({ ...state, page: 0, index: 0 });
       }
     }
   }
   
+  
   function renderPageRows() {
     return (
       <div className="table-column">
-        {state.pagesValues[state.page].text.map((val, key) => {
+        {state.pagesValues[state.page]?.text?.map((val, key) => {
           const isActiveRow = val.Reading;
           const currentRole = selectedOptions.find(
             (option) => option.Character === val.Character
           );
+          
           const roleImage = currentRole ? currentRole.img : "";
           const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
+          const character = CurrentBook.characters.find(c => c.Name === val.Character);
+          const characterImage = character ? character.img : "";
+
           return (
             <div
               className={`row gx-3${isActiveRow ? " active-row" : ""}`}
               key={key}
             >
-              <div className="col-2">
-                <div className="p-3 role-image-container">
-                  { <img src={roleImage} alt={roleName} />}
-                </div>
+              <div className="col-3">
+              <div className="p-3 role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
+                {roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}} />}  {/* Adjust width as per requirement */}
+
+                {/* Add character image */}
+                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} />}  {/* Adjust width as per requirement */}
+              </div>
               </div>
               <div className="col-2">
                 <div className="p-3 borderless text-size">{val.Character}</div>
               </div>
-              <div className="col-8">
+              <div className="col-7">
                 <div className="p-3 borderless text-size">{val.Dialogue}</div>
               </div>
             </div>
@@ -158,11 +187,19 @@ function Reader() {
   
 
   async function continueReading(page, index, apiKey, roles) {
-    //console.log("Characters:",roles.filter(obj => obj.Character === page.text[index].Character));
+    if (!page || !page.text || index < 0 || index >= page.text.length) {
+      console.error(`Invalid arguments to continueReading: page=${page}, index=${index}`);
+      return;
+    }
     var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
-    var currentVoice = currentCharacter[0].VA
-    console.log("currentChar",currentCharacter[0].VA);
-    console.log("currentVoice",currentVoice);
+    var currentVoice;
+    if (currentCharacter.length > 0) {
+      currentVoice = currentCharacter[0].VA;
+    } else {
+      currentVoice = null;
+    }
+    //console.log("currentChar",currentCharacter[0].VA);
+    //console.log("currentVoice",currentVoice);
     //console.log("VA",currentCharacter[0].VA);
     //console.log("Options",options.filter( obj => obj.Voice ==  currentCharacter[0].VA));
     
@@ -170,8 +207,8 @@ function Reader() {
       page.text[index - 1].Reading = false;
     }
     page.text[index].Reading = true;
-    if (
-        currentCharacter[0].VA !== "None" 
+    if ( currentCharacter.length > 0 
+    &&   currentCharacter[0].VA !== "None" 
     &&  currentCharacter[0].VA!== "Parent" 
     &&  currentCharacter[0].VA!== "Child" 
     &&  currentCharacter[0].VA!== "") {
@@ -208,9 +245,23 @@ function Reader() {
 
   function renderNavigationButtons() {
     const isLastIndex = state.pagesValues[state.page].text.length === state.index;
+    const isFirstIndex = state.index === 0;
+    const isFirstPage = state.page === 0;
+
   
     return (
       <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
+        <div className="btn-group" role="group">
+        <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handlePreviousClick}
+            disabled={isFirstIndex&&isFirstPage}
+          >
+            {isFirstIndex ? "Last Page" : "Back"}
+          </button>
+        </div>
+
         <div className="btn-group" role="group">
           <button
             type="button"
@@ -245,7 +296,7 @@ function Reader() {
       <div className="row">
         <div className="col-md-5 image-column">
           <div className="image">
-            <img src={state.pagesValues[state.page].img} alt="Pinnochio" />
+            <img src={state.pagesValues[state.page].img} alt="current image" />
           </div>
         </div>
         <div className="col-md-7 table-column">
