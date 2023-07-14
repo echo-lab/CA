@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import CharacterCard from "../components/CharacterCard.js";
 import "../styles/CharacterSelecter.css"; // Path to your CSS file
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import { booksSummery } from "../Book/BooksSummery";
 import { useNavigate } from "react-router-dom";
 import {roles} from "../Book/Roles.js"
 import { DragDropContext, Draggable ,Droppable } from "react-beautiful-dnd";

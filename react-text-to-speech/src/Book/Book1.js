@@ -2,11 +2,11 @@ export const data = [
   {
     Book: {
       id: 1,
-      Name: "Pinnochio",
+      Name: "Birthday Beeps and Boops",
       Characters: [
-        {Name:"Narrator", img: require("../Pictures/pinnochio.png")},
-        {Name:"Clara",img: require("../Pictures/pinnochio.png")},
-        {Name:"Zoe",img: require("../Pictures/pinnochio.png")},
+        {Name:"Narrator", img: require("../Pictures/book1/cover_avatar.jpg")},
+        {Name:"Clara",img: require("../Pictures/book1/Clara_avatar.jpg")},
+        {Name:"Zoe",img: require("../Pictures/book1/Zoe_avatar.jpg")},
       ],
 
       Pages: {

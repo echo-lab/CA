@@ -5,7 +5,7 @@ export const roles = [
     {Role:  "Mate 4" ,RoleParameter: {languageCode: 'en-US', name :'en-US-Neural2-H'  },img: require("../Pictures/Mates-04.png")},
     {Role:  "Mate 5" ,RoleParameter: {languageCode: 'en-US', name :'en-US-Standard-J'  },img: require("../Pictures/Mates-05.png")},
     {Role:  "Mate 6" ,RoleParameter: {languageCode: 'en-US', name :'en-US-Neural2-G'  },img: require("../Pictures/Mates-06.png")},
-    {Role: "Parent", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/Mates-09.png")},
-    {Role: "Child", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/Mates-08.png")}
+    {Role: "Parent", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/adult.png")},
+    {Role: "Child", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/child.png")}
     //{Role: "None", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/pinnochio.png")}
   ]

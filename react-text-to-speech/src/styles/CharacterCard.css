@@ -32,8 +32,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width:60%; /* adjust as needed */
+  width:50%; /* adjust as needed */
   height: 50%;
+  margin-bottom: 10px;
 }
 
 .character-card .card-img-top {
