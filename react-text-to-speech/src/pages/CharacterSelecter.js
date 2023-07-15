@@ -11,6 +11,8 @@ import RoleDraggable from "../components/RoleDraggable.js"; // Your RoleDraggabl
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
+import Modal from 'react-modal';
+
 
 
 function Book(data) {
@@ -22,9 +24,14 @@ function Book(data) {
     );
   });
 }
+
+Modal.setAppElement('#root') // Replace #root with your app's root element id
+
 function CharaterSelecter() {
   const location = useLocation();
   const id = location.state ? location.state.id : null;
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+
 
 
    // Generate book based on id
@@ -103,7 +110,7 @@ function CharaterSelecter() {
     const hasAllRolesAssigned = Object.values(characterValues).every(value => value !== "");
   
     if (!hasAllRolesAssigned) {
-      alert("Please assign one role to each character before continuing");
+      setModalIsOpen(true);
       return;
     }
   
@@ -123,6 +130,12 @@ function CharaterSelecter() {
     
   
   return (
+    <div>
+     <Modal isOpen={modalIsOpen} onRequestClose={()=> setModalIsOpen(false)}  className="modalContent">
+        <h2>Tale Mate</h2>
+        <p>Please assign one role to each character before continuing</p>
+        <button onClick={()=> setModalIsOpen(false)}>Close</button>
+      </Modal>
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="d-flex flex-column align-items-stretch min-vh-100">
         <div className="d-flex justify-content-between p-3 bg-light">
@@ -169,6 +182,7 @@ function CharaterSelecter() {
         </div>
       </div>
     </DragDropContext>
+    </div>
   );
   
   
