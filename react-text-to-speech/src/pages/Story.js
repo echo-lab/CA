@@ -97,7 +97,6 @@ function Reader() {
       continueReading(
         state.pagesValues[state.page],
         state.index-2,
-        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
         state.CharacterRoles
       );
     } else if (state.page > 0) {
@@ -117,7 +116,6 @@ function Reader() {
       continueReading(
         state.pagesValues[state.page],
         state.index,
-        'AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg',
         state.CharacterRoles
       );
       setState({ ...state, index: state.index + 1 });
@@ -186,7 +184,7 @@ function Reader() {
 
   
 
-  async function continueReading(page, index, apiKey, roles) {
+  async function continueReading(page, index, roles) {
     if (!page || !page.text || index < 0 || index >= page.text.length) {
       console.error(`Invalid arguments to continueReading: page=${page}, index=${index}`);
       return;
@@ -213,31 +211,25 @@ function Reader() {
     &&  currentCharacter[0].VA!== "Child" 
     &&  currentCharacter[0].VA!== "") {
       try {
-        console.log("Parameters", currentVoice)
         const request = {
-          input: { text: page.text[index].Dialogue },
-          voice: currentVoice,
-          audioConfig: { audioEncoding: 'MP3' },
+            text: page.text[index].Dialogue,
+            voice: currentVoice,
         };
-  
-        const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(request),
+
+        const response = await fetch('http://localhost:5000/synthesize', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(request),
         });
-  
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-  
+
         const data = await response.json();
         const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        audio.play();
-      } catch (error) {
+        audio.play()
+    } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
-      }
+    }
     }
   }
   

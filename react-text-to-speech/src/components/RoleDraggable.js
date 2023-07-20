@@ -8,19 +8,18 @@ function RoleDraggable({ draggableId,role, index }) {
 
     const playSound = () => {
         
-        speak('AIzaSyByB-Lfc_cDmyw2fg6nsJ2_KreRwuuwuNg')
+        speak()
       };
     
 
-      async function speak(apiKey){
+      async function speak(){
         try {
             const request = {
-              input: { text: "Hello I am "+role.Role },
-              voice: role.RoleParameter,
-              audioConfig: { audioEncoding: 'MP3' },
+              text: "Hello I am "+role.Role,
+              voice: role.RoleParameter
             };
       
-            const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
+            const response = await fetch('http://localhost:5000/synthesize', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -28,13 +27,9 @@ function RoleDraggable({ draggableId,role, index }) {
               body: JSON.stringify(request),
             });
       
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-      
             const data = await response.json();
             const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-            audio.play();
+            audio.play()
           } catch (error) {
             console.error('Error in Google Text-to-Speech:', error);
           }
