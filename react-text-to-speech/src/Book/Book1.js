@@ -102,19 +102,34 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "No time, no time!” Zoe exclaimed. “We need more hats!",
+                "No time, no time!We need more hats!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "Zoe exclaimed",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Beep, boop, beep, boop!” Zoe pointed at the hats",
+                "Beep, boop, beep, boop!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "Zoe pointed at the hats",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Maybe I should go…” Clara whispered, but Zoe didn’t hear",
+                "Maybe I should go…",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "Clara whispered, but Zoe didn’t hear",
             },
           ],
         },
@@ -125,19 +140,25 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "We need plates!” Zoe fluttered excitedly",
+                "We need plates!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe set the table.",
+                "Zoe fluttered excitedly while setting the table.",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Uh-oh,” Zoe cried. “I don’t know what’s missing!",
+                "Uh-oh,” “I don’t know what’s missing!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe cried",
             },
             {
               Reading: false,
@@ -153,7 +174,13 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "I have an idea, offered Clara.",
+              Dialogue: "I have an idea.",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "offered Clara",
             },
             {
               Reading: false,
@@ -170,7 +197,13 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "Great! Zoe said. Beep, boop, beep, boop!",
+              Dialogue: "Great! Beep, boop, beep, boop!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe said.",
             },
           ],
         },
@@ -192,13 +225,25 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Wait! There aren’t enough circle balloons. Beep, boop, beep, beep, see? said Zoe",
+                "Wait! There aren’t enough circle balloons. Beep, boop, beep, beep, see?",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "said Zoe.",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Well… let’s make a new pattern,” said Clara",
+                "Well… let’s make a new pattern",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "said Clara",
             },
           ],
         },
@@ -215,19 +260,37 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Star, star, circle! Star, star, circle! shouted Zoe. We fixed it!",
+                "Star, star, circle! Star, star, circle!. We fixed it!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "shouted Zoe",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Beep, beep, boop! Beep, beep, boop!” Clara laughed. Helping WAS fun",
+                "Beep, beep, boop! Beep, beep, boop!” Helping WAS fun",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara laughed.",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "The birthday girl will love this, Clara said. I’m glad I could help.",
+                "The birthday girl will love this, I’m glad I could help.",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara said.",
             },
           ],
         },
@@ -244,7 +307,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“I have something to show you!” she squealed.",
+                "“I have something to show you!”",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe squealed",
             },
             {
               Reading: false,
@@ -256,13 +325,25 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Happy birthday, happy birthday! sang Zoe. Happy birthday, Clara!",
+                "Happy birthday, happy birthday!. Happy birthday, Clara!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "sang Zoe",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "For me?” Clara gasped",
+                "For me?",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara gasped",
             },
           ],
         },
@@ -273,13 +354,25 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Of course! Zoe gave Clara a BIG hug. You’re my best friend!",
+                "Of course! You’re my best friend!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe gave Clara a BIG hug.",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Awwww! Thanks, Zoe!” Clara beamed",
+                "Awwww! Thanks, Zoe!”",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                " Clara beamed.",
             },
             {
               Reading: false,
@@ -291,7 +384,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "The cake’s here! Zoe said",
+                "The cake’s here!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe said",
             },
             {
               Reading: false,
@@ -308,25 +407,49 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Oh no! Zoe cried. “The colors don’t match the decorations. What should we do?",
+                "Oh no! “The colors don’t match the decorations. What should we do?",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe cried",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Keep it! said Clara. It matches the pattern of the streamers. Beep, boop, beep, boop—see?",
+                "Keep it! It matches the pattern of the streamers. Beep, boop, beep, boop—see?",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "said Clara.",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "You’re right!” exclaimed Zoe, taking a huge bite",
+                "You’re right!” taking a huge bite",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "exclaimed Zoe",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Zoe! Clara laughed. Our friends aren’t here yet!",
+                "Zoe! Our friends aren’t here yet!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                " Clara laughed.",
             },
             {
               Reading: false,
