@@ -4,3 +4,4 @@ npm install @mui/icons-material
 $env:NODE_OPTIONS="--openssl-legacy-provider"
 npm run to run the client
 node ./server/server.js to run the server
+npm run dev to run server and client
