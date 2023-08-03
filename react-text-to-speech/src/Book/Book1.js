@@ -88,9 +88,61 @@ export const data = [
               Dialogue: "And it’s my birthday",
             }
           ],
-        },
-        PageThree: {
+        },PageThree: {
+          img: require("../Pictures/book1/Page_3.jpg"),
+          text: [
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "Oh… it’s your birthday?",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe turned to the streamers.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue: "Um… look! Purple, green, purple, green! Same as the cake! Let’s add more!Same as the cake! Let’s add more!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "Clara hugged her tail",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "Who else could the party be for?",
+            }, 
+          ],
+        },PageFour: {
           img: require("../Pictures/book1/Page_4.jpg"),
+          text: [
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "A perfect pattern! The birthday girl will love it!",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara looked down.",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "Had Zoe really forgotten her birthday?",
+            },
+          ],
+        },
+        PageFive: {
+          img: require("../Pictures/book1/Page_5.jpg"),
           text: [
             {
               Reading: false,
@@ -109,6 +161,11 @@ export const data = [
               Character: "Narrator",
               Dialogue: "Zoe exclaimed",
             },
+          ],
+        },
+        PageSix: {
+          img: require("../Pictures/book1/Page_6.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Zoe",
@@ -131,11 +188,6 @@ export const data = [
               Character: "Narrator",
               Dialogue: "Clara whispered, but Zoe didn’t hear",
             },
-          ],
-        },
-        PageFour: {
-          img: require("../Pictures/book1/Page_7.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Zoe",
@@ -148,6 +200,11 @@ export const data = [
               Dialogue:
                 "Zoe fluttered excitedly while setting the table.",
             },
+          ],
+        },
+        PageSeven: {
+          img: require("../Pictures/book1/Page_7.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Zoe",
@@ -166,11 +223,6 @@ export const data = [
               Dialogue:
                 "Clara saw Zoe was upset. Zoe was still her best friend. Clara took a deep breath.",
             },
-          ],
-        },
-        PageFive: {
-          img: require("../Pictures/book1/Page_8.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Clara",
@@ -182,6 +234,11 @@ export const data = [
               Dialogue:
                 "offered Clara",
             },
+          ],
+        },
+        PageEight: {
+          img: require("../Pictures/book1/Page_8.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -205,16 +262,16 @@ export const data = [
               Dialogue:
                 "Zoe said.",
             },
-          ],
-        },
-        PageSix: {
-          img: require("../Pictures/book1/Page_9.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Narrator",
               Dialogue: "Zoe sounded so silly that Clara started laughing.",
             },
+          ],
+        },
+        PageNine: {
+          img: require("../Pictures/book1/Page_9.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -239,17 +296,17 @@ export const data = [
               Dialogue:
                 "Well… let’s make a new pattern",
             },
+          ],
+        },
+        PageTen: {
+          img: require("../Pictures/book1/Page_10.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "said Clara",
             },
-          ],
-        },
-        PageSeven: {
-          img: require("../Pictures/book1/Page_10.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -274,6 +331,11 @@ export const data = [
               Dialogue:
                 "Beep, beep, boop! Beep, beep, boop!” Helping WAS fun",
             },
+          ],
+        },
+        PageEleven: {
+          img: require("../Pictures/book1/Page_11.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -292,11 +354,6 @@ export const data = [
               Dialogue:
                 "Clara said.",
             },
-          ],
-        },
-        PageEight: {
-          img: require("../Pictures/book1/Page_12.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -315,6 +372,11 @@ export const data = [
               Dialogue:
                 "Zoe squealed",
             },
+          ],
+        },
+        PageTwelve: {
+          img: require("../Pictures/book1/Page_12.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -347,8 +409,8 @@ export const data = [
             },
           ],
         },
-        PageNine: {
-          img: require("../Pictures/book1/Page_14.jpg"),
+        PageThirteen: {
+          img: require("../Pictures/book1/Page_13.jpg"),
           text: [
             {
               Reading: false,
@@ -386,6 +448,11 @@ export const data = [
               Dialogue:
                 "The cake’s here!",
             },
+          ],
+        },
+        PageFourteen: {
+          img: require("../Pictures/book1/Page_14.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -398,11 +465,6 @@ export const data = [
               Dialogue:
                 "They threw open the cake box.",
             },
-          ],
-        },
-        PageTen: {
-          img: require("../Pictures/book1/Page_15.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Zoe",
@@ -415,6 +477,11 @@ export const data = [
               Dialogue:
                 "Zoe cried",
             },
+          ],
+        },
+        PageFifteen: {
+          img: require("../Pictures/book1/Page_15.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Clara",
