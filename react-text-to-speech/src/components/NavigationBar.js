@@ -9,7 +9,7 @@ function NavigationBar() {
             <ul class="nav navbar-nav navbar-right"></ul>
             <a class="navbar-brand" href="#">
             <img src={Logo} width="300" height="auto" class="d-inline-block align-left" alt=""/>
-              Tale Mate
+              TaleMate
             </a>
     </nav>
   );

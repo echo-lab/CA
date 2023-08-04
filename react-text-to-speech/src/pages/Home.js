@@ -24,7 +24,7 @@ const renderCard = (card, index) =>{
 function Home() {
   return (
     <div className='home'>
-      <p className='title display-3'>Tale Mate</p>
+      <p className='title display-3'>TaleMate</p>
       <div className= "d-flex justify-content-center">
             {bookInfo.map(renderCard)}
       </div>
