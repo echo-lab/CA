@@ -196,7 +196,7 @@ function Reader() {
     } else {
       currentVoice = null;
     }
-    //console.log("currentChar",currentCharacter[0].VA);
+    console.log("currentChar",currentCharacter[0].VA.name);
     //console.log("currentVoice",currentVoice);
     //console.log("VA",currentCharacter[0].VA);
     //console.log("Options",options.filter( obj => obj.Voice ==  currentCharacter[0].VA));
@@ -206,10 +206,7 @@ function Reader() {
     }
     page.text[index].Reading = true;
     if ( currentCharacter.length > 0 
-    &&   currentCharacter[0].VA !== "None" 
-    &&  currentCharacter[0].VA!== "Parent" 
-    &&  currentCharacter[0].VA!== "Child" 
-    &&  currentCharacter[0].VA!== "") {
+    &&  currentCharacter[0].VA.name!== "") {
       try {
         const request = {
             text: page.text[index].Dialogue,
