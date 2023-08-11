@@ -283,7 +283,7 @@ function Reader() {
       <div className="row">
         <div className="col-md-5 image-column">
           <div className="image">
-            <img src={state.pagesValues[state.page].img} alt="current page picture" />
+            <img src={state.pagesValues[state.page].img} alt="current page" />
           </div>
         </div>
         <div className="col-md-7 table-column">
