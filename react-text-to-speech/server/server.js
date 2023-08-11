@@ -1,9 +1,14 @@
 const express = require('express');
-const cors = require('cors');
+const cors = require('cors'); // Make sure to require the cors module
+const corsOptions = {
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Default to localhost if not specified
+    methods: 'POST',
+    credentials: true
+  };
 const fs = require('fs');
 
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 let rawData = fs.readFileSync('server/key/key.json'); // replace with the path to your .json keyfile
