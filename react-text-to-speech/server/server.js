@@ -1,12 +1,13 @@
 const express = require('express');
-const cors = require('cors'); // Make sure to require the cors module
 const fs = require('fs');
-
+const cors = require('cors');
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: 'http://talemate.cs.vt.edu:3000',
     methods: 'POST',
     credentials: true
   };
+
+
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
