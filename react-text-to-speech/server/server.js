@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors'); // Make sure to require the cors module
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Default to localhost if not specified
+    origin: 'http://talemate.cs.vt.edu:3000', // Default to localhost if not specified
     methods: 'POST',
     credentials: true
   };
