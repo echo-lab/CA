@@ -1,11 +1,12 @@
 const express = require('express');
+const cors = require('cors'); // Make sure to require the cors module
+const fs = require('fs');
+
 const corsOptions = {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     methods: 'POST',
     credentials: true
   };
-const fs = require('fs');
-
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
