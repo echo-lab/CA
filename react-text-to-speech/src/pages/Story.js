@@ -1,8 +1,6 @@
 import React,  { useState } from "react";
 import "../styles/Story.css";
-
 import "bootstrap/dist/css/bootstrap.css";
-import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation } from 'react-router-dom';
@@ -285,7 +283,7 @@ function Reader() {
       <div className="row">
         <div className="col-md-5 image-column">
           <div className="image">
-            <img src={state.pagesValues[state.page].img} alt="current image" />
+            <img src={state.pagesValues[state.page].img} alt="current page picture" />
           </div>
         </div>
         <div className="col-md-7 table-column">
