@@ -213,7 +213,7 @@ function Reader() {
             voice: currentVoice,
         };
 
-        const response = await fetch('http://localhost:5000/synthesize', {
+        const response = await fetch('http://talemate.cs.vt.edu:5000/synthesize', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
