@@ -166,7 +166,7 @@ function Reader() {
               </div>
               </div>
               <div className="col-2">
-                <div className="p-3 borderless text-size">{val.Character}</div>
+                <div className="p-3 borderless text-size">{val.Character}: </div>
               </div>
               <div className="col-7">
                 <div className="p-3 borderless text-size">{val.Dialogue}</div>

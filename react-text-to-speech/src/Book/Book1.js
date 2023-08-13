@@ -3,6 +3,7 @@ export const data = [
     Book: {
       id: 1,
       Name: "Birthday Beeps and Boops",
+      Cover:require("../Pictures/book1/cover_avatar.jpg"),
       Characters: [
         {Name:"Narrator", img: require("../Pictures/book1/cover_avatar.jpg")},
         {Name:"Clara",img: require("../Pictures/book1/Clara_avatar.jpg")},
