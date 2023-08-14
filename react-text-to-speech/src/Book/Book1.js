@@ -11,7 +11,7 @@ export const data = [
 
       Pages: {
         Cover: {
-          img: require("../Pictures/book1/cover.jpg"),
+          img: require("../Pictures/book1/Cover - Birthday Beeps.jpg"),
           text: [
             {
               Reading: false,
