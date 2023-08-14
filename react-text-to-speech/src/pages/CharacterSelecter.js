@@ -120,7 +120,7 @@ function CharaterSelecter() {
       img: characterValues[characterName].img
     }));
     console.log(selectedOptions)
-    navigate("/Story/Heading", { state: { selectedOptions,id } });
+    navigate("/story", { state: { selectedOptions,id } });
   };
   
   const handleBackButtonClick = () => {
