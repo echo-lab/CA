@@ -11,6 +11,17 @@ export const data = [
       ],
 
       Pages: {
+        Cover: {
+          img: require("../Pictures/book1/Cover - Birthday Beeps.jpg"),
+          text: [
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Birthday Beeps and Boops",
+            }
+          ],
+        },
         PageOne: {
           img: require("../Pictures/book1/Page_1.jpg"),
           text: [

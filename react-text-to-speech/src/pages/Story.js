@@ -275,9 +275,6 @@ function Reader() {
             </button>
           </Link>
         </div>
-        <div className="storyTitle col-9 font-weight-bold display-3">
-          {CurrentBook.name}
-        </div>
       </div>
 
       <div className="row">
