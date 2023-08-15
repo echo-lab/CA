@@ -24,8 +24,9 @@
 .image-column {
  flex: 1;
  display: flex;
- justify-content: center;
- align-items: center;
+ flex-direction: column; 
+ justify-content: flex-start; 
+ align-items: flex-start;
 }
 
 .table-column {
@@ -47,8 +48,24 @@ img {
  right: 0;
 }
 
+.italic-text {
+  font-style: italic;
+}
+
 .active-row {
   background-color: #90ff90;
+}
+
+.active-character {
+  font-weight: bold;
+}
+
+.active-dialogue{
+  color: #0000CC;
+}
+
+.active-roleImage {
+  box-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
 }
 
 .text-size {

@@ -4,7 +4,7 @@ export const data = [
       id: 1,
       Name: "Birthday Beeps and Boops",
       Characters: [
-        {Name:"Narrator", img: require("../Pictures/book1/cover_avatar.jpg")},
+        {Name:"Narrator", img: require("../Pictures/narrator.png")},
         {Name:"Clara",img: require("../Pictures/book1/Clara_avatar.jpg")},
         {Name:"Zoe",img: require("../Pictures/book1/Zoe_avatar.jpg")},
       ],

@@ -143,6 +143,7 @@ function Reader() {
       <div className="table-column">
         {state.pagesValues[state.page]?.text?.map((val, key) => {
           const isActiveRow = val.Reading;
+          console.log("isActiveRow", isActiveRow)
           const currentRole = selectedOptions.find(
             (option) => option.Character === val.Character
           );
@@ -159,17 +160,17 @@ function Reader() {
             >
               <div className="col-3">
               <div className="p-3 role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
-                {roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}} />}  {/* Adjust width as per requirement */}
+                {roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}  {/* Adjust width as per requirement */}
 
                 {/* Add character image */}
-                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} />}  {/* Adjust width as per requirement */}
+                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
               </div>
               </div>
-              <div className="col-2">
-                <div className="p-3 borderless text-size">{val.Character}</div>
+              <div className="col-3">
+                <div className={`p-3 borderless text-size italic-text ${isActiveRow ? "active-character" : ""} `}>{val.Character}:</div>
               </div>
-              <div className="col-7">
-                <div className="p-3 borderless text-size">{val.Dialogue}</div>
+              <div className="col-6">
+                <div className={`p-3 borderless text-size italic-text ${isActiveRow ? "active-dialogue" : ""} `}>{val.Dialogue}</div>
               </div>
             </div>
           );
