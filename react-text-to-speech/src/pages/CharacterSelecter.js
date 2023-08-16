@@ -130,7 +130,7 @@ function CharaterSelecter() {
     
   
   return (
-    <div>
+    <div className="characterSelecter">
      <Modal isOpen={modalIsOpen} onRequestClose={()=> setModalIsOpen(false)}  className="modalContent">
         <h2>Tale Mate</h2>
         <p>Please assign one role to each character before continuing</p>

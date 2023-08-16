@@ -38,7 +38,7 @@
 }
 
 .character-card .card-img-top {
-  width: auto;
+  width: 350px;
   height: auto;
   object-fit: cover;
 }

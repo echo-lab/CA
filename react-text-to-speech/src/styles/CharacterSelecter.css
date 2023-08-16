@@ -1,3 +1,10 @@
+.characterSelecter{
+  display: flex; 
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; 
+}
+
 .rightbutton,
 .leftbutton {
   width: 50px; /* adjust as needed */
@@ -9,6 +16,7 @@
   height: 150px;
   margin: auto;
   background-color: rgb(41, 144, 233);
+  padding: 10px;
   /* additional styles as needed */
 }
 
@@ -22,9 +30,9 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  height: auto;
   width: auto;
-  
+  max-height:500px;
+  overflow-y: auto;
 
 }
 
