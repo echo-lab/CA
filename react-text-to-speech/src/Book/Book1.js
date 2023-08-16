@@ -28,7 +28,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara the chameleon found Zoe making a BIG mess",
+                "Clara the chameleon found Zoe making a BIG mess.",
             },
             {
               Reading: false,
@@ -47,13 +47,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Ummm, a surprise party for… uhhh… someone",
+                "Ummm, a surprise party for… uhhh… someone.",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Said Zoe",
+                "said Zoe",
             },
             {
               Reading: false,
@@ -96,7 +96,7 @@ export const data = [
             }, {
               Reading: false,
               Character: "Clara",
-              Dialogue: "And it’s my birthday",
+              Dialogue: "And it’s my birthday.",
             }
           ],
         },PageThree: {
@@ -122,7 +122,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara hugged her tail",
+              Dialogue: "Clara hugged her tail.",
             },
             {
               Reading: false,
@@ -165,7 +165,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "No time, no time!We need more hats!",
+                "No time, no time! We need more hats!",
             },
             {
               Reading: false,
@@ -186,7 +186,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe pointed at the hats",
+              Dialogue: "Zoe pointed at the hats.",
             },
             {
               Reading: false,
@@ -197,7 +197,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara whispered, but Zoe didn’t hear",
+              Dialogue: "Clara whispered, but Zoe didn’t hear.",
             },
             {
               Reading: false,
@@ -226,7 +226,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe cried",
+                "Zoe cried.",
             },
             {
               Reading: false,
@@ -243,7 +243,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "offered Clara",
+                "offered Clara.",
             },
           ],
         },
@@ -305,19 +305,19 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Well… let’s make a new pattern",
+                "Well… let’s make a new pattern.",
             },
-          ],
-        },
-        PageTen: {
-          img: require("../Pictures/book1/Page_10.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "said Clara",
             },
+          ],
+        },
+        PageTen: {
+          img: require("../Pictures/book1/Page_10.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -334,13 +334,13 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "shouted Zoe",
+                "shouted Zoe.",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Beep, beep, boop! Beep, beep, boop!” Helping WAS fun",
+                "Beep, beep, boop! Beep, beep, boop!” Helping WAS fun!",
             },
           ],
         },
@@ -357,7 +357,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "The birthday girl will love this, I’m glad I could help.",
+                "The birthday girl will love this, I’m glad I could help!",
             },
             {
               Reading: false,
@@ -369,7 +369,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe couldn’t wait any longer",
+                "Zoe couldn’t wait any longer.",
             },
             {
               Reading: false,
@@ -381,7 +381,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe squealed",
+                "Zoe squealed.",
             },
           ],
         },
@@ -416,7 +416,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara gasped",
+                "Clara gasped.",
             },
           ],
         },
@@ -445,7 +445,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                " Clara beamed.",
+                "Clara beamed.",
             },
             {
               Reading: false,
@@ -468,7 +468,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe said",
+                "Zoe said.",
             },
             {
               Reading: false,
@@ -486,7 +486,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe cried",
+                "Zoe cried.",
             },
           ],
         },
@@ -509,13 +509,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "You’re right!” taking a huge bite",
+                "You’re right!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "exclaimed Zoe",
+                "exclaimed Zoe. Taking a huge bite.",
             },
             {
               Reading: false,
