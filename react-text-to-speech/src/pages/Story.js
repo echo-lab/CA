@@ -284,7 +284,7 @@ function Reader() {
             <img src={state.pagesValues[state.page].img} alt="current page picture" />
           </div>
         </div>
-        <div className="col-md-7 table-column">
+        <div className="col-md-7 table-container">
         
 
           <div className="container-fluid">{renderPageRows()}</div>
