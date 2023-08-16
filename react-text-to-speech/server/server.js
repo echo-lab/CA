@@ -4,7 +4,7 @@ const cors = require('cors');
 const https = require('https');
 
 const corsOptions = {
-    origin: 'https://talemate.cs.vt.edu:443',
+    origin: 'https://talemate.cs.vt.edu',
     methods: 'POST',
     credentials: true
   };
