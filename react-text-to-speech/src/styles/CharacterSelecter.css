@@ -31,7 +31,7 @@
   flex-wrap: wrap;
   justify-content: center;
   width: auto;
-  max-height:500px;
+  max-height: calc(100vh - 250px); 
   overflow-y: auto;
 
 }

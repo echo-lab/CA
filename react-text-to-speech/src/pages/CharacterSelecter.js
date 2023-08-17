@@ -96,7 +96,7 @@ function CharaterSelecter() {
     // Remove the selected role from the available roles and add back the old role (if any)
     const updatedAvailableRoles = [...availableRoles, ...rolesToAddBack].filter((r) => r.Role !== result.draggableId);
     
-    console.log(newCharacterValues)
+    console.log("newVal:",newCharacterValues)
     setCharacterValues(newCharacterValues);
     setAvailableRoles(updatedAvailableRoles);
   };
@@ -117,9 +117,10 @@ function CharaterSelecter() {
     const selectedOptions = Object.keys(characterValues).map((characterName) => ({
       Character: characterName,
       VA: characterValues[characterName].RoleParameter,
+      role:characterValues[characterName].Role,
       img: characterValues[characterName].img
     }));
-    console.log(selectedOptions)
+
     navigate("/story", { state: { selectedOptions,id } });
   };
   

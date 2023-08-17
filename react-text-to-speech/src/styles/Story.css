@@ -27,8 +27,9 @@ overflow: hidden;
 }
 
 .table-container {
-  max-height: 500px; 
+  max-height: calc(100vh - 200px); 
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 .table-column {
@@ -54,8 +55,12 @@ img {
   font-style: italic;
 }
 
-.active-row {
-  background-color: #90ff90;
+.active-parent {
+  background-color: #98ff98;
+}
+
+.active-child {
+  background-color: #ffbf00;
 }
 
 .active-character {
@@ -64,10 +69,11 @@ img {
 
 .active-dialogue{
   color: #0000CC;
+  font-weight: bold;
 }
 
 .active-roleImage {
-  box-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
+  /* box-shadow: 0 0 20px rgba(255, 255, 0, 0.5); */
 }
 
 .text-size {

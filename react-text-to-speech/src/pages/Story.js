@@ -24,7 +24,7 @@ function Reader() {
   const location = useLocation();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
-  console.log(id)
+
   let bookData
 
   switch (id) {
@@ -142,11 +142,20 @@ function Reader() {
     return (
       <div className="table-column">
         {state.pagesValues[state.page]?.text?.map((val, key) => {
+          let isActiveRowParent = false;
+          let isActiveRowChild = false;
           const isActiveRow = val.Reading;
-          console.log("isActiveRow", isActiveRow)
           const currentRole = selectedOptions.find(
             (option) => option.Character === val.Character
           );
+     
+          if(currentRole.role === "Parent"){
+            isActiveRowParent = true;
+          }
+
+          if(currentRole.role === "Child"){
+            isActiveRowChild = true;
+          }
           
           const roleImage = currentRole ? currentRole.img : "";
           const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
@@ -155,9 +164,12 @@ function Reader() {
 
           return (
             <div
-              className={`row gx-3${isActiveRow ? " active-row" : ""}`}
+              className={`row gx-3${isActiveRowParent && isActiveRow ? " active-parent" : ""}${isActiveRowChild && isActiveRow ? " active-child" : ""}`}
               key={key}
             >
+              <div className="col-3">
+                <div className={`p-3 borderless text-size italic-text ${isActiveRow ? "active-character" : ""} `}>{val.Character}:</div>
+              </div>
               <div className="col-3">
               <div className="p-3 role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
                 {roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}  {/* Adjust width as per requirement */}
@@ -165,9 +177,6 @@ function Reader() {
                 {/* Add character image */}
                 {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
               </div>
-              </div>
-              <div className="col-3">
-                <div className={`p-3 borderless text-size italic-text ${isActiveRow ? "active-character" : ""} `}>{val.Character}:</div>
               </div>
               <div className="col-6">
                 <div className={`p-3 borderless text-size italic-text ${isActiveRow ? "active-dialogue" : ""} `}>{val.Dialogue}</div>
