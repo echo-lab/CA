@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom'
 import '../styles/Home.css';
 import { bookInfo } from "../Book/Books.js"; // assuming that Books.js is in the same directory as Home.js
+import NavigationBar from '../components/NavigationBar';
 
 
 
@@ -23,12 +24,15 @@ const renderCard = (card, index) =>{
 
 function Home() {
   return (
+    <>
+    <div className=''> <NavigationBar /></div>
     <div className='home'>
       <p className='title display-3'>TaleMate</p>
       <div className= "d-flex justify-content-center">
             {bookInfo.map(renderCard)}
       </div>
     </div>
+    </>
   )
 }
 
