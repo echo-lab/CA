@@ -179,7 +179,13 @@ function Reader() {
               </div>
               </div>
               <div className="col-6">
-                <div className={`p-3 borderless text-size italic-text ${isActiveRow ? "active-dialogue" : ""} `}>{val.Dialogue}</div>
+                <div className={`p-3 borderless text-size italic-text ${isActiveRow ? "active-dialogue" : ""} `}>{val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ? str : <>
+      {str}
+      <br />
+    </>
+  )}
+                
+                </div>
               </div>
             </div>
           );

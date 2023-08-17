@@ -17,7 +17,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Birthday Beeps and Boops",
+                "The Pattern Pals: Birthday Beeps and Boops \nby Purdue University Science and Stories Collaborative",
             }
           ],
         },
