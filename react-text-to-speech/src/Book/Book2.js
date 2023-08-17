@@ -2,7 +2,7 @@ export const data = [
   {
     Book: {
       id: 1,
-      Name: "Sleepover Similarities",
+      Name: "Pattern Pals: Sleepover Similarities",
       Characters: [
         {Name:"Narrator", img: require("../Pictures/narrator.png")},
         {Name:"Clara",img: require("../Pictures/book1/Clara_avatar.jpg")},
@@ -10,6 +10,17 @@ export const data = [
       ],
 
       Pages: {
+        Cover: {
+          img: require("../Pictures/book2/cover.png"),
+          text: [
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "The Pattern Pals: Sleepover Similarities \nby Purdue University Science and Stories Collaborative",
+            }
+          ],
+        },
         PageOne: {
           img: require("../Pictures/book2/1 Sleepover.jpg"),
           text: [

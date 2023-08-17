@@ -2,7 +2,7 @@ export const data = [
   {
     Book: {
       id: 1,
-      Name: "Birthday Beeps and Boops",
+      Name: "Pattern Pals: Birthday Beeps and Boops",
       Characters: [
         {Name:"Narrator", img: require("../Pictures/narrator.png")},
         {Name:"Clara",img: require("../Pictures/book1/Clara_avatar.jpg")},
