@@ -25,7 +25,7 @@ function Reader() {
   const location = useLocation();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
-  const dialogueRef = useRef(null);
+  const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
 
   let bookData
@@ -122,14 +122,12 @@ function Reader() {
       setState({ ...state, index: state.index + 1 });
       console.log("Index: ", state.index);
 
-      if(state.index === 3){
-        if (dialogueRef.current) {
-          dialogueRef.current.scrollIntoView({
+      if(dialogueRefs.current[state.index]){
+        dialogueRefs.current[state.index].scrollIntoView({
             behavior: "smooth",
             block: "center",
-          });
-        }
-      }
+        });
+    }
 
 
     } else {
@@ -187,7 +185,7 @@ function Reader() {
 
           return (
             <div
-              ref={dialogueRef}
+              ref={(el) => dialogueRefs.current[key] = el}
               className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
               key={key}
             >
