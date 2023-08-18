@@ -26,6 +26,7 @@ app.post('/synthesize', async (req, res) => {
             input: { text: req.body.text },
             voice: req.body.voice,
             audioConfig: { audioEncoding: 'MP3' },
+            speakingRate: 0.75,
         };
 
         const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
