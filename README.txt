@@ -9,5 +9,6 @@ npm run dev to run server and client
 
 To run in the server:
 Make sure the server is running : node ./server/server.js
+MAKE SURE YOU INSTALL SERVER 11.3  npm install serve@11.3.0
 
 Then run:  sudo ./node_modules/.bin/serve -s build --ssl-cert ../../cert/talemate.cs.vt.edu.crt --ssl-key ../../cert/key3.pem -l 443
