@@ -47,7 +47,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Ummm, a surprise party for… uhhh… someone.",
+                "Ummm, a surprise party for… uhhh… someone,",
             },
             {
               Reading: false,
@@ -77,7 +77,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Squawked Zoe",
+                "squawked Zoe.",
             },
             {
               Reading: false,
@@ -92,7 +92,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Said Clara",
+              Dialogue: "said Clara.",
             }, {
               Reading: false,
               Character: "Clara",
@@ -143,6 +143,12 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
+                "Zoe said.",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
                 "Clara looked down.",
             },
             {
@@ -159,7 +165,12 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Can you please tell me who this party is for?” Clara asked",
+                "Can you please tell me who this party is for?",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "Clara asked.",
             },
             {
               Reading: false,
@@ -170,7 +181,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe exclaimed",
+              Dialogue: "Zoe exclaimed.",
             },
           ],
         },
@@ -209,7 +220,13 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe fluttered excitedly while setting the table.",
+                "Zoe fluttered excitedly.",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe set the table.",
             },
           ],
         },
@@ -357,7 +374,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "The birthday girl will love this, I’m glad I could help!",
+                "The birthday girl will love this, I’m glad I could help.",
             },
             {
               Reading: false,
@@ -375,7 +392,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“I have something to show you!”",
+                "I have something to show you!",
             },
             {
               Reading: false,
@@ -480,7 +497,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Oh no! “The colors don’t match the decorations. What should we do?",
+                "Oh no! The colors don’t match the decorations. What should we do?",
             },
             {
               Reading: false,
