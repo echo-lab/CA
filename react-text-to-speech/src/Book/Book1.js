@@ -41,7 +41,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara asked",
+                "Clara asked.",
             },
             {
               Reading: false,
@@ -53,14 +53,20 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "said Zoe",
+                "said Zoe.",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
                 "Come help!",
-            }
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "said Zoe.",
+            },
           ],
         },
 
@@ -254,7 +260,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "I have an idea.",
+              Dialogue: "I have an idea,",
             },
             {
               Reading: false,
@@ -345,7 +351,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Star, star, circle! Star, star, circle!. We fixed it!",
+                "Star, star, circle! Star, star, circle! We fixed it!",
             },
             {
               Reading: false,
