@@ -17,7 +17,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "The Pattern Pals: Sleepover Similarities \nby Purdue University Science and Stories Collaborative",
+                "The Pattern Pals: Sleepover Similarities",
             }
           ],
         },

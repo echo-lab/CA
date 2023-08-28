@@ -17,7 +17,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "The Pattern Pals: Birthday Beeps and Boops \nby Purdue University Science and Stories Collaborative",
+                "The Pattern Pals: Birthday Beeps and Boops",
             }
           ],
         },
@@ -123,7 +123,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "Um… look! Purple, green, purple, green! Same as the cake! Let’s add more!Same as the cake! Let’s add more!",
+              Dialogue: "Um… look! Purple, green, purple, green! Same as the cake! Let’s add more! Same as the cake! Let’s add more!",
             },
             {
               Reading: false,
@@ -143,13 +143,19 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "A perfect pattern! The birthday girl will love it!",
+                "A perfect pattern!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "Zoe said.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "The birthday girl will love it!",
             },
             {
               Reading: false,
@@ -182,12 +188,18 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "No time, no time! We need more hats!",
+                "No time, no time!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue: "Zoe exclaimed.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "We need more hats!",
             },
           ],
         },
@@ -228,12 +240,7 @@ export const data = [
               Dialogue:
                 "Zoe fluttered excitedly.",
             },
-            {
-              Reading: false,
-              Character: "Narrator",
-              Dialogue:
-                "Zoe set the table.",
-            },
+        
           ],
         },
         PageSeven: {
@@ -241,15 +248,27 @@ export const data = [
           text: [
             {
               Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Zoe set the table.",
+            },
+            {
+              Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Uh-oh,” “I don’t know what’s missing!",
+                "Uh-oh,",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe cried.",
+                "She cried.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "I don’t know what’s missing!",
             },
             {
               Reading: false,
@@ -288,13 +307,18 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "Great! Beep, boop, beep, boop!",
+              Dialogue: "Great!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "Zoe said.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue: "Beep, boop, beep, boop!",
             },
             {
               Reading: false,
@@ -328,7 +352,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Well… let’s make a new pattern.",
+                "Well… let’s make a new pattern,",
             },
             {
               Reading: false,
@@ -351,7 +375,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Star, star, circle! Star, star, circle! We fixed it!",
+                "Star, star, circle! Star, star, circle!",
             },
             {
               Reading: false,
@@ -361,15 +385,16 @@ export const data = [
             },
             {
               Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "We fixed it!",
+            },
+            {
+              Reading: false,
               Character: "Clara",
               Dialogue:
-                "Beep, beep, boop! Beep, beep, boop!” Helping WAS fun!",
+                "Beep, beep, boop! Beep, beep, boop!",
             },
-          ],
-        },
-        PageEleven: {
-          img: require("../Pictures/book1/Page_11.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -380,13 +405,30 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "The birthday girl will love this, I’m glad I could help.",
+                "Helping WAS fun!",
+            },
+          ],
+        },
+        PageEleven: {
+          img: require("../Pictures/book1/Page_11.jpg"),
+          text: [
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "The birthday girl will love this",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "Clara said.",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "I’m glad I could help.",
             },
             {
               Reading: false,
@@ -404,7 +446,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe squealed.",
+                "She squealed.",
             },
           ],
         },
@@ -421,13 +463,19 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Happy birthday, happy birthday!. Happy birthday, Clara!",
+                "Happy birthday, happy birthday!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "sang Zoe",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "Happy birthday, Clara!",
             },
             {
               Reading: false,
@@ -450,13 +498,19 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Of course! You’re my best friend!",
+                "Of course!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "Zoe gave Clara a BIG hug.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "You’re my best friend!",
             },
             {
               Reading: false,
@@ -482,17 +536,17 @@ export const data = [
               Dialogue:
                 "The cake’s here!",
             },
-          ],
-        },
-        PageFourteen: {
-          img: require("../Pictures/book1/Page_14.jpg"),
-          text: [
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "Zoe said.",
             },
+          ],
+        },
+        PageFourteen: {
+          img: require("../Pictures/book1/Page_14.jpg"),
+          text: [
             {
               Reading: false,
               Character: "Narrator",
@@ -503,13 +557,19 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Oh no! The colors don’t match the decorations. What should we do?",
+                "Oh no!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "Zoe cried.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "The colors don’t match the decorations. What should we do?",
             },
           ],
         },
@@ -520,13 +580,19 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Keep it! It matches the pattern of the streamers. Beep, boop, beep, boop—see?",
+                "Keep it!",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
                 "said Clara.",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "It matches the pattern of the streamers. Beep, boop, beep, boop—see?",
             },
             {
               Reading: false,
@@ -544,7 +610,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Zoe! Our friends aren’t here yet!",
+                "Zoe!",
             },
             {
               Reading: false,
@@ -554,9 +620,27 @@ export const data = [
             },
             {
               Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "Our friends aren’t here yet!",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "Mmm…",
+            },
+            {
+              Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Mmm… said Zoe. It still tastes delicious!",
+                "said Zoe.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "It still tastes delicious!",
             },
           ],
         },
