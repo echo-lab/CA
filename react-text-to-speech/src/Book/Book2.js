@@ -28,7 +28,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Welcome to my house!",
+                "“Welcome to my house!”",
             },
             {
               Reading: false,
@@ -40,7 +40,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "This is going to be so much fun!",
+                "“This is going to be so much fun!”",
             },
             {
               Reading: false,
@@ -57,7 +57,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Our sleeping bags have the same pattern!",
+                "“Our sleeping bags have the same pattern!”",
             },
             {
               Reading: false,
@@ -68,7 +68,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "Yours is yellow, blue, yellow, blue… mine is green, purple, green, purple. Zip, zap, zip, zap!",
+              Dialogue: "“Yours is yellow, blue, yellow, blue… mine is green, purple, green, purple. Zip, zap, zip, zap!”",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "The End",
             },
           ],
         },

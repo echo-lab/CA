@@ -642,6 +642,11 @@ export const data = [
               Dialogue:
                 "“It still tastes delicious!”",
             },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "The End",
+            },
           ],
         },
       },
