@@ -19,12 +19,12 @@ let keyData = JSON.parse(rawData);
 const GOOGLE_API_KEY = keyData.key; 
 
 app.post('/synthesize', async (req, res) => {
-    console.log(req.body.text.replace(/\*\*\*/g, ''))
     try {
         const fetch = (await import('node-fetch')).default;
+        const sanitizedText = req.body.text.replace(/(\*)+/g, '');
         
         const request = {
-            input: { text: req.body.text.replace(/\*\*\*/g, '') },
+            input: { text: sanitizedText },
             voice: req.body.voice,
             audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
             
