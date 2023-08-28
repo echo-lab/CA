@@ -22,6 +22,7 @@ app.post('/synthesize', async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
         const sanitizedText = req.body.text.replace(/(\*)+/g, '');
+        console.log(sanitizedText)
         
         const request = {
             input: { text: sanitizedText },
