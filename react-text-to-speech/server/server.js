@@ -19,6 +19,7 @@ let keyData = JSON.parse(rawData);
 const GOOGLE_API_KEY = keyData.key; 
 
 app.post('/synthesize', async (req, res) => {
+    console.log(req.body.text.replace(/\*\*\*/g, ''))
     try {
         const fetch = (await import('node-fetch')).default;
         
