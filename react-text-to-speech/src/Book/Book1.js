@@ -165,7 +165,7 @@ export const data = [
             },
             {
               Reading: false,
-              Character: "Clara",
+              Character: "Narrator",
               Dialogue: "“Had Zoe really forgotten her birthday?”",
             },
           ],
@@ -416,7 +416,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“The birthday girl will love this”",
+                "“The birthday girl will love this,”",
             },
             {
               Reading: false,
@@ -446,7 +446,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "She squealed.",
+                "she squealed.",
             },
           ],
         },
@@ -469,7 +469,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "sang Zoe",
+                "sang Zoe.",
             },
             {
               Reading: false,
@@ -604,7 +604,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "exclaimed Zoe. Taking a huge bite.",
+                "exclaimed Zoe, taking a huge bite.",
             },
             {
               Reading: false,
@@ -645,7 +645,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "The End",
+              Dialogue: "The End.",
             },
           ],
         },
