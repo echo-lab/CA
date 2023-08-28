@@ -73,7 +73,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "The End",
+              Dialogue: "The End.",
             },
           ],
         },

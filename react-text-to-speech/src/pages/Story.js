@@ -156,6 +156,17 @@ function Reader() {
       }
     }
   }
+
+  function parseText(text) {
+    // Replace **bold** and *italic* and ***bold italic*** markers with corresponding HTML tags
+    const htmlText = text
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')  // ***bold italic***
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **bold**
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');  // *italic*
+  
+    // Use dangerouslySetInnerHTML to inject HTML tags into the React component
+    return <div dangerouslySetInnerHTML={{__html: htmlText}}></div>;
+  }
   
   
   function renderPageRows() {
@@ -201,8 +212,8 @@ function Reader() {
               </div>
               </div>
               <div className="col-6">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `}>{val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ? str : <>
-      {str}
+                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `}>{val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : <>
+      {parseText(str)}
       <br />
     </>
   )}

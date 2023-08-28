@@ -102,7 +102,7 @@ export const data = [
             }, {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“And it’s my birthday.”",
+              Dialogue: "“And it’s *my* birthday.”",
             }
           ],
         },PageThree: {
@@ -161,12 +161,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara looked down.",
-            },
-            {
-              Reading: false,
-              Character: "Narrator",
-              Dialogue: "“Had Zoe really forgotten her birthday?”",
+                "Clara looked down. Had Zoe really forgotten *her* birthday?",
             },
           ],
         },
@@ -340,7 +335,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Wait! There aren’t enough circle balloons. Beep, boop, beep, beep, see?”",
+                "“Wait! There aren’t enough circle balloons. Beep, boop, beep, ***beep***, see?”",
             },
             {
               Reading: false,
@@ -405,7 +400,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Helping WAS fun!”",
+                "“Helping **WAS** fun!”",
             },
           ],
         },
@@ -457,7 +452,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Boom, boom, clash! Boom, boom, clash!",
+                "*Boom, boom, clash! Boom, boom, clash!*",
             },
             {
               Reading: false,
@@ -504,7 +499,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Zoe gave Clara a BIG hug.",
+                "Zoe gave Clara a **BIG** hug.",
             },
             {
               Reading: false,
@@ -528,7 +523,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Ding dong, ding dong.",
+                "*Ding dong, ding dong.*",
             },
             {
               Reading: false,
@@ -610,7 +605,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Zoe!”",
+                "“*Zoe!*”",
             },
             {
               Reading: false,
