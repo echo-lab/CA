@@ -23,7 +23,7 @@ app.post('/synthesize', async (req, res) => {
         const fetch = (await import('node-fetch')).default;
         
         const request = {
-            input: { text: req.body.text },
+            input: { text: req.body.text.replace(/\*\*\*/g, '') },
             voice: req.body.voice,
             audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
             
