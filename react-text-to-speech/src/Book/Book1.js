@@ -34,20 +34,20 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Hey, what are these decorations for?",
+                "“Hey, what are these decorations for?”",
             },
 
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara asked.",
+                "“Clara asked.",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Ummm, a surprise party for… uhhh… someone,",
+                "“Ummm, a surprise party for… uhhh… someone,”",
             },
             {
               Reading: false,
@@ -59,7 +59,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Come help!",
+                "“Come help!”",
             },
             {
               Reading: false,
@@ -77,7 +77,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Let’s choose a cake!",
+                "“Let’s choose a cake!”",
             },
             {
               Reading: false,
@@ -88,12 +88,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "This one has the birthday girl’s favorite colors. Purple, green, purple, green!",
+              Dialogue: "“This one has the birthday girl’s favorite colors. Purple, green, purple, green!”",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "Those are my favorite colors, too!",
+              Dialogue: "“Those are my favorite colors, too!”",
             },
             {
               Reading: false,
@@ -102,7 +102,7 @@ export const data = [
             }, {
               Reading: false,
               Character: "Clara",
-              Dialogue: "And it’s my birthday.",
+              Dialogue: "“And it’s my birthday.”",
             }
           ],
         },PageThree: {
@@ -112,7 +112,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Oh… it’s your birthday?",
+                "“Oh… it’s your birthday?”",
             },
             {
               Reading: false,
@@ -123,7 +123,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "Um… look! Purple, green, purple, green! Same as the cake! Let’s add more! Same as the cake! Let’s add more!",
+              Dialogue: "“Um… look! Purple, green, purple, green! Same as the cake! Let’s add more! Same as the cake! Let’s add more!”",
             },
             {
               Reading: false,
@@ -133,7 +133,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "Who else could the party be for?",
+              Dialogue: "“Who else could the party be for?”",
             }, 
           ],
         },PageFour: {
@@ -143,7 +143,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "A perfect pattern!",
+                "“A perfect pattern!”",
             },
             {
               Reading: false,
@@ -155,7 +155,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "The birthday girl will love it!",
+                "“The birthday girl will love it!”",
             },
             {
               Reading: false,
@@ -166,7 +166,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "Had Zoe really forgotten her birthday?",
+              Dialogue: "“Had Zoe really forgotten her birthday?”",
             },
           ],
         },
@@ -177,7 +177,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Can you please tell me who this party is for?",
+                "“Can you please tell me who this party is for?”",
             },
             {
               Reading: false,
@@ -188,7 +188,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "No time, no time!",
+                "“No time, no time!”",
             },
             {
               Reading: false,
@@ -199,7 +199,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "We need more hats!",
+                "“We need more hats!”",
             },
           ],
         },
@@ -210,7 +210,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Beep, boop, beep, boop!",
+                "“Beep, boop, beep, boop!”",
             },
             {
               Reading: false,
@@ -221,18 +221,18 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Maybe I should go…",
+                "“Maybe I should go…”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara whispered, but Zoe didn’t hear.",
+              Dialogue: "“Clara whispered, but Zoe didn’t hear.",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "We need plates!",
+                "“We need plates!”",
             },
             {
               Reading: false,
@@ -256,7 +256,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Uh-oh,",
+                "“Uh-oh,”",
             },
             {
               Reading: false,
@@ -268,7 +268,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "I don’t know what’s missing!",
+                "“I don’t know what’s missing!”",
             },
             {
               Reading: false,
@@ -279,7 +279,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "I have an idea,",
+              Dialogue: "“I have an idea,”",
             },
             {
               Reading: false,
@@ -302,12 +302,12 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "How do I look?",
+                "“How do I look?”",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "Great!",
+              Dialogue: "“Great!”",
             },
             {
               Reading: false,
@@ -318,7 +318,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "Beep, boop, beep, boop!",
+              Dialogue: "“Beep, boop, beep, boop!”",
             },
             {
               Reading: false,
@@ -340,7 +340,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Wait! There aren’t enough circle balloons. Beep, boop, beep, beep, see?",
+                "“Wait! There aren’t enough circle balloons. Beep, boop, beep, beep, see?”",
             },
             {
               Reading: false,
@@ -352,7 +352,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Well… let’s make a new pattern,",
+                "“Well… let’s make a new pattern,”",
             },
             {
               Reading: false,
@@ -375,7 +375,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Star, star, circle! Star, star, circle!",
+                "“Star, star, circle! Star, star, circle!”",
             },
             {
               Reading: false,
@@ -387,13 +387,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "We fixed it!",
+                "“We fixed it!”",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Beep, beep, boop! Beep, beep, boop!",
+                "“Beep, beep, boop! Beep, beep, boop!”",
             },
             {
               Reading: false,
@@ -405,7 +405,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Helping WAS fun!",
+                "“Helping WAS fun!”",
             },
           ],
         },
@@ -416,7 +416,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "The birthday girl will love this",
+                "“The birthday girl will love this”",
             },
             {
               Reading: false,
@@ -428,7 +428,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "I’m glad I could help.",
+                "“I’m glad I could help.”",
             },
             {
               Reading: false,
@@ -440,7 +440,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "I have something to show you!",
+                "“I have something to show you!”",
             },
             {
               Reading: false,
@@ -463,7 +463,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Happy birthday, happy birthday!",
+                "“Happy birthday, happy birthday!”",
             },
             {
               Reading: false,
@@ -475,13 +475,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Happy birthday, Clara!",
+                "“Happy birthday, Clara!”",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "For me?",
+                "“For me?”",
             },
             {
               Reading: false,
@@ -498,7 +498,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Of course!",
+                "“Of course!”",
             },
             {
               Reading: false,
@@ -510,13 +510,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "You’re my best friend!",
+                "“You’re my best friend!”",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Awwww! Thanks, Zoe!”",
+                "“Awwww! Thanks, Zoe!”",
             },
             {
               Reading: false,
@@ -534,7 +534,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "The cake’s here!",
+                "“The cake’s here!”",
             },
             {
               Reading: false,
@@ -557,7 +557,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Oh no!",
+                "“Oh no!”",
             },
             {
               Reading: false,
@@ -569,7 +569,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "The colors don’t match the decorations. What should we do?",
+                "“The colors don’t match the decorations. What should we do?”",
             },
           ],
         },
@@ -580,7 +580,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Keep it!",
+                "“Keep it!”",
             },
             {
               Reading: false,
@@ -592,13 +592,13 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "It matches the pattern of the streamers. Beep, boop, beep, boop—see?",
+                "“It matches the pattern of the streamers. Beep, boop, beep, boop—see?”",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "You’re right!",
+                "“You’re right!”",
             },
             {
               Reading: false,
@@ -610,25 +610,25 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Zoe!",
+                "“Zoe!”",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                " Clara laughed.",
+                "Clara laughed.",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "Our friends aren’t here yet!",
+                "“Our friends aren’t here yet!”",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "Mmm…",
+                "“Mmm…”",
             },
             {
               Reading: false,
@@ -640,7 +640,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "It still tastes delicious!",
+                "“It still tastes delicious!”",
             },
           ],
         },
