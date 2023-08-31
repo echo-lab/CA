@@ -216,7 +216,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "“Clara whispered, but Zoe didn’t hear.",
+              Dialogue: "Clara whispered, but Zoe didn’t hear.",
             },
             {
               Reading: false,
@@ -252,7 +252,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "She cried.",
+                "she cried.",
             },
             {
               Reading: false,
@@ -348,7 +348,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "said Clara",
+                "said Clara.",
             },
           ],
         },
