@@ -41,7 +41,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "“Clara asked.",
+                "Clara asked.",
             },
             {
               Reading: false,
@@ -128,13 +128,8 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara hugged her tail.",
+              Dialogue: "Clara hugged her tail. Who else could the party be for?",
             },
-            {
-              Reading: false,
-              Character: "Clara",
-              Dialogue: "“Who else could the party be for?”",
-            }, 
           ],
         },PageFour: {
           img: require("../Pictures/book1/Page_4.jpg"),
