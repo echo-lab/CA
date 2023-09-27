@@ -52,29 +52,25 @@ function Reader() {
     CharacterRoles: selectedOptions,
     pagesKeys: Object.keys(CurrentBook.pages),
     pagesValues: Object.values(CurrentBook.pages),
-    stop: false,
     isVolumnOn: false
   });
-  React.useEffect(() => {
-    function handleAudioStateChange(event) {
-      if (event.data.type === "MUTE_TAB") {
-        Array.from(document.querySelectorAll("audio")).forEach((audio) => {
-          audio.muted = true;
-        });
-      } else if (event.data.type === "UNMUTE_TAB") {
-        Array.from(document.querySelectorAll("audio")).forEach((audio) => {
-          audio.muted = false;
-        });
-      }
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio, setAudio] = useState(null);
+  const [audioHasEnded, setAudioHasEnded] = useState(false);
+
+
+ React.useEffect(() => {
+    if (audioHasEnded && isPlaying) {
+        console.log("move to the next line");
+        handleNextClick();
+        setAudioHasEnded(false);  // Reset the flag
     }
+}, [audioHasEnded, isPlaying]);
+
+
+
   
-    window.addEventListener("message", handleAudioStateChange);
-  
-    // Cleanup event listener
-    return () => {
-      window.removeEventListener("message", handleAudioStateChange);
-    };
-  }, []);
 
   
   useHotkeys("space", (event) => {
@@ -112,50 +108,68 @@ function Reader() {
 
 
 
-  function handleNextClick() {
-    if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
-      continueReading(
-        state.pagesValues[state.page],
-        state.index,
-        state.CharacterRoles
-      );
-      setState({ ...state, index: state.index + 1 });
-      console.log("Index: ", state.index);
-
-      if(dialogueRefs.current[state.index]){
-        dialogueRefs.current[state.index].scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-        });
-    }
-
-
-    } else {
+/**
+ * Handle the "Next" button click.
+ * This function determines if we should continue reading from the current page
+ * or move to the next page.
+ */
+function handleNextClick() {
+  // Check if there's more text on the current page to read
+  if (state.pagesValues[state.page]?.text?.length - 1 > state.index) {
+      // Continue reading the current page
+      setState(prevState => {
+        const newState = {...prevState, index: prevState.index + 1};
+        continueReading(
+          prevState.pagesValues[prevState.page],
+          newState.index,
+          state.CharacterRoles
+        );
+        return newState;
+      });
+  } else {
+      // If there's no more text on the current page, check if there are more pages to go to
       if (state.page < state.pagesValues.length - 1) {
-        if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
-          state.pagesValues[state.page].text[state.index-1].Reading = false;
+        // Move to the next page
+        if (isPlaying) {
+          // Move to the next page
+          setState(prevState => {
+            const newState = {...prevState, page: prevState.page + 1, index: 0};
+            continueReading(
+              prevState.pagesValues[newState.page],
+              newState.index,
+              state.CharacterRoles
+            );
+            return newState;
+          });
+        } else {
+          // If we're not automatically progressing, stop at the end of the current page
+          setIsPlaying(false);
         }
-        setState({
-          ...state,
-          page: state.page + 1,
-          index: 0,
-        });
       } else {
-        if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
-          state.pagesValues[state.page].text[state.index-1].Reading = false;
-        }
-        setState({ ...state, page: 0, index: 0 });
-      }
+          // If we're on the last page, mark the last text as not being read
+          if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
+              state.pagesValues[state.page].text[state.index-1].Reading = false;
+          }
 
-      if (tableContainerRef.current) {
-        tableContainerRef.current.scrollIntoView({
+          // Reset to the first page and reset the reading index
+          setState({ ...state, page: 0, index: 0 });
+
+          // Set isPlaying to false since we've reached the end of the book
+          setIsPlaying(false);
+      }
+  }
+
+  // If a table container reference exists, scroll it into view
+  if (tableContainerRef.current) {
+      tableContainerRef.current.scrollIntoView({
           behavior: "smooth",
           block: "start",
-        });
-        console.log("scrolledup")
-      }
-    }
+      });
+      console.log("scrolledup")
   }
+}
+
+
 
   function parseText(text) {
     // Replace **bold** and *italic* and ***bold italic*** markers with corresponding HTML tags
@@ -233,7 +247,8 @@ function Reader() {
   
 
   async function continueReading(page, index, roles) {
-    if (!page || !page.text || index < 0 || index >= page.text.length) {
+    console.log("continueReading triggered for page:", state.page, "and index:", index, "current lenght", page.text.length);
+    if (!page || !page.text || index < 0 || index > page.text.length) {
       console.error(`Invalid arguments to continueReading: page=${page}, index=${index}`);
       return;
     }
@@ -245,9 +260,6 @@ function Reader() {
       currentVoice = null;
     }
     console.log("currentChar",currentCharacter[0].VA.name);
-    //console.log("currentVoice",currentVoice);
-    //console.log("VA",currentCharacter[0].VA);
-    //console.log("Options",options.filter( obj => obj.Voice ==  currentCharacter[0].VA));
     
     if (index > 0) {
       page.text[index - 1].Reading = false;
@@ -270,8 +282,10 @@ function Reader() {
         });
 
         const data = await response.json();
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        audio.play()
+        const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        setAudio(newAudio);
+        newAudio.addEventListener("ended", audioEnded);
+        newAudio.play()
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
     }
@@ -279,38 +293,63 @@ function Reader() {
   }
   
   
+  function audioEnded() {
+    console.log("Audio has finished playing!");
+    console.log("audioEnded triggered. Current isPlaying:", isPlaying);
 
-  function renderNavigationButtons() {
-    const isLastIndex = state.pagesValues[state.page].text.length === state.index;
-    const isFirstIndex = state.index === 0;
-    const isFirstPage = state.page === 0;
+    if (audio) {
+        audio.removeEventListener("ended", audioEnded);
+    }
+    
+    setAudioHasEnded(true);
+}
+
 
   
-    return (
-      <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
-        <div className="btn-group" role="group">
-        <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handlePreviousClick}
-            disabled={isFirstIndex&&isFirstPage}
-          >
-            {isFirstIndex ? "Last Page" : "Back"}
-          </button>
-        </div>
-
-        <div className="btn-group" role="group">
+function renderNavigationButtons() {
+  return (
+      <div className="navigation-buttons  p-3 d-md-flex justify-content-md-end">
+         <div className="btn-group" role="group">
           <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleNextClick}
+              type="button"
+              className="btn btn-secondary"
+              onClick={handlePlayClick}
           >
-            {isLastIndex ? "Next Page" : "Next"}
+              {isPlaying ? "Pause" : "Play"}
           </button>
-        </div>
       </div>
-    );
-  }
+      </div>
+  );
+}
+
+
+
+function handlePlayClick() {
+  console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
+
+  setIsPlaying(prevIsPlaying => {
+    if (prevIsPlaying) {
+      return false;
+    } else {
+      if (state.page === 0 && state.index === 0) {
+
+        continueReading(
+          state.pagesValues[state.page],
+          state.index,
+          state.CharacterRoles
+        );
+        let newState = {...state}; // copy the state
+        newState.index = state.index + 1;
+        setState(newState); // update state
+        return false;
+      } else {
+        return true;
+      }
+    }
+  });
+}
+
+
   
     
   return (
