@@ -6,7 +6,7 @@ import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArro
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import { useNavigate } from "react-router-dom";
 import {roles} from "../Book/Roles.js"
-import { DragDropContext, Draggable ,Droppable } from "react-beautiful-dnd";
+import { DragDropContext ,Droppable } from "react-beautiful-dnd";
 import RoleDraggable from "../components/RoleDraggable.js"; // Your RoleDraggable component
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
@@ -74,32 +74,49 @@ function CharaterSelecter() {
   
 
 
-
   const handleDragEnd = (result) => {
-    if (!result.destination) {
+    const { source, destination, draggableId } = result;
+  
+    // If there's no destination or the item is dropped back to the same place, do nothing
+    if (!destination || (source.droppableId === destination.droppableId)) {
+      console.log(destination ? "Dragged to the same spot!" : "No destination found!");
       return;
     }
   
-    const newCharacterValues = { ...characterValues };
-    const role = availableRoles.find((role) => role.Role === result.draggableId);
-    const currentRole = newCharacterValues[result.destination.droppableId];
-  
-    // If there is already a role, prepare it to be added back to the available roles
-    let rolesToAddBack = [];
-    if (currentRole) {
-      rolesToAddBack = [currentRole];
+  const roleDragged = availableRoles.find(role => role.Role === draggableId);
+  console.log("Role Dragged:", roleDragged);
+  const roleAtDestination = characterValues[destination.droppableId];
+  let updatedAvailableRoles = [...availableRoles];
+
+  if (source.droppableId === "roles") {
+    // Remove the dragged role from availableRoles
+    updatedAvailableRoles = updatedAvailableRoles.filter(role => role.Role !== draggableId);
+
+    // If the destination character had a role, add it back to availableRoles
+    if (roleAtDestination) {
+      updatedAvailableRoles.push(roleAtDestination);
     }
+  }
+
+  const newCharacterValues = { ...characterValues };
   
-    // Update the character value with the selected role
-    newCharacterValues[result.destination.droppableId] = role;
+  if (source.droppableId !== "roles" && destination.droppableId !== "roles") {
+    // Swap roles between two characters
+    newCharacterValues[destination.droppableId] = characterValues[source.droppableId];
+    newCharacterValues[source.droppableId] = roleAtDestination;
+  } else {
+    // If the role was dragged from the roles list
+    newCharacterValues[destination.droppableId] = roleDragged;
+  }
   
-    // Remove the selected role from the available roles and add back the old role (if any)
-    const updatedAvailableRoles = [...availableRoles, ...rolesToAddBack].filter((r) => r.Role !== result.draggableId);
-    
-    console.log("newVal:",newCharacterValues)
-    setCharacterValues(newCharacterValues);
-    setAvailableRoles(updatedAvailableRoles);
-  };
+  console.log("New character values after swap:", newCharacterValues);
+  console.log(updatedAvailableRoles);
+  setAvailableRoles(updatedAvailableRoles);
+  setCharacterValues(newCharacterValues);
+  console.log(characterValues);
+};
+
+  
   
   
   
