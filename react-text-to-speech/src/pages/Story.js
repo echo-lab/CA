@@ -75,7 +75,7 @@ function Reader() {
   
   useHotkeys("space", (event) => {
     event.preventDefault();
-    handleNextClick();
+    handlePlayClick();
   });
 
   function handlePreviousClick() {
@@ -114,36 +114,45 @@ function Reader() {
  * or move to the next page.
  */
 function handleNextClick() {
+  console.log("handleNextClick triggered. Current page:", state.page, "Current Index: ", state.index);
+  console.log("Current isPlaying", isPlaying);
+
   // Check if there's more text on the current page to read
-  if (state.pagesValues[state.page]?.text?.length - 1 > state.index) {
+  if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
+    console.log("reading page")
       // Continue reading the current page
       setState(prevState => {
-        const newState = {...prevState, index: prevState.index + 1};
+        //const newState = {...prevState, index: prevState.index};
         continueReading(
           prevState.pagesValues[prevState.page],
-          newState.index,
+          prevState.index,
           state.CharacterRoles
         );
+        const newState = {...prevState, index: prevState.index+1};
         return newState;
       });
   } else {
+    console.log("no more text")
       // If there's no more text on the current page, check if there are more pages to go to
       if (state.page < state.pagesValues.length - 1) {
         // Move to the next page
         if (isPlaying) {
           // Move to the next page
+          setIsPlaying(false);
+        } else {
+          
           setState(prevState => {
             const newState = {...prevState, page: prevState.page + 1, index: 0};
-            continueReading(
-              prevState.pagesValues[newState.page],
-              newState.index,
-              state.CharacterRoles
-            );
             return newState;
           });
-        } else {
-          // If we're not automatically progressing, stop at the end of the current page
           setIsPlaying(false);
+          if (tableContainerRef.current) {
+            tableContainerRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+            console.log("scrolledup")
+          }
         }
       } else {
           // If we're on the last page, mark the last text as not being read
@@ -160,10 +169,10 @@ function handleNextClick() {
   }
 
   // If a table container reference exists, scroll it into view
-  if (tableContainerRef.current) {
-      tableContainerRef.current.scrollIntoView({
+  if (dialogueRefs.current[state.index]) {
+      dialogueRefs.current[state.index].scrollIntoView({
           behavior: "smooth",
-          block: "start",
+          block: "center",
       });
       console.log("scrolledup")
   }
@@ -331,22 +340,10 @@ function handlePlayClick() {
     if (prevIsPlaying) {
       return false;
     } else {
-      if (state.page === 0 && state.index === 0) {
-
-        continueReading(
-          state.pagesValues[state.page],
-          state.index,
-          state.CharacterRoles
-        );
-        let newState = {...state}; // copy the state
-        newState.index = state.index + 1;
-        setState(newState); // update state
-        return false;
-      } else {
-        return true;
+         return true;
       }
-    }
   });
+  handleNextClick();
 }
 
 
@@ -369,7 +366,7 @@ function handlePlayClick() {
       <div className="row">
         <div className="col-md-5 image-column">
           <div className="image">
-            <img src={state.pagesValues[state.page].img} alt="current page picture" />
+            <img src={state.pagesValues[state.page].img} alt="current page" />
           </div>
         </div>
         <div className="col-md-7 table-container">
