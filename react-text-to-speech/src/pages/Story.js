@@ -59,7 +59,6 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
 
-
  React.useEffect(() => {
     if (audioHasEnded && isPlaying) {
         console.log("move to the next line");
@@ -298,6 +297,9 @@ function handleNextClick() {
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
     }
+    }else if(currentCharacter[0].VA.name === ""){
+      setIsPlaying(false);
+      
     }
   }
   
@@ -343,7 +345,24 @@ function handlePlayClick() {
          return true;
       }
   });
-  handleNextClick();
+  if(!isPlaying){
+    console.log("page size ", state.pagesValues[state.page]?.text?.length)
+    console.log("curent index", state.index )
+    if(state.index === 0 || state.pagesValues[state.page]?.text?.length === state.index ){
+    console.log("start reading");
+    handleNextClick();
+    } else {
+      console.log("resume reading")
+      var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index-1].Character);
+      console.log(currentCharacter);
+      if(currentCharacter[0].VA.name === ""){
+        handleNextClick();
+      }
+    }
+  } else {
+    console.log("Was playing and you pause")
+    
+  }
 }
 
 
