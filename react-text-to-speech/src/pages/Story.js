@@ -318,18 +318,27 @@ function handleNextClick() {
 
   
 function renderNavigationButtons() {
+  const isLastIndex = state.pagesValues[state.page].text.length === state.index ; // Assuming index starts from 0
+
+  let buttonText;
+  if (isLastIndex) {
+    buttonText = "Next Page";
+  } else {
+    buttonText = isPlaying ? "Pause" : "Play";
+  }
+
   return (
-      <div className="navigation-buttons  p-3 d-md-flex justify-content-md-end">
-         <div className="btn-group" role="group">
-          <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handlePlayClick}
-          >
-              {isPlaying ? "Pause" : "Play"}
-          </button>
+    <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
+      <div className="btn-group" role="group">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handlePlayClick}
+        >
+          {buttonText}
+        </button>
       </div>
-      </div>
+    </div>
   );
 }
 
