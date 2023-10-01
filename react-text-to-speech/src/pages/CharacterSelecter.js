@@ -76,6 +76,9 @@ function CharaterSelecter() {
 
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
+    console.log(result.source);
+    console.log(result.destination);
+    console.log(result.draggableId);
   
     // If there's no destination or the item is dropped back to the same place, do nothing
     if (!destination || (source.droppableId === destination.droppableId)) {

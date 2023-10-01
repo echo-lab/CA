@@ -58,6 +58,8 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
+  const [showQuestion, setShowQuestion] = useState(false);
+
 
  React.useEffect(() => {
     if (audioHasEnded && isPlaying) {
@@ -77,33 +79,7 @@ function Reader() {
     handlePlayClick();
   });
 
-  function handlePreviousClick() {
-    console.log("Index: ", state.index);
-    if (state.index > 0) {
-      let newState = {...state}; // copy the state
-      if (state.pagesValues[state.page] && state.pagesValues[state.page].text[state.index-1]) {
-        state.pagesValues[state.page].text[state.index-1].Reading = false;
-      }
-      
-      if (state.pagesValues[state.page] && state.pagesValues[state.page].text[state.index-2]) {
-        state.pagesValues[state.page].text[state.index-2].Reading = true;
-      }
-      newState.index = state.index - 1;
-      setState(newState); // update state
-      continueReading(
-        state.pagesValues[state.page],
-        state.index-2,
-        state.CharacterRoles
-      );
-    } else if (state.page > 0) {
-      let prevPage = state.pagesValues[state.page - 1];
-    setState({
-      ...state,
-      page: state.page - 1,
-      index: prevPage.text.length+1, // index of the last sentence
-    });
-    }
-  }
+ 
 
 
 
@@ -174,6 +150,12 @@ function handleNextClick() {
           block: "center",
       });
       console.log("scrolledup")
+  }
+  const isLastIndex = state.pagesValues[state.page].text.length === state.index ; // Assuming index starts from 0
+  if (isLastIndex) {
+    setShowQuestion(true);
+  } else {
+    setShowQuestion(false);
   }
 }
 
@@ -396,6 +378,10 @@ function handlePlayClick() {
           <div className="image">
             <img src={state.pagesValues[state.page].img} alt="current page" />
           </div>
+          {showQuestion && state.pagesValues[state.page].question && (<div className="question-dialogue">
+      {state.pagesValues[state.page].question}
+    </div>
+  )}      
         </div>
         <div className="col-md-7 table-container">
         

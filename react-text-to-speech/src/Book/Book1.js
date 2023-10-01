@@ -23,6 +23,7 @@ export const data = [
         },
         PageOne: {
           img: require("../Pictures/book1/Page_1.jpg"),
+          question: "What is Zoe trying to do with the streamers?",
           text: [
             {
               Reading: false,
@@ -72,6 +73,7 @@ export const data = [
 
         PageTwo: {
           img: require("../Pictures/book1/Page_2.jpg"),
+          question: "How would you arrange your favorite colors on a cake?",
           text: [
             {
               Reading: false,
@@ -105,8 +107,10 @@ export const data = [
               Dialogue: "“And it’s *my* birthday.”",
             }
           ],
-        },PageThree: {
+        },
+        PageThree: {
           img: require("../Pictures/book1/Page_3.jpg"),
+          question: "How do you think Clara is feeling?",
           text: [
             {
               Reading: false,
@@ -131,8 +135,10 @@ export const data = [
               Dialogue: "Clara hugged her tail. Who else could the party be for?",
             },
           ],
-        },PageFour: {
+        },
+        PageFour: {
           img: require("../Pictures/book1/Page_4.jpg"),
+          question: "What pattern do the streamers make?",
           text: [
             {
               Reading: false,
@@ -162,6 +168,7 @@ export const data = [
         },
         PageFive: {
           img: require("../Pictures/book1/Page_5.jpg"),
+          question: "Who do you think the party is for?",
           text: [
             {
               Reading: false,
@@ -195,6 +202,7 @@ export const data = [
         },
         PageSix: {
           img: require("../Pictures/book1/Page_6.jpg"),
+          question: "Why does Clara want to leave?",
           text: [
             {
               Reading: false,
@@ -235,6 +243,7 @@ export const data = [
         },
         PageSeven: {
           img: require("../Pictures/book1/Page_7.jpg"),
+          question: "What color plate is missing?",
           text: [
             {
               Reading: false,
@@ -281,6 +290,7 @@ export const data = [
         },
         PageEight: {
           img: require("../Pictures/book1/Page_8.jpg"),
+          question: "Tell me about the pattern Clara completed.",
           text: [
             {
               Reading: false,
@@ -319,6 +329,7 @@ export const data = [
         },
         PageNine: {
           img: require("../Pictures/book1/Page_9.jpg"),
+          question: "Are there more circle or star balloons?",
           text: [
             {
               Reading: false,
@@ -354,6 +365,7 @@ export const data = [
         },
         PageTen: {
           img: require("../Pictures/book1/Page_10.jpg"),
+          question: "Which balloon is the “beep,” and which is the “boop” in the pattern?",
           text: [
             {
               Reading: false,
@@ -401,6 +413,7 @@ export const data = [
         },
         PageEleven: {
           img: require("../Pictures/book1/Page_11.jpg"),
+          question: "What do you think Zoe is going to show Clara?",
           text: [
             {
               Reading: false,
@@ -442,6 +455,7 @@ export const data = [
         },
         PageTwelve: {
           img: require("../Pictures/book1/Page_12.jpg"),
+          question: "How do you think Zoe would dance when she sings to Clara?",
           text: [
             {
               Reading: false,
@@ -483,6 +497,7 @@ export const data = [
         },
         PageThirteen: {
           img: require("../Pictures/book1/Page_13.jpg"),
+          question: "What color was the cake they ordered?",
           text: [
             {
               Reading: false,
@@ -536,6 +551,7 @@ export const data = [
         },
         PageFourteen: {
           img: require("../Pictures/book1/Page_14.jpg"),
+          question: "What do you think they will do with the cake? ",
           text: [
             {
               Reading: false,
@@ -565,6 +581,7 @@ export const data = [
         },
         PageFifteen: {
           img: require("../Pictures/book1/Page_15.jpg"),
+          question: "How is the pattern on the cake the same as the pattern of the streamers?",
           text: [
             {
               Reading: false,
