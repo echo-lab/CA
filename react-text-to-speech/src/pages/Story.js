@@ -61,6 +61,7 @@ function Reader() {
   const [showQuestion, setShowQuestion] = useState(false);
 
 
+
  React.useEffect(() => {
     if (audioHasEnded && isPlaying) {
         console.log("move to the next line");
