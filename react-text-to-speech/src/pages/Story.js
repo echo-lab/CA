@@ -58,17 +58,14 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
-  const [showQuestion, setShowQuestion] = useState(false);
+  const [showQuestion, setShowQuestion] = useState(true);
+
+  console.log("Setting showQuestion to", showQuestion);
 
 
 
- React.useEffect(() => {
-    if (audioHasEnded && isPlaying) {
-        console.log("move to the next line");
-        handleNextClick();
-        setAudioHasEnded(false);  // Reset the flag
-    }
-}, [audioHasEnded, isPlaying]);
+
+
 
 
 
@@ -81,15 +78,73 @@ function Reader() {
   });
 
  
+  const audioEnded = React.useCallback(() => {
+    console.log("Audio has finished playing!");
+    console.log("audioEnded triggered. Current isPlaying:", isPlaying);
+
+    if (audio) {
+        audio.removeEventListener("ended", audioEnded);
+    }
+    
+    setAudioHasEnded(true);
+}, [audio, isPlaying]);
 
 
+  const continueReading = React.useCallback( async (page, index, roles) => {
+    console.log("continueReading triggered for page:", state.page, "and index:", index, "current lenght", page.text.length);
+    if (!page || !page.text || index < 0 || index > page.text.length) {
+      console.error(`Invalid arguments to continueReading: page=${page}, index=${index}`);
+      return;
+    }
+    var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
+    var currentVoice;
+    if (currentCharacter.length > 0) {
+      currentVoice = currentCharacter[0].VA;
+    } else {
+      currentVoice = null;
+    }
+    console.log("currentChar",currentCharacter[0].VA.name);
+    
+    if (index > 0) {
+      page.text[index - 1].Reading = false;
+    }
+    page.text[index].Reading = true;
+    if ( currentCharacter.length > 0 
+    &&  currentCharacter[0].VA.name!== "") {
+      try {
+        const request = {
+            text: page.text[index].Dialogue,
+            voice: currentVoice,
+        };
+
+        const response = await fetch('http://localhost:5000/synthesize', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(request),
+        });
+
+        const data = await response.json();
+        const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        setAudio(newAudio);
+        newAudio.addEventListener("ended", audioEnded);
+        newAudio.play()
+    } catch (error) {
+        console.error('Error in Google Text-to-Speech:', error);
+    }
+    }else if(currentCharacter[0].VA.name === ""){
+      setIsPlaying(false);
+      
+    }
+  }, [state.page, audioEnded ]);
 
 /**
  * Handle the "Next" button click.
  * This function determines if we should continue reading from the current page
  * or move to the next page.
  */
-function handleNextClick() {
+const handleNextClick = React.useCallback(() => {
   console.log("handleNextClick triggered. Current page:", state.page, "Current Index: ", state.index);
   console.log("Current isPlaying", isPlaying);
 
@@ -115,8 +170,10 @@ function handleNextClick() {
         if (isPlaying) {
           // Move to the next page
           setIsPlaying(false);
+          setShowQuestion(true);
         } else {
-          
+          setShowQuestion(false);
+          console.log("new page")
           setState(prevState => {
             const newState = {...prevState, page: prevState.page + 1, index: 0};
             return newState;
@@ -152,13 +209,17 @@ function handleNextClick() {
       });
       console.log("scrolledup")
   }
-  const isLastIndex = state.pagesValues[state.page].text.length === state.index ; // Assuming index starts from 0
-  if (isLastIndex) {
-    setShowQuestion(true);
-  } else {
-    setShowQuestion(false);
+  
+}, [state, isPlaying, dialogueRefs, continueReading]);
+
+React.useEffect(() => {
+  if (audioHasEnded && isPlaying) {
+      console.log("move to the next line");
+      handleNextClick();
+      setAudioHasEnded(false);  // Reset the flag
   }
-}
+}, [audioHasEnded, isPlaying, handleNextClick]);
+
 
 
 
@@ -175,6 +236,7 @@ function handleNextClick() {
   
   
   function renderPageRows() {
+    
     return (
       <ReactScrollableFeed>
       <div className="table-column" ref={tableContainerRef}>
@@ -237,66 +299,11 @@ function handleNextClick() {
 
   
 
-  async function continueReading(page, index, roles) {
-    console.log("continueReading triggered for page:", state.page, "and index:", index, "current lenght", page.text.length);
-    if (!page || !page.text || index < 0 || index > page.text.length) {
-      console.error(`Invalid arguments to continueReading: page=${page}, index=${index}`);
-      return;
-    }
-    var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
-    var currentVoice;
-    if (currentCharacter.length > 0) {
-      currentVoice = currentCharacter[0].VA;
-    } else {
-      currentVoice = null;
-    }
-    console.log("currentChar",currentCharacter[0].VA.name);
-    
-    if (index > 0) {
-      page.text[index - 1].Reading = false;
-    }
-    page.text[index].Reading = true;
-    if ( currentCharacter.length > 0 
-    &&  currentCharacter[0].VA.name!== "") {
-      try {
-        const request = {
-            text: page.text[index].Dialogue,
-            voice: currentVoice,
-        };
 
-        const response = await fetch('http://localhost:5000/synthesize', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-        });
-
-        const data = await response.json();
-        const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        setAudio(newAudio);
-        newAudio.addEventListener("ended", audioEnded);
-        newAudio.play()
-    } catch (error) {
-        console.error('Error in Google Text-to-Speech:', error);
-    }
-    }else if(currentCharacter[0].VA.name === ""){
-      setIsPlaying(false);
-      
-    }
-  }
   
   
-  function audioEnded() {
-    console.log("Audio has finished playing!");
-    console.log("audioEnded triggered. Current isPlaying:", isPlaying);
 
-    if (audio) {
-        audio.removeEventListener("ended", audioEnded);
-    }
-    
-    setAudioHasEnded(true);
-}
+
 
 
   
@@ -329,6 +336,7 @@ function renderNavigationButtons() {
 
 function handlePlayClick() {
   console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
+
 
   setIsPlaying(prevIsPlaying => {
     if (prevIsPlaying) {
