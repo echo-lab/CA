@@ -86,16 +86,60 @@ img {
 
 .question-dialogue {
   flex: 1;  /* Occupy the remaining space */
-  display: flex;  /* Use flexbox to center the text */
+  display: flex;
+  flex-direction: column;
   justify-content: center;  /* Center text horizontally */
   align-items: center;  /* Center text vertically */
   padding: 20px;  /* Add padding around the dialogue */
   border: 1px solid #ccc;
+  position: relative; /* Make sure it's relative so that its children can be positioned absolutely in relation to it */
   border-radius: 20px;
-  background-color: #98ff98;
-  font-size: 32px; 
+  background-color: #97d597;
+  font-size: 20px; 
   text-align: center;  /* Center text */
+  height: 50%;
+  width: 100%;
 }
+
+.hide-icon, .show-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border-radius: 10px 10px 0 0;
+  background-color: #f00c0c;
+}
+
+.question-header {
+  font-size: 15px; 
+  text-align: center; 
+  border-radius: 10px 10px 0 0;  /* Round the top corners */
+  width: 100%;
+}
+
+
+.image-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column; 
+  justify-content: space-between;  /* Distribute space evenly */
+  align-items: center;
+ }
+
+ .role-image-container img {
+  display: flex;  
+  height: 50%;
+  width: 50%;
+}
+
+.role-image-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+
+
+ 
 
 
 

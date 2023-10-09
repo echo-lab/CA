@@ -2,11 +2,13 @@ import React,  { useState, useRef } from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
+import {roles} from "../Book/Roles.js"
 import ReactScrollableFeed from 'react-scrollable-feed';
 
 
@@ -27,6 +29,9 @@ function Reader() {
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
+  const parentRole = roles.find(role => role.Role === "Parent");
+  console.log("parent role", parentRole)
+  const parentImage = parentRole ? parentRole.img : null;
 
   let bookData
 
@@ -58,9 +63,8 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
-  const [showQuestion, setShowQuestion] = useState(true);
+  const [questionVisible, setQuestionVisible] = useState(true);
 
-  console.log("Setting showQuestion to", showQuestion);
 
 
 
@@ -170,9 +174,7 @@ const handleNextClick = React.useCallback(() => {
         if (isPlaying) {
           // Move to the next page
           setIsPlaying(false);
-          setShowQuestion(true);
         } else {
-          setShowQuestion(false);
           console.log("new page")
           setState(prevState => {
             const newState = {...prevState, page: prevState.page + 1, index: 0};
@@ -260,6 +262,7 @@ React.useEffect(() => {
           const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
           const character = CurrentBook.characters.find(c => c.Name === val.Character);
           const characterImage = character ? character.img : "";
+          console.log("question", state.pagesValues[state.page].question)
 
           return (
             <div
@@ -298,11 +301,36 @@ React.useEffect(() => {
   
 
   
-
-
+  function toggleQuestionVisibility() {
+    setQuestionVisible(prevVisible => !prevVisible);
+  }
   
   
 
+  function renderQuestion() {
+    if (!questionVisible) {
+      return (
+        <div className="p-5 role-image-container d-flex justify-content-around">
+        <div className="p-3 ">
+          <span className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></span>
+        </div>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="p-5 role-image-container d-flex justify-content-around">
+      {<img src={parentImage} alt="Parent" style={{width: "30%"}}/>}
+      <div className="p-3 question-dialogue">
+        <div className="question-header d-flex justify-content-between align-items-center">
+          <div className="storyTitle m-0">Question for Parent</div>
+          <span className="hide-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></span>
+        </div>
+        <div>{state.pagesValues[state.page].question}</div>
+      </div>
+      </div>
+    );
+}
 
 
 
@@ -384,13 +412,12 @@ function handlePlayClick() {
 
       <div className="row">
         <div className="col-md-5 image-column">
-          <div className="image">
             <img src={state.pagesValues[state.page].img} alt="current page" />
-          </div>
-          {showQuestion && state.pagesValues[state.page].question && (<div className="question-dialogue">
-      {state.pagesValues[state.page].question}
-    </div>
-  )}      
+
+          {
+          (state.pagesValues[state.page].question !== undefined) && renderQuestion()}
+
+                
         </div>
         <div className="col-md-7 table-container">
         
