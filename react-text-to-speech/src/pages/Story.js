@@ -312,7 +312,7 @@ React.useEffect(() => {
       return (
         <div className="p-5 role-image-container d-flex justify-content-around">
         <div className="p-3 ">
-          <span className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></span>
+          <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
         </div>
         </div>
       );
@@ -320,11 +320,11 @@ React.useEffect(() => {
   
     return (
       <div className="p-5 role-image-container d-flex justify-content-around">
+         <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
       {<img src={parentImage} alt="Parent" style={{width: "30%"}}/>}
       <div className="p-3 question-dialogue">
         <div className="question-header d-flex justify-content-between align-items-center">
           <div className="storyTitle m-0">Question for Parent</div>
-          <span className="hide-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></span>
         </div>
         <div>{state.pagesValues[state.page].question}</div>
       </div>
@@ -413,12 +413,10 @@ function handlePlayClick() {
       <div className="row">
         <div className="col-md-5 image-column">
             <img src={state.pagesValues[state.page].img} alt="current page" />
-
+            
           {
-          (state.pagesValues[state.page].question !== undefined) && renderQuestion()}
-
-                
-        </div>
+          (state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
+          </div>     
         <div className="col-md-7 table-container">
         
 

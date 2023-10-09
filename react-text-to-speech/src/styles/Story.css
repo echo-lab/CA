@@ -90,14 +90,14 @@ img {
   flex-direction: column;
   justify-content: center;  /* Center text horizontally */
   align-items: center;  /* Center text vertically */
-  padding: 20px;  /* Add padding around the dialogue */
+  padding: 10px;
+  height: 40%;
   border: 1px solid #ccc;
   position: relative; /* Make sure it's relative so that its children can be positioned absolutely in relation to it */
   border-radius: 20px;
   background-color: #97d597;
   font-size: 20px; 
   text-align: center;  /* Center text */
-  height: 50%;
   width: 100%;
 }
 
@@ -105,8 +105,8 @@ img {
   position: absolute;
   top: 10px;
   right: 10px;
-  border-radius: 10px 10px 0 0;
-  background-color: #f00c0c;
+  background-color: hsl(120, 42%, 71%);
+  border-radius: 50px 50px 50px 50px; 
 }
 
 .question-header {
