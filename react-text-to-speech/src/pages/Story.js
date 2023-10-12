@@ -306,43 +306,84 @@ React.useEffect(() => {
   }
   
   
-
   function renderQuestion() {
-    if (!questionVisible) {
-      return (
-        <div className="p-5 role-image-container d-flex justify-content-around">
-        <div className="p-3 ">
-          <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-        </div>
-        </div>
-      );
-    }
-  
-    return (
-      <div className="p-5 role-image-container d-flex justify-content-around">
-         <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-      {<img src={parentImage} alt="Parent" style={{width: "30%"}}/>}
-      <div className="p-3 question-dialogue">
-        <div className="question-header d-flex justify-content-between align-items-center">
-          <div className="storyTitle m-0">Question for Parent</div>
-        </div>
-        <div>{state.pagesValues[state.page].question}</div>
-      </div>
-      </div>
-    );
-}
+
+    return ( 
+           <div>
+              {questionVisible ? (
+                <div className="p-3 role-image-container">
+                  <img src={parentImage} alt="Parent" />
+                  <div className="question-dialogue d-flex justify-content-between align-items-center">
+                    <div className="storyTitle m-0">Question for Parent</div>
+                    {state.pagesValues[state.page].question}
+                </div>
+                </div>
+              ) : null}
+           </div>
+     );
+
+
+  }
+  //function renderQuestion() {
+//
+  //  return (
+  //    <div className="p-5 role-image-container d-flex justify-content-around">
+  //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
+  //       {questionVisible ? (
+  //         <div className="p-3 role-image-container">
+  //           <img src={parentImage} alt="Parent" />
+  //           <div className="question-dialogue d-flex justify-content-between align-items-center">
+  //             <div className="storyTitle m-0">Question for Parent</div>
+  //           </div>
+  //           <div>{state.pagesValues[state.page].question}</div>
+  //         </div>
+  //       ) : null}
+  //    </div>
+  //  );
+//
+  //       }
+//
+//
+   // if (!questionVisible) {
+   //   return (
+   //     <div className="p-5 role-image-container d-flex justify-content-around">
+   //     <div className="p-3 ">
+   //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
+   //     </div>
+   //     </div>
+   //   );
+   // }
+  //
+   // return (
+   //   <div className="p-5 role-image-container d-flex justify-content-around">
+   //      <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
+   //   {<img src={parentImage} alt="Parent" style={{width: "30%"}}/>}
+   //   <div className="p-3 question-dialogue">
+   //     <div className="question-header d-flex justify-content-between align-items-center">
+   //       <div className="storyTitle m-0">Question for Parent</div>
+   //     </div>
+   //     <div>{state.pagesValues[state.page].question}</div>
+   //   </div>
+   //   </div>
+   // );
+//
 
 
 
   
 function renderNavigationButtons() {
-  const isLastIndex = state.pagesValues[state.page].text.length === state.index ; // Assuming index starts from 0
-
+  const isLastIndex = state.pagesValues[state.page].text.length === state.index;
   let buttonText;
+  let buttonClass = "";  // New variable for button class
+
   if (isLastIndex) {
     buttonText = "Next Page";
+    buttonClass = "highlight-button";  // Apply the class when the text is "Next Page"
   } else {
     buttonText = isPlaying ? "Pause" : "Play";
+    if (!isPlaying) {
+      buttonClass = "highlight-button";  // Apply the class when the text is "Play"
+    }
   }
 
   return (
@@ -350,7 +391,7 @@ function renderNavigationButtons() {
       <div className="btn-group" role="group">
         <button
           type="button"
-          className="btn btn-secondary"
+          className={`btn btn-secondary ${buttonClass}`}  // Add the buttonClass here
           onClick={handlePlayClick}
         >
           {buttonText}
@@ -411,11 +452,10 @@ function handlePlayClick() {
       </div>
 
       <div className="row">
-        <div className="col-md-5 image-column">
+        <div className="col-md-5">
             <img src={state.pagesValues[state.page].img} alt="current page" />
-            
-          {
-          (state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
+            <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon  style={{ color: 'white' }} /></button>
+          {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
           </div>     
         <div className="col-md-7 table-container">
         
