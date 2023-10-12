@@ -20,11 +20,15 @@ const GOOGLE_API_KEY = keyData.key;
 app.post('/synthesize', async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const sanitizedText = req.body.text.replace(/(\*)+/g, '');
+        let sanitizedText = req.body.text.replace(/(\*)+/g, '');
+        sanitizedText = sanitizedText.replace(/'/g, '"');
+        //console.log(sanitizedText)
+        const ssmlText = `<speak>${sanitizedText}</speak>`;
+
         
         
         const request = {
-            input: { text: sanitizedText },
+            input: { ssml: ssmlText },
             voice: req.body.voice,
             audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
             

@@ -115,6 +115,7 @@ function Reader() {
     page.text[index].Reading = true;
     if ( currentCharacter.length > 0 
     &&  currentCharacter[0].VA.name!== "") {
+      console.log("STT",page.text[index].Dialogue )
       try {
         const request = {
             text: page.text[index].Dialogue,
@@ -223,9 +224,14 @@ React.useEffect(() => {
 }, [audioHasEnded, isPlaying, handleNextClick]);
 
 
+function stripSSMLTags(text) {
+  return text.replace(/<\/?[^>]+(>|$)/g, "");
+}
 
 
   function parseText(text) {
+     // Strip SSML tags
+    const strippedText = stripSSMLTags(text);
     // Replace **bold** and *italic* and ***bold italic*** markers with corresponding HTML tags
     const htmlText = text
       .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')  // ***bold italic***
@@ -262,7 +268,6 @@ React.useEffect(() => {
           const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
           const character = CurrentBook.characters.find(c => c.Name === val.Character);
           const characterImage = character ? character.img : "";
-          console.log("question", state.pagesValues[state.page].question)
 
           return (
             <div
