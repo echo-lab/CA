@@ -64,18 +64,39 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [questionVisible, setQuestionVisible] = useState(true);
+  const [selectedText, setSelectedText] = useState('');
 
+  const handleTextSelection = () => {
+    setTimeout(() => {
+      const text = window.getSelection().toString();
+      speak(text)
+    }, 100);
+  };
 
-
-
-
-
-
-
-
+  async function speak(text){
+    try {
+        const request = {
+          text: text,
+          voice: {languageCode: 'en-US', name :'en-US-Wavenet-B' }
+        };
   
-
+        const response = await fetch('http://localhost:5000/synthesize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
   
+        const data = await response.json();
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        audio.play()
+      } catch (error) {
+        console.error('Error in Google Text-to-Speech:', error);
+      }
+  }
+
+
   useHotkeys("space", (event) => {
     event.preventDefault();
     handlePlayClick();
@@ -287,12 +308,13 @@ function stripSSMLTags(text) {
               </div>
               </div>
               <div className="col-6">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `}>{val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : <>
-      {parseText(str)}
-      <br />
-    </>
-  )}
-                
+                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
+                  {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : 
+                  <>
+                    {parseText(str)}
+                     <br />
+                  </>
+              )}
                 </div>
               </div>
             </div>
