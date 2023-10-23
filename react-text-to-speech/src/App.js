@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import Home from './pages/Home';
 import Story from './pages/Story';
+import Signup from './pages/Signup';
 import CharacterSelecter from './pages/CharacterSelecter'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
@@ -10,7 +11,8 @@ function App() {
     <div className="App">
       <Router>
         <Routes>
-          <Route path='/' element={<Home />}/>
+          <Route path='/' element={<Signup />}/>
+          <Route path='/Home' element={<Home />}/>
           <Route path='/Story' element={<Story />}/>
           <Route path='/Character' element={<CharacterSelecter />}/>
         </Routes>
