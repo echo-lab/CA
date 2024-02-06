@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/signup.css';
 import { Link } from 'react-router-dom'
-import image2 from '../Pictures/pinnochio.png'
+import image2 from '../Pictures/Mates-05.png'
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
 
 function Signup(){
@@ -23,7 +23,7 @@ function Signup(){
                         <input 
                           type="text" 
                           className="form-control" 
-                          placeholder="Enter Name"
+                          placeholder="What's your name"
                         />
                     </div>
                     <Link to="/Home"><button type="submit" className="button">Start</button></Link>

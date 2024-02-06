@@ -563,7 +563,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<prosody volume='-2db' rate='0.7' pitch='-2st'>“Oh no!”</prosody>",
+                "<prosody volume='-2db' rate='0.6' pitch='-2st'>“Oh no!”</prosody>",
             },
             {
               Reading: false,
@@ -575,7 +575,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“The colors don’t match the decorations. <break time ='1s'> What should we do?”",
+                "<prosody volume='-2db' rate='0.6' pitch='-2st'> “The colors don’t match the decorations. <break time ='1s'> What should we do?”</prosody>",
             },
           ],
         },
