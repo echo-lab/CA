@@ -4,7 +4,7 @@ import "../styles/RoleDraggable.css"; // Path to your CSS file
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 
-function RoleDraggable({ draggableId,role, index }) {
+function RoleDraggable({ draggableId,role, index, name}) {
 
     const playSound = () => {
         
@@ -15,7 +15,7 @@ function RoleDraggable({ draggableId,role, index }) {
       async function speak(){
         try {
             const request = {
-              text: "Hello I am "+role.Role,
+              text: "Hello " +name+ ", I am "+role.Role,
               voice: role.RoleParameter
             };
       

@@ -16,6 +16,7 @@ import Modal from 'react-modal';
 
 
 function Book(data) {
+
   data.map((val) => {
     return (
       (this.name = val.Book.Name),
@@ -30,6 +31,7 @@ Modal.setAppElement('#root') // Replace #root with your app's root element id
 function CharaterSelecter() {
   const location = useLocation();
   const id = location.state ? location.state.id : null;
+  const userName = location.state ? location.state.name : null;
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
 
@@ -182,7 +184,7 @@ function CharaterSelecter() {
                   className="DraggableContainer"
                 >
                   {availableRoles.map((role, index) => (
-                     <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} />
+                     <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} name={userName} />
                   ))}
                   {provided.placeholder}
                 </div>
