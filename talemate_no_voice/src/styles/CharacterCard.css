@@ -1,0 +1,66 @@
+/* CSS for CharacterCard */
+
+.card-input-element {
+  display: none;
+}
+
+.card:hover {
+  cursor: pointer;
+}
+
+.checked {
+  color: #2f0def;
+  box-shadow: 0px 0px 10px 2px rgb(13, 110, 253);
+  font-weight: bold;
+}
+
+.character-card .card-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center; /* adjust as needed */
+}
+
+.character-card .left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* centers content horizontally */
+  justify-content: center; /* centers content vertically */
+}
+
+.character-card .card-img-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width:50%; /* adjust as needed */
+  height: 50%;
+  margin-bottom: 10px;
+}
+
+.character-card .card-img-top {
+  width: 350px;
+  height: auto;
+  object-fit: cover;
+}
+
+.character-card .card-title {
+  align-self: center; /* aligns title to the top */
+  margin-left :20px;
+}
+
+.character-card .droppable-area {
+  flex-grow: 0;
+  width: 90%; /* the width of the square */
+  height: 80%; /* the height of the square */
+  border: 2px solid #0d6efd; 
+  background-color: #fdfdfd; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px;
+}
+
+.character-card .default-message {
+  padding: 10px; /* adjust as needed */
+  text-align: center; /* if you want the text to be centered */
+}

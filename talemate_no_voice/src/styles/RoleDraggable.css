@@ -1,0 +1,29 @@
+/* RoleDraggable.css */
+.RoleDraggable {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+  }
+
+  .RoleDraggable img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+
+  }
+
+  .RoleDraggable span {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .RoleDraggable button {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+  }
+
+

@@ -1,0 +1,79 @@
+.characterSelecter{
+  display: flex; 
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden; 
+}
+
+.rightbutton,
+.leftbutton {
+  width: 50px; /* adjust as needed */
+  height: 50px; /* adjust as needed */
+}
+
+.modalContent {
+  width: 300px;
+  height: 150px;
+  margin: auto;
+  background-color: rgb(41, 144, 233);
+  padding: 10px;
+  /* additional styles as needed */
+}
+
+
+.sectionTitle {
+  font-style: italic;
+  text-align: left;
+}
+
+.DraggableContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: auto;
+  max-height: calc(100vh - 250px); 
+  overflow-y: auto;
+
+}
+
+.RoleDraggable {
+  flex-basis: calc(50% - 10px); /* Adjust as needed */
+  box-sizing: border-box;
+  margin: 5px; /* Optional, for some space between the items */
+}
+
+.character-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between; /* Adjusts space between cards */
+  width: 90%;
+  margin: 20px;
+}
+
+.character-cards-container > div {
+  flex-basis: calc(50% - 30px); /* Allocate half of the space to each card, subtracting for any margins */
+  box-sizing: border-box; /* Make sure padding and border are included in the above width */
+  margin: 10px; /* Small margin for some space around the cards */
+  
+}
+
+.row.justify-content-between {
+  display: flex;
+  justify-content: space-between;
+}
+
+.navigation-buttons {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.title-container {
+  position: absolute;
+  top: 10px; /* Adjust according to your needs */
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1; /* Ensure it's above other elements */
+}
+
+
