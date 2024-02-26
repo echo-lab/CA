@@ -4,7 +4,7 @@ const cors = require('cors');
 const https = require('https');
 
 const corsOptions = {
-    origin: 'https://talemate.cs.vt.edu:3000',
+    origin: 'https://talemate.cs.vt.edu',
     methods: 'POST',
     credentials: true
   };
@@ -55,12 +55,11 @@ app.post('/synthesize', async (req, res) => {
 });
 
 const port = process.env.PORT || 5000;
-app.listen(port, () => console.log(`Server started on port ${port}`));
-//const httpsOptions = {
-//    key: fs.readFileSync('/home/sangwonlee/TaleMate/cert/key3.pem'),
-//    cert: fs.readFileSync('/home/sangwonlee/TaleMate/cert/talemate.cs.vt.edu.crt')
-//};
+const httpsOptions = {
+    key: fs.readFileSync('/home/sangwonlee/TaleMate/cert/key3.pem'),
+    cert: fs.readFileSync('/home/sangwonlee/TaleMate/cert/talemate.cs.vt.edu.crt')
+};
 
-//https.createServer(httpsOptions, app).listen(port, () => {
-//    console.log(`Server started on https://localhost:${port}`);
-//});
+https.createServer(httpsOptions, app).listen(port, () => {
+    console.log(`Server started on https://localhost:${port}`);
+});
