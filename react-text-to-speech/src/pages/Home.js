@@ -12,6 +12,7 @@ import NavigationBar from '../components/NavigationBar';
 function Home() {
   const location = useLocation();
     const { userName } = location.state || {}; // Safely access userName, defaulting to an empty object if state is undefined
+    
 
   const renderCard = (card, index) =>{
     return (

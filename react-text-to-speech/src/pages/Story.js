@@ -264,7 +264,7 @@ function stripSSMLTags(text) {
   }
   
   
-  function renderPageRows() {
+ function renderPageRows() {
     
     return (
       <ReactScrollableFeed>
@@ -296,18 +296,16 @@ function stripSSMLTags(text) {
               className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
               key={key}
             >
-              <div className="col-3">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-character" : ""} `}>{val.Character}:</div>
-              </div>
-              <div className="col-3">
+       
+              <div className="col-4">
               <div className="p-3 role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
-                {roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}  {/* Adjust width as per requirement */}
-
+              {currentRole && currentRole.role === "Parent" && roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}
+            
                 {/* Add character image */}
                 {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
               </div>
               </div>
-              <div className="col-6">
+              <div className="col-8">
                 <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
                   {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : 
                   <>
@@ -341,7 +339,7 @@ function stripSSMLTags(text) {
                 <div className="p-3 role-image-container">
                   <img src={parentImage} alt="Parent" />
                   <div className="question-dialogue d-flex justify-content-between align-items-center">
-                    <div className="storyTitle m-0">Question for Parent</div>
+                    <div className="storyTitle m-0"></div>
                     {state.pagesValues[state.page].question}
                 </div>
                 </div>
@@ -481,7 +479,6 @@ function handlePlayClick() {
       <div className="row">
         <div className="col-md-5">
             <img src={state.pagesValues[state.page].img} alt="current page" />
-            <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon  style={{ color: 'white' }} /></button>
           {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
           </div>     
         <div className="col-md-7 table-container">

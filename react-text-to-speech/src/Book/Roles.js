@@ -6,5 +6,5 @@ export const roles = [
     {Role:  "Mate 5" ,RoleParameter: {languageCode: 'en-US', name :'en-US-Wavenet-I'  },img: require("../Pictures/Mates-06.png")},
     {Role:  "Mate 6" ,RoleParameter: {languageCode: 'en-US', name :'en-US-Wavenet-H'  },img: require("../Pictures/Mates-05.png")},
     {Role: "Parent", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/adult.png")},
-    {Role: "Child", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/child.png")}
+    //{Role: "Child", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/child.png")}
   ]
