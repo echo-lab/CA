@@ -35,7 +35,7 @@ function Signup() {
                   type="text" 
                   className="form-control" 
                   id="name"
-                  placeholder="What's your name?"
+                  placeholder="What's your child's name?"
                   value={userName} // Controlled component
                   onChange={(e) => setUserName(e.target.value)} // Update state on change
                 />

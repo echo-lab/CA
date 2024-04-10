@@ -12,6 +12,7 @@ export const data = [
       Pages: {
         Cover: {
           img: require("../Pictures/book1/Cover - Birthday Beeps.jpg"),
+          question: "You will see questions in this box while reading the book. Feel free to use them at your convinience",
           text: [
             {
               Reading: false,
@@ -219,7 +220,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                " <prosody volume='-6dB' pitch='-2st'>“Maybe I should go… <break time ='1s'/> </prosody>”",
+                " <prosody volume='-6dB' pitch='-2st'>“Maybe I should go…</prosody>” <break time ='1s'/>",
             },
             {
               Reading: false,

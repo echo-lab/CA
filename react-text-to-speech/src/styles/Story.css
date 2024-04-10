@@ -207,3 +207,16 @@ img {
   align-items: center;
   /* ... any other styles ... */
 }
+
+
+.next-page-button, .previous-page-button {
+  /* Removed the position absolute and added some margin for spacing */
+  margin: 0 10px; /* Adjust the margin as needed */
+}
+
+
+.navigation-buttons-container {
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  padding: 20px; /* Add padding as needed */
+}

@@ -2,7 +2,6 @@ import React,  { useState, useRef } from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
@@ -68,10 +67,31 @@ function Reader() {
 
   const handleTextSelection = () => {
     setTimeout(() => {
-      const text = window.getSelection().toString();
-      speak(text)
+      let text = window.getSelection().toString();
+      // Remove isolated symbols and punctuation, and trim whitespace
+      text = text.replace(/(?<=\s|^)[.,!?;:"'“”‘’\-—]?(?=\s|$)/g, '').trim();
+      
+      if(text.length > 0) {
+        speak(text);
+      }
     }, 100);
-  };
+};
+
+const gotoNextPage = () => {
+  if (state.page < state.pagesValues.length - 1) {
+    setState(prevState => ({ ...prevState, page: prevState.page + 1 }));
+    // Add any other state resets or logic needed when changing pages here
+  }
+};
+
+const gotoPreviousPage = () => {
+  if (state.page > 0) {
+    setState(prevState => ({ ...prevState, page: prevState.page - 1 }));
+    // Add any other state resets or logic needed when changing pages here
+  }
+};
+
+
 
   async function speak(text){
     try {
@@ -137,9 +157,13 @@ function Reader() {
     if ( currentCharacter.length > 0 
     &&  currentCharacter[0].VA.name!== "") {
       console.log("STT",page.text[index].Dialogue )
+      var dialogue = page.text[index].Dialogue.replace(/(?<=\s|^)[.,!?;:"'“”‘’\-—]*(?=\s|$)/g, '').trim();
+      console.log("Dialogue", dialogue)
+
+
       try {
         const request = {
-            text: page.text[index].Dialogue,
+            text: dialogue,
             voice: currentVoice,
         };
 
@@ -152,10 +176,14 @@ function Reader() {
         });
 
         const data = await response.json();
-        const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        setAudio(newAudio);
-        newAudio.addEventListener("ended", audioEnded);
-        newAudio.play()
+        try {
+          const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+          setAudio(newAudio);
+          newAudio.addEventListener("ended", audioEnded);
+          await newAudio.play();
+        } catch (error) {
+          console.error('Error playing audio:', error);
+        }
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
     }
@@ -298,7 +326,7 @@ function stripSSMLTags(text) {
             >
        
               <div className="col-4">
-              <div className="p-3 role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
+              <div className="role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
               {currentRole && currentRole.role === "Parent" && roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}
             
                 {/* Add character image */}
@@ -326,72 +354,27 @@ function stripSSMLTags(text) {
   
 
   
-  function toggleQuestionVisibility() {
-    setQuestionVisible(prevVisible => !prevVisible);
-  }
+
   
   
   function renderQuestion() {
 
     return ( 
            <div>
-              {questionVisible ? (
-                <div className="p-3 role-image-container">
-                  <img src={parentImage} alt="Parent" />
+              
+                
                   <div className="question-dialogue d-flex justify-content-between align-items-center">
                     <div className="storyTitle m-0"></div>
                     {state.pagesValues[state.page].question}
                 </div>
-                </div>
-              ) : null}
+                
+              
            </div>
      );
 
 
   }
-  //function renderQuestion() {
-//
-  //  return (
-  //    <div className="p-5 role-image-container d-flex justify-content-around">
-  //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-  //       {questionVisible ? (
-  //         <div className="p-3 role-image-container">
-  //           <img src={parentImage} alt="Parent" />
-  //           <div className="question-dialogue d-flex justify-content-between align-items-center">
-  //             <div className="storyTitle m-0">Question for Parent</div>
-  //           </div>
-  //           <div>{state.pagesValues[state.page].question}</div>
-  //         </div>
-  //       ) : null}
-  //    </div>
-  //  );
-//
-  //       }
-//
-//
-   // if (!questionVisible) {
-   //   return (
-   //     <div className="p-5 role-image-container d-flex justify-content-around">
-   //     <div className="p-3 ">
-   //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-   //     </div>
-   //     </div>
-   //   );
-   // }
-  //
-   // return (
-   //   <div className="p-5 role-image-container d-flex justify-content-around">
-   //      <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-   //   {<img src={parentImage} alt="Parent" style={{width: "30%"}}/>}
-   //   <div className="p-3 question-dialogue">
-   //     <div className="question-header d-flex justify-content-between align-items-center">
-   //       <div className="storyTitle m-0">Question for Parent</div>
-   //     </div>
-   //     <div>{state.pagesValues[state.page].question}</div>
-   //   </div>
-   //   </div>
-   // );
-//
+
 
 
 
@@ -476,6 +459,23 @@ function handlePlayClick() {
         </div>
       </div>
 
+      <div className="navigation-buttons-container">
+  <button 
+    onClick={gotoPreviousPage} 
+    className="btn btn-primary previous-page-button" 
+    disabled={state.page === 0}
+  >Previous Page</button>
+  
+  <button 
+    onClick={gotoNextPage} 
+    className="btn btn-primary next-page-button" 
+    disabled={state.page >= state.pagesValues.length - 1}
+  >Next Page</button>
+</div>
+
+
+      
+    
       <div className="row">
         <div className="col-md-5">
             <img src={state.pagesValues[state.page].img} alt="current page" />
