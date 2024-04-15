@@ -17,7 +17,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 
 
-function RoleDraggable({ draggableId,role, index, name, isDragDisabled}) {
+function RoleDraggable({ draggableId,role, index, name, isDragDisabled, style}) {
 
   const playSound = () => {
       
@@ -56,6 +56,7 @@ return (
         {...provided.draggableProps}
         {...provided.dragHandleProps}
         ref={provided.innerRef}
+        style={{ ...provided.draggableProps.style, ...style }}
       >
         <img src={role.img} alt={role.Role} />
         <span>{role.Role}</span>
@@ -136,50 +137,54 @@ function CharaterSelecter() {
 
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
-    console.log(result.source);
-    console.log(result.destination);
-    console.log(result.draggableId);
   
-    // If there's no destination or the item is dropped back to the same place, do nothing
     if (!destination || (source.droppableId === destination.droppableId)) {
-      console.log(destination ? "Dragged to the same spot!" : "No destination found!");
+      console.log("Dragged to the same spot or no destination found!");
       return;
     }
   
-  const roleDragged = availableRoles.find(role => role.Role === draggableId);
-  console.log("Role Dragged:", roleDragged);
-  const roleAtDestination = characterValues[destination.droppableId];
-  let updatedAvailableRoles = [...availableRoles];
-
-  if (source.droppableId === "roles") {
-    // Remove the dragged role from availableRoles
-    updatedAvailableRoles = updatedAvailableRoles.filter(role => role.Role !== draggableId);
-
-    // If the destination character had a role, add it back to availableRoles
-    if (roleAtDestination) {
-      updatedAvailableRoles.push(roleAtDestination);
+    // Copying state in a way to ensure re-render
+    const updatedCharacterValues = { ...characterValues };
+    const updatedAvailableRoles = availableRoles.map(role => ({ ...role }));
+  
+    const sourceRole = updatedAvailableRoles.find(role => role.Role === draggableId);
+    const destinationCharacterRole = updatedCharacterValues[destination.droppableId];
+  
+    if (source.droppableId === "roles") {
+      if (destinationCharacterRole) {
+        // Make the previously assigned role available again
+        const oldRole = updatedAvailableRoles.find(role => role.Role === destinationCharacterRole.Role);
+        if (oldRole) oldRole.isAssigned = false;
+      }
+      updatedCharacterValues[destination.droppableId] = sourceRole;
+      sourceRole.isAssigned = true;
+    } else {
+      if (destination.droppableId !== "roles") {
+        const tempRole = destinationCharacterRole;
+        if (tempRole) {
+          // Make the replaced role available again
+          const replacedRole = updatedAvailableRoles.find(role => role.Role === tempRole.Role);
+          if (replacedRole) replacedRole.isAssigned = false;
+        }
+        updatedCharacterValues[destination.droppableId] = updatedCharacterValues[source.droppableId];
+        updatedCharacterValues[source.droppableId] = tempRole;
+      } else {
+        sourceRole.isAssigned = false;
+        updatedCharacterValues[source.droppableId] = null;
+      }
     }
-  }
   
-
-  const newCharacterValues = { ...characterValues };
+    // Re-check assignment of roles
+    updatedAvailableRoles.forEach(role => {
+      role.isAssigned = Object.values(updatedCharacterValues).some(charRole => charRole && charRole.Role === role.Role);
+    });
   
-  if (source.droppableId !== "roles" && destination.droppableId !== "roles") {
-    // Swap roles between two characters
-    newCharacterValues[destination.droppableId] = characterValues[source.droppableId];
-    newCharacterValues[source.droppableId] = roleAtDestination;
-  } else {
-    // If the role was dragged from the roles list
-    newCharacterValues[destination.droppableId] = roleDragged;
-  }
+    setCharacterValues(updatedCharacterValues);
+    setAvailableRoles(updatedAvailableRoles);
+  };
   
-  console.log("New character values after swap:", newCharacterValues);
-  console.log(updatedAvailableRoles);
-  setAvailableRoles(updatedAvailableRoles);
-  setCharacterValues(newCharacterValues);
-  console.log(characterValues);
-};
-
+  
+  
   
   
   
@@ -243,7 +248,8 @@ function CharaterSelecter() {
                   className="DraggableContainer"
                 >
                   {availableRoles.map((role, index) => (
-                     <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} name={userName} isDragDisabled={role.isAssigned} />
+                     <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} name={userName} isDragDisabled={role.isAssigned} style={{ opacity: role.isAssigned ? 0.1 : 1 }}  // Adjust opacity based on assignment
+                     />
                   ))}
                   {provided.placeholder}
                 </div>
