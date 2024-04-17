@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import CharacterCard from "../components/CharacterCard.js";
 import "../styles/CharacterSelecter.css"; // Path to your CSS file
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -14,10 +13,57 @@ import Modal from 'react-modal';
 import { Draggable } from "react-beautiful-dnd";
 import "../styles/RoleDraggable.css"; // Path to your CSS file
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import "../styles/CharacterCard.css";
+
+
+
+function CharacterCard({ draggableId, character, role  }) {
+
+  const defaultMessage = "Select a role from the left side, then drag and drop it onto this box to assign a voice to this character.";
+
+  return (
+    <div className="character-card">
+      <div className="card">
+        <div className="card-content">
+          <div className="left-column">
+            <h5 className="card-title">{character.Name}</h5>
+            <div className="card-img-container">
+              <img
+                src={character.img}
+                className="card-img-top"
+                alt={character.Name}  
+              />
+            </div>
+          </div>
+          <Droppable droppableId={character.Name}>
+          {(provided) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="droppable-area"
+            >
+            {role ? (
+              <RoleDraggable draggableId={String(draggableId)} role={role} index={0} />
+            ) : (
+              <>
+                <p className="default-message">{defaultMessage}</p>
+                <div className="placeholder"></div>
+              </>
+            )}
+            {provided.placeholder}
+            </div>
+          )}
+          </Droppable>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 
 function RoleDraggable({ draggableId,role, index, name, isDragDisabled, style}) {
+
 
   const playSound = () => {
       
@@ -49,7 +95,7 @@ function RoleDraggable({ draggableId,role, index, name, isDragDisabled, style}) 
     }
 return (
  
-  <Draggable draggableId={String(role.Role)} index={index}  isDragDisabled={isDragDisabled}>
+  <Draggable draggableId={String(draggableId)} index={index}  isDragDisabled={isDragDisabled}>
     {(provided) => (
       <div
           className="RoleDraggable" // apply the class here
@@ -57,6 +103,7 @@ return (
         {...provided.dragHandleProps}
         ref={provided.innerRef}
         style={{ ...provided.draggableProps.style, ...style }}
+        
       >
         <img src={role.img} alt={role.Role} />
         <span>{role.Role}</span>
@@ -137,6 +184,7 @@ function CharaterSelecter() {
 
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
+    console.log(`Drag operation started:`, {source, destination, draggableId});
   
     if (!destination || (source.droppableId === destination.droppableId)) {
       console.log("Dragged to the same spot or no destination found!");
@@ -146,6 +194,7 @@ function CharaterSelecter() {
     // Copying state in a way to ensure re-render
     const updatedCharacterValues = { ...characterValues };
     const updatedAvailableRoles = availableRoles.map(role => ({ ...role }));
+    console.log(`State before update:`, { updatedCharacterValues, updatedAvailableRoles });
   
     const sourceRole = updatedAvailableRoles.find(role => role.Role === draggableId);
     const destinationCharacterRole = updatedCharacterValues[destination.droppableId];
@@ -155,6 +204,7 @@ function CharaterSelecter() {
         // Make the previously assigned role available again
         const oldRole = updatedAvailableRoles.find(role => role.Role === destinationCharacterRole.Role);
         if (oldRole) oldRole.isAssigned = false;
+        updatedCharacterValues[source.droppableId] = null; // Ensure this character no longer references
       }
       updatedCharacterValues[destination.droppableId] = sourceRole;
       sourceRole.isAssigned = true;
@@ -181,6 +231,9 @@ function CharaterSelecter() {
   
     setCharacterValues(updatedCharacterValues);
     setAvailableRoles(updatedAvailableRoles);
+    console.log(`State after update:`, { updatedCharacterValues, updatedAvailableRoles });
+    console.log("Roles", availableRoles)
+    
   };
   
   
@@ -199,7 +252,7 @@ function CharaterSelecter() {
       setModalIsOpen(true);
       return;
     }
-  
+    console.log(characterValues)
     const selectedOptions = Object.keys(characterValues).map((characterName) => ({
       Character: characterName,
       VA: characterValues[characterName].RoleParameter,
@@ -248,7 +301,7 @@ function CharaterSelecter() {
                   className="DraggableContainer"
                 >
                   {availableRoles.map((role, index) => (
-                     <RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} name={userName} isDragDisabled={role.isAssigned} style={{ opacity: role.isAssigned ? 0.1 : 1 }}  // Adjust opacity based on assignment
+                     < RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} name={userName} isDragDisabled={role.isAssigned} style={{ opacity: role.isAssigned ? 0.1 : 1 }}  // Adjust opacity based on assignment
                      />
                   ))}
                   {provided.placeholder}
@@ -262,7 +315,7 @@ function CharaterSelecter() {
               {book && book.characters.map((character, index) => {
                 const role = characterValues[character.Name];
                 return (
-                  <CharacterCard character={character} role={role} key={index}/>
+                  <CharacterCard draggableId = {role} character={character} role={role} key={index}/>
                 );
               })}
             </div>
