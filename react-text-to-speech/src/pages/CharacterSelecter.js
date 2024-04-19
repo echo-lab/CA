@@ -204,7 +204,7 @@ function CharaterSelecter() {
         // Make the previously assigned role available again
         const oldRole = updatedAvailableRoles.find(role => role.Role === destinationCharacterRole.Role);
         if (oldRole) oldRole.isAssigned = false;
-        updatedCharacterValues[source.droppableId] = null; // Ensure this character no longer references
+        //updatedCharacterValues[source.droppableId] = null; // Ensure this character no longer references
       }
       updatedCharacterValues[destination.droppableId] = sourceRole;
       sourceRole.isAssigned = true;
