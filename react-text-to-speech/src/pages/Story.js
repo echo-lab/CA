@@ -7,8 +7,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import {roles} from "../Book/Roles.js"
+import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+
+
 
 
 
@@ -28,9 +31,7 @@ function Reader() {
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
-  const parentRole = roles.find(role => role.Role === "Parent");
-  console.log("parent role", parentRole)
-  const parentImage = parentRole ? parentRole.img : null;
+ 
 
   let bookData
 
@@ -62,8 +63,7 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
-  const [questionVisible, setQuestionVisible] = useState(true);
-  const [selectedText, setSelectedText] = useState('');
+
 
   const handleTextSelection = () => {
     setTimeout(() => {
@@ -90,6 +90,13 @@ const gotoPreviousPage = () => {
     // Add any other state resets or logic needed when changing pages here
   }
 };
+
+const playSound = () => {
+      
+  speak(state.pagesValues[state.page].question)
+};
+
+
 
 
 
@@ -246,7 +253,7 @@ const handleNextClick = React.useCallback(() => {
           }
 
           // Reset to the first page and reset the reading index
-          setState({ ...state, page: 0, index: 0 });
+          //setState({ ...state, page: 0, index: 0 });
 
           // Set isPlaying to false since we've reached the end of the book
           setIsPlaying(false);
@@ -325,8 +332,8 @@ function stripSSMLTags(text) {
               key={key}
             >
        
-              <div className="col-4">
-              <div className="role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
+              <div className="col-3">
+              <div className="role-image-container-text d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
               {currentRole && currentRole.role === "Parent" && roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}
             
                 {/* Add character image */}
@@ -357,18 +364,25 @@ function stripSSMLTags(text) {
 
   
   
+
   function renderQuestion() {
 
     return ( 
            <div>
-              
-                
+                <div className="wrapper">
+                <div className="role-image-container">
+                  <img src={parentImage} alt="Parent" />
+                  <button onClick={playSound} className="play-sound-button">
+                  <PlayArrowIcon />
+                  </button>
+                  </div>
+                  
                   <div className="question-dialogue d-flex justify-content-between align-items-center">
                     <div className="storyTitle m-0"></div>
                     {state.pagesValues[state.page].question}
                 </div>
                 
-              
+                </div>
            </div>
      );
 
