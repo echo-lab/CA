@@ -21,21 +21,28 @@ function CharacterCard({ character, role  }) {
               <img
                 src={character.img}
                 className="card-img-top"
-                alt={character.Name}
+                alt={character.Name}  
               />
             </div>
           </div>
           <Droppable droppableId={character.Name}>
-            {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="droppable-area"
-              >
-              {role ? <RoleDraggable draggableId={role.Role} role={role} index={0} /> : <p className="default-message">{defaultMessage}</p>}
-              {provided.placeholder}
-              </div>
+          {(provided) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="droppable-area"
+            >
+            {role ? (
+              <RoleDraggable draggableId={role.Role} role={role} index={0} />
+            ) : (
+              <>
+                <p className="default-message">{defaultMessage}</p>
+                <div className="placeholder"></div>
+              </>
             )}
+            {provided.placeholder}
+            </div>
+          )}
           </Droppable>
         </div>
       </div>

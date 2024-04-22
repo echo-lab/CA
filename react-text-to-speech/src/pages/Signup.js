@@ -5,17 +5,18 @@ import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfi
 import  { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-
-function Signup(){
-  const [userName, setUserName] = useState(''); // State to hold the user's name
+function Signup() {
+  const [userName, setUserName] = useState(''); // Keep this state for the input field
   const navigate = useNavigate(); // Hook for programmatic navigation
-   // Function to handle form submission
-   const handleSubmit = (e) => {
+
+  const handleSubmit = (e) => {
     e.preventDefault(); // Prevent the default form submission
-    navigate('/Home', { state: { userName } }); // Navigate to '/Home' with userName state
+    // Check if userName is empty, if so, use "Human" as the userName
+    const userNameToSend = userName || "Human";
+    navigate('/Home', { state: { userName: userNameToSend } }); // Navigate with conditional userName
   };
 
-    return (
+  return (
     <div className="signup">
       <div className="signupcard">
         <div className='row row-signup'>
@@ -24,21 +25,22 @@ function Signup(){
           </div>
           <div className="col-md-6 right-column">
             <div className="welcome-header">
-              <span className="icon"><SentimentVerySatisfiedIcon fontSize="large"/></span> 
+              <span className="icon"><SentimentVerySatisfiedIcon fontSize="large"/></span>
               <h3 className="welcome-text">Welcome!</h3>
             </div>
-            <form onSubmit={handleSubmit}> {/* Updated form to use handleSubmit */}
+            <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="name">Name:</label>
                 <input 
                   type="text" 
                   className="form-control" 
-                  placeholder="What's your name"
+                  id="name"
+                  placeholder="What's your child's name?"
                   value={userName} // Controlled component
                   onChange={(e) => setUserName(e.target.value)} // Update state on change
                 />
               </div>
-              <button type="submit" className="button">Start</button> {/* Use button to submit form */}
+              <button type="submit" className="button">Start</button>
             </form>
           </div>
         </div>
@@ -46,6 +48,5 @@ function Signup(){
     </div>
   );
 }
-
 
 export default Signup;

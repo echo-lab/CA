@@ -94,7 +94,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“You count, and I’ll hide,”",
+              Dialogue: "“You count and I’ll hide,”",
             },
             {
               Reading: false,
@@ -205,7 +205,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "<emphasis level='strong'>““Ta-da!”.</emphasis>",
+                "<emphasis level='strong'>““Ta-da!”</emphasis>",
             },
             {
               Reading: false,
@@ -453,7 +453,7 @@ export const data = [
           ],
         },
         PageFourteen: {
-          img: require("../Pictures/book1/Page_14.jpg"),
+          img: require("../Pictures/book2/Page_14.jpg"),
           question: "Which items are different colors but have the same pattern?",
           text: [
             {

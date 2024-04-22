@@ -4,7 +4,7 @@ import "../styles/RoleDraggable.css"; // Path to your CSS file
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
 
-function RoleDraggable({ draggableId,role, index, name}) {
+function RoleDraggable({ draggableId,role, index, name, isDragDisabled}) {
 
     const playSound = () => {
         
@@ -36,7 +36,7 @@ function RoleDraggable({ draggableId,role, index, name}) {
       }
   return (
    
-    <Draggable draggableId={String(role.Role)} index={index}>
+    <Draggable draggableId={String(role.Role)} index={index}  isDragDisabled={isDragDisabled}>
       {(provided) => (
         <div
             className="RoleDraggable" // apply the class here

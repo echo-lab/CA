@@ -1,9 +1,16 @@
 
 .row1 {
+  display: flex;
+  align-items: center; /* This will vertically center-align the flex items */
+  justify-content: space-between; /* This puts space between the flex items */
  height: 75px;
 }
 
-
+.wrapper {
+  display: flex;
+  align-items: center; /* This will vertically center-align the flex items */
+  flex-direction: row;
+}
 .storyTitle {
  margin-bottom: 10px;
  margin: 0px;
@@ -15,8 +22,8 @@
 
 .reader-container {
  position: relative;
- height: 100vh; 
-overflow: hidden;
+ max-height: 100vh; 
+overflow: auto;
 }
 
 .image-column {
@@ -86,21 +93,26 @@ img {
 }
 
 .question-dialogue {
-  
   display: flex;
   flex-direction: column;
-  justify-content: center;  /* Center text horizontally */
-  align-items: center;  /* Center text vertically */
-  height: 40%;
+  justify-content: center;
+  align-items: flex-start;
   border: 1px solid #ccc;
-  position: relative; /* Make sure it's relative so that its children can be positioned absolutely in relation to it */
+  position: relative;
   border-radius: 20px;
   background-color: #97d597;
-  font-size: 22px; 
-  text-align: center;  /* Center text */
-  width: 100%;
+  font-size: 22px;
+  text-align: center;
+  padding: 20px; /* Add padding to ensure the text doesn't touch the edges */
+  overflow: auto; /* Ensures the content is scrollable if it overflows */
+  width: 100%; /* Take up the remaining width */
 }
 
+.row1 {
+  display: flex;
+  align-items: start; /* Align to the top */
+  justify-content: start; /* Align to the left */
+}
 
 
 .show-icon {
@@ -127,14 +139,27 @@ img {
 
  .role-image-container img {
   display: flex;  
-  height: 20%;
-  width: 20%;
+  align-items: center; /* Center children horizontally */
+  height: 60px;
+  width: auto;
 }
 
 .role-image-container {
   display: flex;
-  justify-content: space-around;
-  align-items: center;
+  flex-direction: column; 
+  justify-content: flex-start; /* Start from the top */
+  align-items: center; /* Center horizontally */
+  margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
+  flex-shrink: 0; /* Prevent the container from shrinking */
+}
+
+.role-image-container-text {
+  display: flex;
+  flex-direction: row; 
+  justify-content: flex-start; /* Start from the top */
+  align-items: center; /* Center horizontally */
+  margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
+  flex-shrink: 0; /* Prevent the container from shrinking */
 }
 
 @keyframes pulse {
@@ -161,6 +186,32 @@ img {
   animation: pulse 1.5s infinite; /* Pulsing animation */
 }
 
+.navigationButton {
+  background-color: #0d6efd; /* Bootstrap primary color */
+  color: white;
+  padding: 10px 20px;
+  margin: 3dvh;
+  border: none;
+  border-radius: .25rem; /* Bootstrap standard border-radius */
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  font-size: 1rem;
+  line-height: 1.5;
+  transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.control-button {
+  background: linear-gradient(45deg, rgba(0, 255, 50, 0.1), rgba(0, 200, 50, 0.2));
+  border-width: 4px; /* Even thicker border */
+  border-color: rgb(0, 0, 0);
+  border-style: solid;
+  color: rgb(0, 150, 50); /* Assuming the text color is some shade of green */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for readability */
+}
+
 .highlight-button:hover {
   box-shadow: 0px 0px 20px 10px rgba(0, 255, 50, 0.9);
   border-color: rgb(0, 255, 0);
@@ -172,3 +223,33 @@ img {
 
 
 
+
+.navigation-buttons-container {
+  display: flex;
+  align-items: center;
+  /* ... any other styles ... */
+}
+
+
+.next-page-button, .previous-page-button {
+  /* Removed the position absolute and added some margin for spacing */
+  margin: 0 10px; /* Adjust the margin as needed */
+}
+
+
+.navigation-buttons-container {
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  padding: 20px; /* Add padding as needed */
+}
+
+.play-sound-button {
+  /* Style your button as needed */
+ 
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: auto;
+  
+  /* Add other styles as needed */
+}

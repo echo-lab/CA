@@ -60,6 +60,17 @@
   margin: 10px;
 }
 
+.droppable-area .placeholder {
+  height: 60px; /* Adjust based on the typical height of RoleDraggable */
+  width: 100%; /* Adjust if necessary to match the width of RoleDraggable */
+  background-color: #ffffff; /* A light color or transparent */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px; /* Optional, depending on your layout */
+}
+
+
 .character-card .default-message {
   padding: 10px; /* adjust as needed */
   text-align: center; /* if you want the text to be centered */

@@ -2,14 +2,16 @@ import React,  { useState, useRef } from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import {roles} from "../Book/Roles.js"
+import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+
+
 
 
 
@@ -29,9 +31,7 @@ function Reader() {
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
-  const parentRole = roles.find(role => role.Role === "Parent");
-  console.log("parent role", parentRole)
-  const parentImage = parentRole ? parentRole.img : null;
+ 
 
   let bookData
 
@@ -63,15 +63,42 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
-  const [questionVisible, setQuestionVisible] = useState(true);
-  const [selectedText, setSelectedText] = useState('');
+
 
   const handleTextSelection = () => {
     setTimeout(() => {
-      const text = window.getSelection().toString();
-      speak(text)
+      let text = window.getSelection().toString();
+      // Remove isolated symbols and punctuation, and trim whitespace
+      text = text.replace(/(?<=\s|^)[.,!?;:"'“”‘’\-—]?(?=\s|$)/g, '').trim();
+      
+      if(text.length > 0) {
+        speak(text);
+      }
     }, 100);
-  };
+};
+
+const gotoNextPage = () => {
+  if (state.page < state.pagesValues.length - 1) {
+    setState(prevState => ({ ...prevState, page: prevState.page + 1 }));
+    // Add any other state resets or logic needed when changing pages here
+  }
+};
+
+const gotoPreviousPage = () => {
+  if (state.page > 0) {
+    setState(prevState => ({ ...prevState, page: prevState.page - 1 }));
+    // Add any other state resets or logic needed when changing pages here
+  }
+};
+
+const playSound = () => {
+      
+  speak(state.pagesValues[state.page].question)
+};
+
+
+
+
 
   async function speak(text){
     try {
@@ -137,9 +164,13 @@ function Reader() {
     if ( currentCharacter.length > 0 
     &&  currentCharacter[0].VA.name!== "") {
       console.log("STT",page.text[index].Dialogue )
+      var dialogue = page.text[index].Dialogue.replace(/(?<=\s|^)[.,!?;:"'“”‘’\-—]*(?=\s|$)/g, '').trim();
+      console.log("Dialogue", dialogue)
+
+
       try {
         const request = {
-            text: page.text[index].Dialogue,
+            text: dialogue,
             voice: currentVoice,
         };
 
@@ -152,10 +183,14 @@ function Reader() {
         });
 
         const data = await response.json();
-        const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        setAudio(newAudio);
-        newAudio.addEventListener("ended", audioEnded);
-        newAudio.play()
+        try {
+          const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+          setAudio(newAudio);
+          newAudio.addEventListener("ended", audioEnded);
+          await newAudio.play();
+        } catch (error) {
+          console.error('Error playing audio:', error);
+        }
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
     }
@@ -218,7 +253,7 @@ const handleNextClick = React.useCallback(() => {
           }
 
           // Reset to the first page and reset the reading index
-          setState({ ...state, page: 0, index: 0 });
+          //setState({ ...state, page: 0, index: 0 });
 
           // Set isPlaying to false since we've reached the end of the book
           setIsPlaying(false);
@@ -264,7 +299,7 @@ function stripSSMLTags(text) {
   }
   
   
-  function renderPageRows() {
+ function renderPageRows() {
     
     return (
       <ReactScrollableFeed>
@@ -296,18 +331,16 @@ function stripSSMLTags(text) {
               className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
               key={key}
             >
+       
               <div className="col-3">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-character" : ""} `}>{val.Character}:</div>
-              </div>
-              <div className="col-3">
-              <div className="p-3 role-image-container d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
-                {roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}  {/* Adjust width as per requirement */}
-
+              <div className="role-image-container-text d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
+              {currentRole && currentRole.role === "Parent" && roleImage && <img src={roleImage} alt={roleName} style={{width: "45%"}}/>}
+            
                 {/* Add character image */}
                 {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
               </div>
               </div>
-              <div className="col-6">
+              <div className="col-8">
                 <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
                   {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : 
                   <>
@@ -328,72 +361,34 @@ function stripSSMLTags(text) {
   
 
   
-  function toggleQuestionVisibility() {
-    setQuestionVisible(prevVisible => !prevVisible);
-  }
+
   
   
+
   function renderQuestion() {
 
     return ( 
            <div>
-              {questionVisible ? (
-                <div className="p-3 role-image-container">
+                <div className="wrapper">
+                <div className="role-image-container">
                   <img src={parentImage} alt="Parent" />
+                  <button onClick={playSound} className="play-sound-button">
+                  <PlayArrowIcon />
+                  </button>
+                  </div>
+                  
                   <div className="question-dialogue d-flex justify-content-between align-items-center">
-                    <div className="storyTitle m-0">Question for Parent</div>
+                    <div className="storyTitle m-0"></div>
                     {state.pagesValues[state.page].question}
                 </div>
+                
                 </div>
-              ) : null}
            </div>
      );
 
 
   }
-  //function renderQuestion() {
-//
-  //  return (
-  //    <div className="p-5 role-image-container d-flex justify-content-around">
-  //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-  //       {questionVisible ? (
-  //         <div className="p-3 role-image-container">
-  //           <img src={parentImage} alt="Parent" />
-  //           <div className="question-dialogue d-flex justify-content-between align-items-center">
-  //             <div className="storyTitle m-0">Question for Parent</div>
-  //           </div>
-  //           <div>{state.pagesValues[state.page].question}</div>
-  //         </div>
-  //       ) : null}
-  //    </div>
-  //  );
-//
-  //       }
-//
-//
-   // if (!questionVisible) {
-   //   return (
-   //     <div className="p-5 role-image-container d-flex justify-content-around">
-   //     <div className="p-3 ">
-   //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-   //     </div>
-   //     </div>
-   //   );
-   // }
-  //
-   // return (
-   //   <div className="p-5 role-image-container d-flex justify-content-around">
-   //      <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-   //   {<img src={parentImage} alt="Parent" style={{width: "30%"}}/>}
-   //   <div className="p-3 question-dialogue">
-   //     <div className="question-header d-flex justify-content-between align-items-center">
-   //       <div className="storyTitle m-0">Question for Parent</div>
-   //     </div>
-   //     <div>{state.pagesValues[state.page].question}</div>
-   //   </div>
-   //   </div>
-   // );
-//
+
 
 
 
@@ -478,10 +473,26 @@ function handlePlayClick() {
         </div>
       </div>
 
+      <div className="navigation-buttons-container">
+  <button 
+    onClick={gotoPreviousPage} 
+    className="btn btn-primary previous-page-button" 
+    disabled={state.page === 0}
+  >Previous Page</button>
+  
+  <button 
+    onClick={gotoNextPage} 
+    className="btn btn-primary next-page-button" 
+    disabled={state.page >= state.pagesValues.length - 1}
+  >Next Page</button>
+</div>
+
+
+      
+    
       <div className="row">
         <div className="col-md-5">
             <img src={state.pagesValues[state.page].img} alt="current page" />
-            <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon  style={{ color: 'white' }} /></button>
           {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
           </div>     
         <div className="col-md-7 table-container">

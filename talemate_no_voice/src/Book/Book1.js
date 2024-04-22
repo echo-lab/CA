@@ -116,7 +116,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Oh… <break time='1s'/> is your birthday?”",
+                "“Oh… <break time='1s'/> it’s your birthday?”",
             },
             {
               Reading: false,
@@ -127,7 +127,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Um… <break time='1s'/><emphasis level='strong'> look! </emphasis>Purple, green, purple, green!  Same as the cake!  Let’s add more!  <break time='1s'/> Same as the cake! <break time='1s'/> Let’s add more!”",
+              Dialogue: "“Um… <break time='1s'/><emphasis level='strong'> look! </emphasis>Purple, green, purple, green!  Same as the cake!  Let’s add more!”",
             },
             {
               Reading: false,

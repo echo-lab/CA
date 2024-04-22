@@ -27,3 +27,7 @@
   }
 
 
+  .RoleDraggable.disabled {
+    opacity: 0.5; /* Make it semi-transparent */
+    pointer-events: none; /* Prevent interaction */
+  }

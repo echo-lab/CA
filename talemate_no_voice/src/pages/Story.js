@@ -64,6 +64,20 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [questionVisible, setQuestionVisible] = useState(true);
 
+  const gotoNextPage = () => {
+    if (state.page < state.pagesValues.length - 1) {
+      setState(prevState => ({ ...prevState, page: prevState.page + 1 }));
+      // Add any other state resets or logic needed when changing pages here
+    }
+  };
+  
+  const gotoPreviousPage = () => {
+    if (state.page > 0) {
+      setState(prevState => ({ ...prevState, page: prevState.page - 1 }));
+      // Add any other state resets or logic needed when changing pages here
+    }
+  };
+
  
 
 
@@ -153,16 +167,14 @@ function stripSSMLTags(text) {
               className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
               key={key}
             >
-              <div className="col-2">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-character" : ""} `}>{val.Character}:</div>
-              </div>
-              <div className="col-3">
+              
+              <div className="col-4">
               <div className="p-3 role-image-container d-flex justify-content-around"> 
               
                 {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
               </div>
               </div>
-              <div className="col-7">
+              <div className="col-8">
                 <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} >
                   {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : 
                   <>
@@ -183,9 +195,7 @@ function stripSSMLTags(text) {
   
 
   
-  function toggleQuestionVisibility() {
-    setQuestionVisible(prevVisible => !prevVisible);
-  }
+
   
   
   function renderQuestion() {
@@ -196,7 +206,7 @@ function stripSSMLTags(text) {
                 <div className="p-3 role-image-container">
                   <img src={parentImage} alt="Parent" />
                   <div className="question-dialogue d-flex justify-content-between align-items-center">
-                    <div className="storyTitle m-0">Question for Parent</div>
+                    <div className="storyTitle m-0"></div>
                     {state.pagesValues[state.page].question}
                 </div>
                 </div>
@@ -206,49 +216,6 @@ function stripSSMLTags(text) {
 
 
   }
-  //function renderQuestion() {
-//
-  //  return (
-  //    <div className="p-5 role-image-container d-flex justify-content-around">
-  //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-  //       {questionVisible ? (
-  //         <div className="p-3 role-image-container">
-  //           <img src={parentImage} alt="Parent" />
-  //           <div className="question-dialogue d-flex justify-content-between align-items-center">
-  //             <div className="storyTitle m-0">Question for Parent</div>
-  //           </div>
-  //           <div>{state.pagesValues[state.page].question}</div>
-  //         </div>
-  //       ) : null}
-  //    </div>
-  //  );
-//
-  //       }
-//
-//
-   // if (!questionVisible) {
-   //   return (
-   //     <div className="p-5 role-image-container d-flex justify-content-around">
-   //     <div className="p-3 ">
-   //       <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-   //     </div>
-   //     </div>
-   //   );
-   // }
-  //
-   // return (
-   //   <div className="p-5 role-image-container d-flex justify-content-around">
-   //      <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon/></button>
-   //   {<img src={parentImage} alt="Parent" style={{width: "30%"}}/>}
-   //   <div className="p-3 question-dialogue">
-   //     <div className="question-header d-flex justify-content-between align-items-center">
-   //       <div className="storyTitle m-0">Question for Parent</div>
-   //     </div>
-   //     <div>{state.pagesValues[state.page].question}</div>
-   //   </div>
-   //   </div>
-   // );
-//
 
 
 
@@ -294,10 +261,23 @@ function renderNavigationButtons() {
         </div>
       </div>
 
+      <div className="navigation-buttons-container">
+  <button 
+    onClick={gotoPreviousPage} 
+    className="btn btn-primary previous-page-button" 
+    disabled={state.page === 0}
+  >Previous Page</button>
+  
+  <button 
+    onClick={gotoNextPage} 
+    className="btn btn-primary next-page-button" 
+    disabled={state.page >= state.pagesValues.length - 1}
+  >Next Page</button>
+</div>
+
       <div className="row">
         <div className="col-md-5">
             <img src={state.pagesValues[state.page].img} alt="current page" />
-            <button className="show-icon" onClick={toggleQuestionVisibility}><QuestionMarkIcon  style={{ color: 'white' }} /></button>
           {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
           </div>     
         <div className="col-md-7 table-container">
