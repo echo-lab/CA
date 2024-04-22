@@ -140,7 +140,7 @@ img {
  .role-image-container img {
   display: flex;  
   align-items: center; /* Center children horizontally */
-  height: 80px;
+  height: 60px;
   width: auto;
 }
 
@@ -245,7 +245,7 @@ img {
 
 .play-sound-button {
   /* Style your button as needed */
-  margin-top: 10px;
+ 
   background: transparent;
   border: none;
   cursor: pointer;
