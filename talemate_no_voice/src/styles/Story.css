@@ -220,3 +220,19 @@ img {
   justify-content: flex-end; /* Align buttons to the right */
   padding: 20px; /* Add padding as needed */
 }
+
+/* Styles for the scrollbar */
+::-webkit-scrollbar {
+  width: 12px; /* Width of the vertical scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.1); /* Scrollbar track color */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: darkgreen; /* Scrollbar color */
+  border-radius: 10px;
+  border: 3px solid limegreen; /* Green halo effect */
+}

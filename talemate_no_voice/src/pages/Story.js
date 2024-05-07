@@ -98,7 +98,8 @@ function Reader() {
  */
 const handleNextClick = React.useCallback(() => {
   console.log("handleNextClick triggered. Current page:", state.page, "Current Index: ", state.index);
-  
+  const container = tableContainerRef.current;
+
 
     console.log("no more text")
       // If there's no more text on the current page, check if there are more pages to go to
@@ -109,23 +110,28 @@ const handleNextClick = React.useCallback(() => {
             const newState = {...prevState, page: prevState.page + 1, index: 0};
             return newState;
           });
+
+          if (tableContainerRef.current) {
+            tableContainerRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+            console.log("scrolledup")
+          }
           
       } else {
           // If we're on the last page, mark the last text as not being read
-          if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
-              state.pagesValues[state.page].text[state.index-1].Reading = false;
-          }
+          
 
           // Reset to the first page and reset the reading index
           setState({ ...state, page: 0, index: 0 });
 
-          // Set isPlaying to false since we've reached the end of the book
-          setIsPlaying(false);
+
       }
   
 
   
-}, [state, isPlaying, dialogueRefs]);
+}, [state]);
 
 
 

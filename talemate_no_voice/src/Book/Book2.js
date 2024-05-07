@@ -12,7 +12,7 @@ export const data = [
       Pages: {
         Cover: {
           img: require("../Pictures/book2/cover.png"),
-         
+          question: "You will see questions in this box while reading the book. Feel free to use them at your convenience.",
           text: [
             {
               Reading: false,
@@ -70,7 +70,7 @@ export const data = [
             },
             {
               Reading: false,
-              Character: "Zoe",
+              Character: "Clara",
               Dialogue: "“Yours is yellow, blue, yellow, blue<break time='1s'/>… mine is green, purple, green, purple. <break time='1s'/> Zip, zap, zip, zap!”",
             },
           ],
@@ -93,8 +93,8 @@ export const data = [
             },
             {
               Reading: false,
-              Character: "Zoe",
-              Dialogue: "“You count and I’ll hide,”",
+              Character: "Clara",
+              Dialogue: "“You count, and I’ll hide,”",
             },
             {
               Reading: false,
