@@ -1,0 +1,12 @@
+
+.avatar-img-thumbnail {
+  width: 150px; /* Adjust the width of the images as needed */
+  height: 150px; /* Adjust the height of the images as needed */
+  cursor: pointer;
+}
+
+.avatar-img-thumbnail.selected {
+  border: 2px solid blue; /* Highlight selected images */
+}
+
+
