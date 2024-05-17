@@ -160,6 +160,13 @@ img {
   align-items: center; /* Center horizontally */
   margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
   flex-shrink: 0; /* Prevent the container from shrinking */
+  position: relative;
+}
+
+.overlay-image {
+  position: absolute;
+  top: -5%;    /* Adjust to place the overlay image in the desired corner */
+  left: 55%;   /* Adjust to place the overlay image in the desired corner */
 }
 
 @keyframes pulse {
