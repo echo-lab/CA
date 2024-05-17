@@ -7,7 +7,7 @@ const { Buffer } = require('buffer');
 
 
 const corsOptions = {
-    origin: 'http://localhost:3000',
+    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12'],
     methods: 'POST',
     credentials: true
 };
@@ -76,11 +76,10 @@ app.post('/synthesize', async (req, res) => {
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server started on port ${port}`));
-//const httpsOptions = {
-//    key: fs.readFileSync('/home/sangwonlee/TaleMate/cert/key3.pem'),
-//    cert: fs.readFileSync('/home/sangwonlee/TaleMate/cert/talemate.cs.vt.edu.crt')
-//};
-
-//https.createServer(httpsOptions, app).listen(port, () => {
-//    console.log(`Server started on https://localhost:${port}`);
-//});
+const httpsOptions = {
+    key: fs.readFileSync('/home/sangwonlee/TaleMate/cert/key3.pem'),
+    cert: fs.readFileSync('/home/sangwonlee/TaleMate/cert/talemate.cs.vt.edu.crt')
+}
+https.createServer(httpsOptions, app).listen(port, () => {
+    console.log(`Server started on https://localhost:${port}`);
+});
