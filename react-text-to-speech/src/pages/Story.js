@@ -104,10 +104,10 @@ const playSound = () => {
     try {
         const request = {
           text: text,
-          voice: {languageCode: 'en-US', name :'en-US-Wavenet-B' }
+          voice: "s3://peregrine-voices/mel28/manifest.json"
         };
   
-        const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
+        const response = await fetch('http://localhost:5000/synthesize', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -174,7 +174,7 @@ const playSound = () => {
             voice: currentVoice,
         };
 
-        const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
+        const response = await fetch('http://localhost:5000/synthesize', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
