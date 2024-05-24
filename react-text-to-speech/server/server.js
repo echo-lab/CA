@@ -41,13 +41,14 @@ app.post('/synthesize', async (req, res) => {
     try {
         let sanitizedText = req.body.text.replace(/(\*)+/g, '');
         sanitizedText = sanitizedText.replace(/'/g, '"');
+        sanitizedText = sanitizedText.replace(/Zoe/g, 'Zoi');
 
         const streamingOptions = {
             voiceEngine: "PlayHT2.0",
             voiceId: req.body.voice,
             sampleRate: 44100,
             outputFormat: 'mp3',
-            speed: 1,
+            speed: 0.8,
         };
 
         const stream = await PlayHT.stream(sanitizedText, streamingOptions);
