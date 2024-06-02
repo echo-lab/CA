@@ -1,0 +1,42 @@
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.w-80 {
+  width: 80%;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.justify-content-center {
+  justify-content: center;
+}
+
+.mt-5 {
+  margin-top: 3rem;
+}
+
+.avatar-img-thumbnail {
+  flex-basis: 15%; /* Ensures 5 images per row */
+  max-width: 15%; 
+  cursor: pointer;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.avatar-img-thumbnail.selected {
+  border: 3px solid #007bff;
+}
+
+
+
+
+
