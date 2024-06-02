@@ -1,12 +1,42 @@
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.w-80 {
+  width: 80%;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.justify-content-center {
+  justify-content: center;
+}
+
+.mt-5 {
+  margin-top: 3rem;
+}
 
 .avatar-img-thumbnail {
-  width: 150px; /* Adjust the width of the images as needed */
-  height: 150px; /* Adjust the height of the images as needed */
+  flex-basis: 15%; /* Ensures 5 images per row */
+  max-width: 15%; /* Ensures the images do not exceed 20% width of the container */
   cursor: pointer;
+  padding: 5px;
+  box-sizing: border-box;
 }
 
 .avatar-img-thumbnail.selected {
-  border: 2px solid blue; /* Highlight selected images */
+  border: 3px solid #007bff;
 }
+
+
+
 
 

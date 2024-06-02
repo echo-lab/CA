@@ -18,6 +18,8 @@ import avatar14 from '../Pictures/Avatars/adult14.png';
 import avatar15 from '../Pictures/Avatars/adult15.png';
 import avatar16 from '../Pictures/Avatars/adult16.png';
 import avatar17 from '../Pictures/Avatars/adult17.png';
+import avatar18 from '../Pictures/Avatars/adult18.png';
+import avatar19 from '../Pictures/Avatars/adult19.png';
 import {roles} from "../Book/Roles.js"
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import "../styles/AvatarSelection.css";
@@ -26,7 +28,7 @@ function AvatarSelecter() {
     const navigate = useNavigate();
     const [selected, setSelected] = useState(null);
   
-    const images = [avatar0, avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8, avatar9, avatar10, avatar11, avatar12, avatar13, avatar14, avatar15, avatar16, avatar17];
+    const images = [avatar0, avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8, avatar9, avatar10, avatar11, avatar12, avatar13, avatar14, avatar15, avatar16, avatar17, avatar18, avatar19];
   
     const toggleImage = (index) => {
       setSelected(index); 
@@ -45,29 +47,29 @@ function AvatarSelecter() {
     return (
       <div className="avatar-container">
         <div className="d-flex flex-column min-vh-100">
-        <div className="d-flex justify-content-between p-3 bg-light">
-          <div className="align-self-start">
-            <div className="sectionTitle display-3">Avatar Selection</div>
-            <p>Please select an avatar to represent the parent</p>
+          <div className="d-flex justify-content-between p-3 bg-light">
+            <div className="align-self-start">
+              <div className="sectionTitle display-3">Avatar Selection</div>
+              <p>Please select an avatar to represent the parent</p>
+            </div>
+            <button className="btn btn-primary" onClick={handleNextButtonClick}>
+              <KeyboardDoubleArrowRightIcon />
+            </button>
           </div>
-          <button className="btn btn-primary" onClick={handleNextButtonClick}>
-            <KeyboardDoubleArrowRightIcon />
-          </button>
+          <div className="w-80 p-3 d-flex flex-wrap justify-content-center align-items-center mt-5">
+            {images.map((image, index) => (
+              <img
+                key={index}
+                src={image}
+                alt={`Image ${index}`}
+                className={`avatar-img-thumbnail ${selected === index ? 'selected' : ''}`}
+                onClick={() => toggleImage(index)}
+              />
+            ))}
+          </div>
         </div>
-      <div className="w-80 p-3 d-flex flex-wrap justify-content-center mt-5">
-      {images.map((image, index) => (
-          <img
-            key={index}
-            src={image}
-            alt={`Image ${index}`}
-            className={`avatar-img-thumbnail ${selected === index ? 'selected' : ''}`}
-            onClick={() => toggleImage(index)}
-          />
-        ))}
       </div>
-    </div>
-    </div>
     );
 }
 
-export default AvatarSelecter
+export default AvatarSelecter;
