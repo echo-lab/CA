@@ -25,11 +25,12 @@
 }
 
 .avatar-img-thumbnail {
-  flex-basis: 15%; /* Ensures 5 images per row */
+  flex-basis: 15%; /* Ensures 6 images per row */
   max-width: 15%; 
   cursor: pointer;
   padding: 5px;
   box-sizing: border-box;
+  max-height: 150px;
 }
 
 .avatar-img-thumbnail.selected {

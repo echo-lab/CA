@@ -30,6 +30,7 @@
   cursor: pointer;
   padding: 5px;
   box-sizing: border-box;
+  max-height: 150px;
 }
 
 .avatar-img-thumbnail.selected {

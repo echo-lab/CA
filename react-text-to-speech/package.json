@@ -12,6 +12,7 @@
     "@testing-library/user-event": "^13.5.0",
     "bootstrap": "^5.2.3",
     "cors": "^2.8.5",
+    "playht": "^0.9.8",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
@@ -23,7 +24,6 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    
     "start": "cross-env HTTPS=true  react-scripts start --openssl-legacy-provider",
     "build": "react-scripts build",
     "test": "react-scripts test",
