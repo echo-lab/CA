@@ -18,7 +18,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "The Pattern Pals: Birthday Beeps and Boops",
+                "The Pattern Pals: <break time='1s'/> Birthday Beeps and Boops",
             }
           ],
         },
@@ -30,7 +30,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara the chameleon found Zoe making a BIG mess.",
+                "Clara the chameleon found Zoe making a <emphasis level='strong'> BIG </emphasis> mess.",
             },
             {
               Reading: false,
@@ -49,7 +49,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Ummm, a surprise party for… uhhh… someone,”",
+                "“Ummm, a surprise party for… <break time='1s'/> uhhh… <break time='1s'/>someone,”",
             },
             {
               Reading: false,
@@ -61,7 +61,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Come help!”",
+                "<emphasis level='strong'>“Come help!”</emphasis>",
             },
           ],
         },
@@ -74,7 +74,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Let’s choose a cake!”",
+                "<emphasis level='strong'>“Let’s choose a cake!”</emphasis>",
             },
             {
               Reading: false,
@@ -85,7 +85,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“This one has the birthday girl’s favorite colors. Purple, green, purple, green!”",
+              Dialogue: "“This one has the birthday girl’s favorite colors. <break time='1s'/> <emphasis level='strong'> Purple, green, purple, green!”</emphasis>",
             },
             {
               Reading: false,
@@ -99,7 +99,7 @@ export const data = [
             }, {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“And it’s *my* birthday.”",
+              Dialogue: "“And it’s <emphasis level='moderate'> *my* </emphasis> birthday.”",
             }
           ],
         },
@@ -111,7 +111,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Oh… it’s your birthday?”",
+                "“Oh… <break time='1s'/> it’s your birthday?”",
             },
             {
               Reading: false,
@@ -122,12 +122,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Um… look! Purple, green, purple, green! Same as the cake! Let’s add more!”",
+              Dialogue: "“Um… <break time='1s'/><emphasis level='strong'> look! </emphasis>Purple, green, purple, green!  Same as the cake!  Let’s add more!”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara hugged her tail. Who else could the party be for?",
+              Dialogue: "Clara hugged her tail. <break time='1s'/> Who else could the party be for?",
             },
           ],
         },
@@ -139,7 +139,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“A perfect pattern!”",
+                "<emphasis level='strong'> “A perfect pattern!”</emphasis>",
             },
             {
               Reading: false,
@@ -151,13 +151,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“The birthday girl will love it!”",
+                "<epmhasis level='strong'> “The birthday girl will love it!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara looked down. Had Zoe really forgotten *her* birthday?",
+                "Clara looked down. <break time='1s'/>Had Zoe really forgotten <emphasis level='strong'>*her* </emphasis> birthday?",
             },
           ],
         },
@@ -180,7 +180,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“No time, no time!”",
+                "<emphasis level='strong'>“No time, no time!” </emphasis>",
             },
             {
               Reading: false,
@@ -191,7 +191,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“We need more hats!”",
+                "<emphasis level='strong'> “We need more hats!” </emphasis?",
             },
           ],
         },
@@ -203,7 +203,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Beep, boop, beep, boop!”",
+                "<emphasis level='strong'> “Beep, boop, beep, boop!” </emphasis>",
             },
             {
               Reading: false,
@@ -214,18 +214,18 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Maybe I should go…”",
+                " <prosody volume='-6dB' pitch='-2st'>“Maybe I should go…</prosody>” <break time ='1s'/>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara whispered, but Zoe didn’t hear.",
+              Dialogue: "Clara whispered, <break time = '500ms' but Zoe didn’t hear.",
             },
             {
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“We need plates!”",
+                "<emphasis level='strong'>“We need plates!”</emphasis>",
             },
             {
               Reading: false,
@@ -262,13 +262,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“I don’t know what’s missing!”",
+                "<prosody volume='-2db' rate='0.7' pitch='-2st'> “I don’t know what’s missing!”</prosody>",
             },
             {
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "Clara saw Zoe was upset. Zoe was still her best friend. Clara took a deep breath.",
+                "Clara saw Zoe was upset. <break time ='1s'/> Zoe was still her best friend. <break time ='1s'/>  Clara took a deep breath.",
             },
             {
               Reading: false,
@@ -302,7 +302,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Great!”",
+              Dialogue: "<emphasis level='strong'>“Great!”</emphasis>",
             },
             {
               Reading: false,
@@ -313,7 +313,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Beep, boop, beep, boop!”",
+              Dialogue: "<emphasis level='strong'>“Beep, boop, beep, boop!” </emphasis>",
             },
             {
               Reading: false,
@@ -336,7 +336,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Wait! There aren’t enough circle balloons. Beep, boop, beep, beep, see?”",
+                "<emphasis level='strong'>“Wait!</emphasis> <break time ='1s' />There aren’t enough circle balloons. <break time ='1s' /> Beep, boop, beep, <emphasis level='strong'>***beep***,</emphasis> see?”",
             },
             {
               Reading: false,
@@ -348,7 +348,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Well… let’s make a new pattern,”",
+                "“Well… <break time ='1s'/> let’s make a new pattern,”",
             },
             {
               Reading: false,
@@ -372,7 +372,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“Star, star, circle! Star, star, circle!”",
+                "<emphasis level='strong'> “Star, star, circle! Star, star, circle!” </emphasis>",
             },
             {
               Reading: false,
@@ -384,13 +384,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“We fixed it!”",
+                "<emphasis level='strong'> “We fixed it!” </emphasis>",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Beep, beep, boop! Beep, beep, boop!”",
+                "<emphasis level='strong'>“Beep, beep, boop! Beep, beep, boop!”</emphasis>",
             },
             {
               Reading: false,
@@ -402,7 +402,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Helping **WAS** fun!”",
+                "“Helping <emphasis level='strong'>**WAS**</emphasis> fun!”",
             },
           ],
         },
@@ -413,32 +413,38 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“The birthday girl will love this,”",
+              Dialogue:
+                "“The birthday girl will love this,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara said.",
+              Dialogue:
+                "Clara said.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“I’m glad I could help.”",
+              Dialogue:
+                "“I’m glad I could help.”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe couldn’t wait any longer.",
+              Dialogue:
+                "Zoe couldn’t wait any longer.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“I have something to show you!”",
+              Dialogue:
+                "<emphasis level='strong'>“I have something to show you!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "she squealed.",
+              Dialogue:
+                "she squealed.",
             },
           ],
         },
@@ -449,32 +455,38 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "*Boom, boom, clash! Boom, boom, clash!*",
+              Dialogue:
+                "<emphasis level='strong'> *Boom, boom, clash! Boom, boom, clash!*</emphasis>",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Happy birthday, happy birthday!”",
+              Dialogue:
+                "<emphasis level='strong'> “Happy birthday, happy birthday!”</emphasis",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "sang Zoe.",
+              Dialogue:
+                "sang Zoe.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Happy birthday, Clara!”",
+              Dialogue:
+                "<emphasis level='strong'>“Happy birthday, Clara!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“For me?”",
+              Dialogue:
+                "<prosody volume='+2dB' rate='1' pitch='+2st'>“For me?”</prosody>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara gasped.",
+              Dialogue:
+                "Clara gasped.",
             },
           ],
         },
@@ -485,68 +497,80 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Of course!”",
+              Dialogue:
+                "“Of course!”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe gave Clara a **BIG** hug.",
+              Dialogue:
+                "Zoe gave Clara a <emphasis level='strong'>**BIG**</emphasis> hug.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“You’re my best friend!”",
+              Dialogue:
+                "<emphasis level='strong'>“You’re my best friend!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Awwww! Thanks, Zoe!”",
+              Dialogue:
+                "<emphasis level='strong'>“Awwww! <break time ='1s'/> Thanks, Zoe!” <emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara beamed.",
+              Dialogue:
+                "Clara beamed.",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "*Ding dong, ding dong.*",
+              Dialogue:
+                "<emphasis level='strong'>*Ding dong, ding dong.*</emphasis>",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“The cake’s here!”",
+              Dialogue:
+                "“The cake’s here!”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe said.",
+              Dialogue:
+                "Zoe said.",
             },
           ],
         },
         PageFourteen: {
           img: require("../Pictures/book1/Page_14.jpg"),
-          question: "What do you think they will do with the cake?",
+          question: "What do you think they will do with the cake? ",
           text: [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "They threw open the cake box.",
+              Dialogue:
+                "They threw open the cake box.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Oh no!”",
+              Dialogue:
+                "<prosody volume='-2db' rate='0.6' pitch='-2st'>“Oh no!”</prosody>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe cried.",
+              Dialogue:
+                "Zoe cried.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“The colors don’t match the decorations. What should we do?”",
+              Dialogue:
+                "<prosody volume='-2db' rate='0.6' pitch='-2st'> “The colors don’t match the decorations. <break time ='1s'> What should we do?”</prosody>",
             },
           ],
         },
@@ -557,57 +581,68 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Keep it!”",
+              Dialogue:
+                "“Keep it!”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Clara.",
+              Dialogue:
+                "said Clara.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“It matches the pattern of the streamers. Beep, boop, beep, boop — see?”",
+              Dialogue:
+                "“It matches the pattern of the streamers. Beep, boop, beep, boop—see?”",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“You’re right!”",
+              Dialogue:
+                "<emphasis level='strong'> “You’re right!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "exclaimed Zoe, taking a huge bite.",
+              Dialogue:
+                "exclaimed Zoe, taking a huge bite.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“*Zoe!*”",
+              Dialogue:
+                "<emphasis level='strong'>“*Zoe!*”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara laughed.",
+              Dialogue:
+                "Clara laughed.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Our friends aren’t here yet!”",
+              Dialogue:
+                "<emphasis level='strong'>“Our friends aren’t here yet!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Mmm…”",
+              Dialogue:
+                "“Mmm…”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Zoe.",
+              Dialogue:
+                "said Zoe.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“It still tastes delicious!”",
+              Dialogue:
+                "<emphasis level='strong'>“It still tastes delicious!”<emphasis>",
             },
             {
               Reading: false,
@@ -620,4 +655,3 @@ export const data = [
     },
   },
 ];
-

@@ -29,25 +29,29 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Welcome to my house!”",
+              Dialogue:
+                "<emphasis level='strong'>“Welcome to my house!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara beamed.",
+              Dialogue:
+                "Clara beamed.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“This is going to be so much fun!”",
+              Dialogue:
+                "<emphasis level='strong'>“This is going to be so much fun!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "sang Zoe. It was their first sleepover.",
+              Dialogue: "sang Zoe.<break time='1s'/>  It was their first sleepover.",
             },
           ],
         },
+
         PageTwo: {
           img: require("../Pictures/book2/Page_2.jpg"),
           question: "Describe the pattern on the sleeping bags.",
@@ -55,17 +59,19 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Our sleeping bags have the same pattern!”",
+              Dialogue:
+                "<emphasis level='strong'> “Our sleeping bags have the same pattern!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara said.",
+              Dialogue:
+                "Clara said.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Yours is yellow, blue, yellow, blue… mine is green, purple, green, purple. Zip, zap, zip, zap!”",
+              Dialogue: "“Yours is yellow, blue, yellow, blue<break time='1s'/>… mine is green, purple, green, purple. <break time='1s'/> Zip, zap, zip, zap!”",
             },
           ],
         },
@@ -76,12 +82,14 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Let’s play hide and seek!”",
+              Dialogue:
+                "<emphasis level='strong'>“Let’s play hide and seek!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Zoe.",
+              Dialogue:
+                "said Zoe.",
             },
             {
               Reading: false,
@@ -102,22 +110,26 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“… eighteen, nineteen, twenty!”",
+              Dialogue:
+                "“… eighteen, nineteen, twenty!”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Zoe.",
+              Dialogue:
+                "said Zoe.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Ready or not, here I come!”",
+              Dialogue:
+                "“<emphasis level='strong'> Ready or not, here I come!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "She looked around. No Clara.",
+              Dialogue:
+                "She looked around. <break time='1s'/>No Clara.",
             },
           ],
         },
@@ -128,28 +140,31 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe checked under the blanket. No Clara.",
+              Dialogue:
+                "Zoe checked under the blanket. <break time='1s'/> No Clara.",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "She opened the closet. No Clara.",
+              Dialogue: "She opened the closet. <break time='1s'/> No Clara.",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "She looked behind some flowers. No Clara there either!",
+              Dialogue:
+                "She looked behind some flowers. <break time='1s'/> <emphasis level='strong'> No Clara there either!</emphasis>",
             },
           ],
         },
         PageSix: {
           img: require("../Pictures/book2/Page_6.jpg"),
-          question: "What is the pattern on the curtains?",
+          question: " What is the pattern on the curtains?",
           text: [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“How will I find Clara?”",
+              Dialogue:
+                "<prosody volume='-6dB' pitch='-2st'> “How will I find Clara?”</prosody>",
             },
             {
               Reading: false,
@@ -159,7 +174,8 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“There’s so many places to look…”",
+              Dialogue:
+                "<prosody volume='-6dB' pitch='-2st'>“There’s so many places to look…”</prosody>",
             },
             {
               Reading: false,
@@ -169,13 +185,16 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "No Clara.",
+              Dialogue:
+                "No Clara.",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "She peeked behind the curtains...",
+              Dialogue:
+                "She peeked behind the curtains...",
             },
+        
           ],
         },
         PageSeven: {
@@ -185,17 +204,20 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Ta-da!”",
+              Dialogue:
+                "<emphasis level='strong'>““Ta-da!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara cried.",
+              Dialogue:
+                "Clara cried.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“SQUAWK!”",
+              Dialogue:
+                "<emphasis level='strong'>“SQUAWK!”</emphasis>",
             },
           ],
         },
@@ -206,12 +228,14 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Sorry!”",
+              Dialogue:
+                "<prosody volume='-6dB' pitch='-2st'>“Sorry!”</prosody>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara said.",
+              Dialogue:
+                "Clara said.",
             },
             {
               Reading: false,
@@ -221,7 +245,8 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“I thought—I thought I might not find you,”",
+              Dialogue:
+                "<prosody volume='-2db' rate='0.7' pitch='-2st'>“I thought<break time='1s'/>—I thought I might not find you,”</prosody>",
             },
             {
               Reading: false,
@@ -231,7 +256,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Your house seems really different from mine.”",
+              Dialogue: "“<prosody volume='-2db' rate='0.7' pitch='-2st'>Your house seems really different from mine.”</prosody>",
             },
           ],
         },
@@ -242,22 +267,26 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“I miss my house,”",
+              Dialogue:
+                "“I miss my house,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe admitted.",
+              Dialogue:
+                "Zoe admitted.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Maybe your house is more like mine than you think,”",
+              Dialogue:
+                "“Maybe your house is more like mine than you think,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Clara.",
+              Dialogue:
+                "said Clara.",
             },
           ],
         },
@@ -268,32 +297,38 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“My curtains seem different,”",
+              Dialogue:
+                "“My curtains seem different,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Zoe.",
+              Dialogue:
+                "said Zoe.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“They go star, star, heart, star, star, heart.”",
+              Dialogue:
+                "“They go star, star, heart, star, star, heart.”",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“It’s the same pattern, though,”",
+              Dialogue:
+                "“It’s the same pattern, though,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Clara.",
+              Dialogue:
+                "said Clara.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“See? Mine go flower, flower, heart, flower, flower, heart. That’s just like star, star, heart!”",
+              Dialogue:
+                "“See? Mine go flower, flower, heart, flower, flower, heart. That’s just like star, star, heart!”",
             },
           ],
         },
@@ -304,32 +339,38 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“But my blanket doesn’t look like that,”",
+              Dialogue:
+                "“But my blanket doesn’t look like that,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Zoe.",
+              Dialogue:
+                "said Zoe.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“It has blue, yellow, and red stripes.”",
+              Dialogue:
+                "“It has blue, yellow, and red stripes.”",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Our blankets have the same pattern,”",
+              Dialogue:
+                "“Our blankets have the same pattern,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Clara.",
+              Dialogue:
+                "said Clara.",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Mine goes purple, pink, green, purple, pink, green. Yours goes blue, yellow, red, blue, yellow, red. See? Zip, zap, zop, zip, zap, zop!” ",
+              Dialogue:
+                "“Mine goes purple, pink, green, purple, pink, green. Yours goes blue, yellow, red, blue, yellow, red. See? Zip, zap, zop, zip, zap, zop!” ",
             },
           ],
         },
@@ -341,7 +382,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "“You’re right,”",
+                "<emphasis level='strong'>“You’re right,”</emphasis>",
             },
             {
               Reading: false,
@@ -382,27 +423,32 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“My flowers go tall, short, tall, short. It’s the same pattern as yours!”",
+              Dialogue:
+                "“My flowers go tall, short, tall, short. <break time='1s'/> It’s the same pattern as yours!”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe realized.",
+              Dialogue:
+                "Zoe realized.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Zip, zap, zip, zap!”",
+              Dialogue:
+                "<emphasis level='strong'>“Zip, zap, zip, zap!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“You got it!”",
+              Dialogue:
+                "<emphasis level='strong'>“You got it!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Clara.",
+              Dialogue:
+                "said Clara.",
             },
           ],
         },
@@ -413,32 +459,38 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Your house doesn’t seem so different anymore.”",
+              Dialogue:
+                "“Your house doesn’t seem so different anymore.”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Zoe smiled.",
+              Dialogue:
+                "Zoe smiled.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“I feel better.”",
+              Dialogue:
+                "“I feel better.”",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Great!”",
+              Dialogue:
+                "<emphasis level='strong'>“Great!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Clara.",
+              Dialogue:
+                "said Clara.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“One problem… I forgot my pillow!”",
+              Dialogue:
+                "“One problem…<break time='1s'/> <emphasis level='strong'>I forgot my pillow!” </emphasis>",
             },
           ],
         },
@@ -449,37 +501,44 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Here’s one,”",
+              Dialogue:
+                "“Here’s one,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "offered Clara.",
+              Dialogue:
+                "offered Clara.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“It doesn’t match mine at home,”",
+              Dialogue:
+                "“It doesn’t match mine at home,”",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Zoe.",
+              Dialogue:
+                "said Zoe.",
             },
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“But it’s okay if some things are different! Zip, zap, zoodely, zoop!”",
+              Dialogue:
+                "<epmhasis level='strong'>“But it’s okay if some things are different! Zip, zap, zoodely, zoop!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Zip, zap, zoodely, zoop!”",
+              Dialogue:
+                "<epmhasis level='strong'>“Zip, zap, zoodely, zoop!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "The two friends laughed together.",
+              Dialogue:
+                "The two friends laughed together.",
             },
             {
               Reading: false,
@@ -487,10 +546,9 @@ export const data = [
               Dialogue: "The End.",
             },
           ],
-        },        
+        },
        
       },
     },
   },
 ];
-
