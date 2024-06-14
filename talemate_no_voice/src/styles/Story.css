@@ -130,15 +130,29 @@ img {
 
  .role-image-container img {
   display: flex;  
-  height: 20%;
-  width: 20%;
+  align-items: center; /* Center children horizontally */
+  height: 75px;
+  width: auto;
 }
 
 .role-image-container {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
+  flex-direction: column; 
+  justify-content: flex-start; /* Start from the top */
+  align-items: center; /* Center horizontally */
+  margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
+  flex-shrink: 0; 
 }
+
+.role-image-container-text {
+  display: flex;
+  flex-direction: row; 
+  justify-content: flex-start; /* Start from the top */
+  align-items: center; /* Center horizontally */
+  margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
+  flex-shrink: 0; /* Prevent the container from shrinking */
+  position: relative;
+}
+
 
 @keyframes pulse {
   0% {

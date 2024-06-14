@@ -174,8 +174,8 @@ function stripSSMLTags(text) {
               key={key}
             >
               
-              <div className="col-4">
-              <div className="p-3 role-image-container d-flex justify-content-around"> 
+              <div className="col-3">
+              <div className="role-image-container d-flex justify-content-around"> 
               
                 {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
               </div>
