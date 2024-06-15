@@ -1,4 +1,4 @@
-import React,  { useState, useRef } from "react";
+import React,  { useState, useRef} from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -111,8 +111,9 @@ const handleNextClick = React.useCallback(() => {
             return newState;
           });
 
+          const element = document.getElementById("table-scroll")
           if (tableContainerRef.current) {
-            tableContainerRef.current.scrollIntoView({
+            element.scrollIntoView({
               behavior: "smooth",
               block: "start",
             });
@@ -158,7 +159,7 @@ function stripSSMLTags(text) {
     
     return (
       <ReactScrollableFeed>
-      <div className="table-column" ref={tableContainerRef}>
+      <div id="table-scroll" className="table-column" ref={tableContainerRef}>
         {state.pagesValues[state.page]?.text?.map((val, key) => {
           let isActiveRowParent = false;
           let isActiveRowChild = false;
