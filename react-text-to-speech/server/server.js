@@ -4,7 +4,7 @@ const cors = require('cors');
 const https = require('https');
 
 const corsOptions = {
-    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12'],
+    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','https://localhost:3000' ],
     methods: 'POST',
     credentials: true
   };
@@ -16,6 +16,8 @@ app.use(express.json());
 let rawData = fs.readFileSync('server/key/key.json'); // replace with the path to your .json keyfile
 let keyData = JSON.parse(rawData);
 const GOOGLE_API_KEY = keyData.key; 
+
+
 
 app.post('/synthesize', async (req, res) => {
     try {
@@ -33,6 +35,7 @@ app.post('/synthesize', async (req, res) => {
             audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
             
         };
+        console.log(request)
 
         const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
             method: 'POST',
@@ -55,11 +58,13 @@ app.post('/synthesize', async (req, res) => {
 });
 
 const port = process.env.PORT || 5000;
-const httpsOptions = {
-    key: fs.readFileSync('/home/sangwonlee/TaleMate/cert/key3.pem'),
-    cert: fs.readFileSync('/home/sangwonlee/TaleMate/cert/talemate.cs.vt.edu.crt')
-};
-
-https.createServer(httpsOptions, app).listen(port, () => {
-    console.log(`Server started on https://localhost:${port}`);
-});
+app.listen(port, () => console.log(`Server started on port ${port}`));
+//const port = process.env.PORT || 5000;
+//const httpsOptions = {
+//    key: fs.readFileSync('/home/sangwonlee/TaleMate/cert/key3.pem'),
+//    cert: fs.readFileSync('/home/sangwonlee/TaleMate/cert/talemate.cs.vt.edu.crt')
+//};
+//
+//https.createServer(httpsOptions, app).listen(port, () => {
+//    console.log(`Server started on https://localhost:${port}`);
+//});

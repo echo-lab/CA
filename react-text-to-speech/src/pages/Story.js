@@ -104,7 +104,7 @@ const playSound = () => {
     try {
         const request = {
           text: text,
-          voice: "s3://voice-cloning-zero-shot/0ed97923-dd04-449f-a497-6f1109fdd9cc/jordansaad/manifest.json"
+          voice: {languageCode: 'en-US', name :'en-US-Wavenet-B' }
         };
   
         const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
