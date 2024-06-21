@@ -2,7 +2,7 @@ export const data = [
   {
     Book: {
       id: 1,
-      Name: "Pattern Pals: Levels in the Libraru",
+      Name: "Pattern Pals: Levels in the Library",
       Characters: [
         {Name:"Narrator", img: require("../Pictures/narrator.png")},
         {Name:"Clara",img: require("../Pictures/book1/Clara_avatar.jpg")},
@@ -88,7 +88,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "Each of my stacks has one more book than the last. Let’s count them—one book, one, two books one, two, three books.",
+              Dialogue: "Each of my stacks has one more book than the last. Let’s count them—one book. One, two books. One, two, three books.",
             },
             {
               Reading: false,
