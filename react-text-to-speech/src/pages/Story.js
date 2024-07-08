@@ -464,7 +464,7 @@ function handlePlayClick() {
     <div className="story container-fluid reader-container">
       <div className="navbar navbar-light bg-light row1">
         <div className="home btn col-1">
-          <Link to={{ pathname: "/.", state: { id: 1 } }}>
+          <Link to={{ pathname: "/Home", state: { id: 1 } }}>
             <button className="btn btn-primary">
               <i>
                 <KeyboardDoubleArrowLeftIcon />
