@@ -198,6 +198,20 @@ function Reader() {
           </Link>
         </div>
       </div>
+      <div className="navigation-buttons-container">
+      <button 
+        onClick={gotoPreviousPage} 
+        className="btn btn-primary previous-page-button" 
+        disabled={state.page === 0}
+      >Previous Page</button>
+      
+      <button 
+        onClick={gotoNextPage} 
+        className="btn btn-primary next-page-button" 
+        disabled={state.page >= state.pagesValues.length - 1}
+      >Next Page</button>
+    </div>
+
 
       <div className="row">
         <div className="col-md-5">
