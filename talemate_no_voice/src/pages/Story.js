@@ -166,7 +166,7 @@ function Reader() {
             className="btn btn-secondary highlight-button"
             onClick={handleNextClick}
           >
-            Next Page
+             {state.page >= state.pagesValues.length - 1 ? 'End' : 'Next Page'}
           </button>
         </div>
       </div>
@@ -208,8 +208,9 @@ function Reader() {
       <button 
         onClick={gotoNextPage} 
         className="btn btn-primary next-page-button" 
-        disabled={state.page >= state.pagesValues.length - 1}
-      >Next Page</button>
+        disabled={state.page >= state.pagesValues.length - 1}>
+          {state.page >= state.pagesValues.length - 1 ? 'End' : 'Next Page'}
+      </button>
     </div>
 
 
