@@ -205,7 +205,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "<emphasis level='strong'>““Ta-da!”</emphasis>",
+                "<emphasis level='strong'>“Ta-da!”</emphasis>",
             },
             {
               Reading: false,
