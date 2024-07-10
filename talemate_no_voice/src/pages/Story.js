@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import { useNavigate } from 'react-router-dom';
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -19,6 +20,7 @@ class Book {
 
 function Reader() {
   const location = useLocation();
+  const navigate = useNavigate();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
@@ -93,6 +95,7 @@ function Reader() {
       }
     } else {
       setState({ ...state, page: 0, index: 0 });
+      navigate('/Home', { state: { id: 1 } });
     }
   }, [state]);
 
