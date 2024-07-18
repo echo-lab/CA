@@ -27,6 +27,7 @@ class Book {
 
 function Reader() {
   const location = useLocation();
+  const navigate = useNavigate();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
