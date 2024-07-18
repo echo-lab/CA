@@ -132,7 +132,7 @@ img {
  .role-image-container img {
   display: flex;  
   align-items: center; /* Center children horizontally */
-  height: 75px;
+  height: 60px;
   width: auto;
 }
 

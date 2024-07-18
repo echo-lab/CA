@@ -31,7 +31,8 @@ function Reader() {
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
- 
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
 
   let bookData
 
@@ -79,14 +80,16 @@ function Reader() {
 
 const gotoNextPage = () => {
   if (state.page < state.pagesValues.length - 1) {
-    setState(prevState => ({ ...prevState, page: prevState.page + 1 }));
-    // Add any other state resets or logic needed when changing pages here
+    setState(prevState => ({ ...prevState, page: prevState.page + 1, index: 0 }));
+  } else {
+    navigate('/Home', { state: { id: 1 } });
   }
 };
 
+
 const gotoPreviousPage = () => {
   if (state.page > 0) {
-    setState(prevState => ({ ...prevState, page: prevState.page - 1 }));
+    setState(prevState => ({ ...prevState, page: prevState.page - 1, index: 0 }));
     // Add any other state resets or logic needed when changing pages here
   }
 };
@@ -249,7 +252,8 @@ const handleNextClick = React.useCallback(() => {
       } else {
           // If we're on the last page, mark the last text as not being read
           if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
-              state.pagesValues[state.page].text[state.index-1].Reading = false;
+              //state.pagesValues[state.page].text[state.index-1].Reading = false;
+              navigate('/Home', { state: { id: 1 } });
           }
 
           // Reset to the first page and reset the reading index
@@ -400,7 +404,7 @@ function renderNavigationButtons() {
   let buttonClass = "";  // New variable for button class
 
   if (isLastIndex) {
-    buttonText = "Next Page";
+    buttonText = isLastPage ? 'End' : 'Next Page';
     buttonClass = "highlight-button";  // Apply the class when the text is "Next Page"
   } else {
     buttonText = isPlaying ? "Pause" : "Play";
@@ -414,8 +418,9 @@ function renderNavigationButtons() {
       <div className="btn-group" role="group">
         <button
           type="button"
-          className={`btn btn-secondary ${buttonClass}`}  // Add the buttonClass here
+          className={`btn btn-secondary ${isButtonDisabled ? 'disabled' : ''}`}  // Add the buttonClass here
           onClick={handlePlayClick}
+          disabled={isButtonDisabled}
         >
           {buttonText}
         </button>
@@ -429,6 +434,13 @@ function renderNavigationButtons() {
 function handlePlayClick() {
   console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
 
+  // Disable the button
+  setIsButtonDisabled(true);
+
+   // Re-enable the button after 5 seconds
+   setTimeout(() => {
+    setIsButtonDisabled(false);
+  }, 5000);
 
   setIsPlaying(prevIsPlaying => {
     if (prevIsPlaying) {

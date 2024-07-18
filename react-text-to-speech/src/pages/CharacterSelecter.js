@@ -20,6 +20,7 @@ import "../styles/CharacterCard.css";
 function CharacterCard({ draggableId, character, role  }) {
 
   const defaultMessage = "Select a role from the left side, then drag and drop it onto this box to assign a voice to this character.";
+  const [isPlayButtonDisabled, setIsPlayButtonDisabled] = useState(false);
 
   return (
     <div className="character-card">
@@ -66,8 +67,26 @@ function RoleDraggable({ draggableId,role, index, name, isDragDisabled, style}) 
 
 
   const playSound = () => {
+
+    // Disable the button
+  setIsPlayButtonDisabled(true);
+
+   // Disable the button
+   setIsPlayButtonDisabled(true);
+
+   // Re-enable the button after 5 seconds
+   setTimeout(() => {
+     setIsPlayButtonDisabled(false);
+   }, 5000);
+
       
       speak()
+
+      // Re-enable the button after 5 seconds
+  setTimeout(() => {
+    setIsPlayButtonDisabled(false);
+  }, 5000);
+      
     };
   
 
