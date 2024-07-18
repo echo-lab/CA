@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/CharacterSelecter.css"; // Path to your CSS file
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
-import { useNavigate } from "react-router-dom";
-import {roles} from "../Book/Roles.js"
-import { DragDropContext ,Droppable } from "react-beautiful-dnd";
+import { roles } from "../Book/Roles.js";
+import { DragDropContext, Droppable } from "react-beautiful-dnd";
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
@@ -15,12 +14,8 @@ import "../styles/RoleDraggable.css"; // Path to your CSS file
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import "../styles/CharacterCard.css";
 
-
-const [isPlayButtonDisabled, setIsPlayButtonDisabled] = useState(false);
-function CharacterCard({ draggableId, character, role  }) {
-
+function CharacterCard({ draggableId, character, role }) {
   const defaultMessage = "Select a role from the left side, then drag and drop it onto this box to assign a voice to this character.";
- 
 
   return (
     <div className="character-card">
@@ -32,28 +27,28 @@ function CharacterCard({ draggableId, character, role  }) {
               <img
                 src={character.img}
                 className="card-img-top"
-                alt={character.Name}  
+                alt={character.Name}
               />
             </div>
           </div>
           <Droppable droppableId={character.Name}>
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="droppable-area"
-            >
-            {role ? (
-              <RoleDraggable draggableId={String(draggableId)} role={role} index={0} />
-            ) : (
-              <>
-                <p className="default-message">{defaultMessage}</p>
-                <div className="placeholder"></div>
-              </>
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="droppable-area"
+              >
+                {role ? (
+                  <RoleDraggable draggableId={String(draggableId)} role={role} index={0} />
+                ) : (
+                  <>
+                    <p className="default-message">{defaultMessage}</p>
+                    <div className="placeholder"></div>
+                  </>
+                )}
+                {provided.placeholder}
+              </div>
             )}
-            {provided.placeholder}
-            </div>
-          )}
           </Droppable>
         </div>
       </div>
@@ -61,93 +56,69 @@ function CharacterCard({ draggableId, character, role  }) {
   );
 }
 
-
-
-function RoleDraggable({ draggableId,role, index, name, isDragDisabled, style}) {
-
+function RoleDraggable({ draggableId, role, index, name, isDragDisabled, style }) {
+  const [isPlayButtonDisabled, setIsPlayButtonDisabled] = useState(false);
 
   const playSound = () => {
+    setIsPlayButtonDisabled(true);
+    speak();
 
-    // Disable the button
-  setIsPlayButtonDisabled(true);
+    // Re-enable the button after 5 seconds
+    setTimeout(() => {
+      setIsPlayButtonDisabled(false);
+    }, 5000);
+  };
 
-   // Disable the button
-   setIsPlayButtonDisabled(true);
+  async function speak() {
+    try {
+      const request = {
+        text: "Hello " + name + ", I am " + role.Role,
+        voice: role.RoleParameter,
+      };
 
-   // Re-enable the button after 5 seconds
-   setTimeout(() => {
-     setIsPlayButtonDisabled(false);
-   }, 5000);
+      const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
 
-      
-      speak()
-
-      // Re-enable the button after 5 seconds
-  setTimeout(() => {
-    setIsPlayButtonDisabled(false);
-  }, 5000);
-      
-    };
-  
-
-    async function speak(){
-      try {
-          const request = {
-            text: "Hello " +name+ ", I am "+role.Role,
-            voice: role.RoleParameter
-          };
-    
-          const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-          });
-    
-          const data = await response.json();
-          const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-          audio.play()
-        } catch (error) {
-          console.error('Error in Google Text-to-Speech:', error);
-        }
+      const data = await response.json();
+      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      audio.play();
+    } catch (error) {
+      console.error('Error in Google Text-to-Speech:', error);
     }
-return (
- 
-  <Draggable draggableId={String(draggableId)} index={index}  isDragDisabled={isDragDisabled}>
-    {(provided) => (
-      <div
-          className="RoleDraggable" // apply the class here
-        {...provided.draggableProps}
-        {...provided.dragHandleProps}
-        ref={provided.innerRef}
-        style={{ ...provided.draggableProps.style, ...style }}
-        
-      >
-        <img src={role.img} alt={role.Role} />
-        <span>{role.Role}</span>
-        { role.Role !== "Parent" && role.Role !== "Child" && (
-              <button onClick={playSound}>
-                <PlayArrowIcon />
-              </button>
-          )}
+  }
 
-      </div>
-    )}
-  </Draggable>
-);
+  return (
+    <Draggable draggableId={String(draggableId)} index={index} isDragDisabled={isDragDisabled}>
+      {(provided) => (
+        <div
+          className="RoleDraggable" // apply the class here
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          ref={provided.innerRef}
+          style={{ ...provided.draggableProps.style, ...style }}
+        >
+          <img src={role.img} alt={role.Role} />
+          <span>{role.Role}</span>
+          {role.Role !== "Parent" && role.Role !== "Child" && (
+            <button onClick={playSound} disabled={isPlayButtonDisabled}>
+              <PlayArrowIcon />
+            </button>
+          )}
+        </div>
+      )}
+    </Draggable>
+  );
 }
 
-
 function Book(data) {
-
-  data.map((val) => {
-    return (
-      (this.name = val.Book.Name),
-      (this.characters = val.Book.Characters),
-      (this.pages = val.Book.Pages)
-    );
-  });
+  this.name = data[0].Book.Name;
+  this.characters = data[0].Book.Characters;
+  this.pages = data[0].Book.Pages;
 }
 
 Modal.setAppElement('#root') // Replace #root with your app's root element id
@@ -158,30 +129,26 @@ function CharaterSelecter() {
   const userName = location.state ? location.state.name : null;
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
+  // Generate book based on id
+  let bookData
+  switch (id) {
+    case 1:
+      bookData = data1;
+      break;
+    case 2:
+      bookData = data2;
+      break;
+    case 3:
+      bookData = data3;
+      break;
+    default:
+      throw new Error("Invalid book id");
+  }
 
-
-   // Generate book based on id
-   let bookData
-   switch (id) {
-     case 1:
-       bookData = data1;
-       break;
-     case 2:
-       bookData = data2;
-       break;
-     case 3:
-       bookData = data3;
-       break;
-     default:
-       throw new Error("Invalid book id");
-   }
-
-   const book = React.useMemo(() => new Book(bookData), [bookData]);
-
+  const book = React.useMemo(() => new Book(bookData), [bookData]);
 
   const [characterValues, setCharacterValues] = useState({});
   const [availableRoles, setAvailableRoles] = useState(roles.map(role => ({ ...role, isAssigned: false })));
-
 
   // Populate default character values
   useEffect(() => {
@@ -198,32 +165,29 @@ function CharaterSelecter() {
     }
   }, [book]);
 
-  
-
-
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
-    console.log(`Drag operation started:`, {source, destination, draggableId});
-  
+    console.log(`Drag operation started:`, { source, destination, draggableId });
+
     if (!destination || (source.droppableId === destination.droppableId)) {
       console.log("Dragged to the same spot or no destination found!");
       return;
     }
-  
+
     // Copying state in a way to ensure re-render
     const updatedCharacterValues = { ...characterValues };
     const updatedAvailableRoles = availableRoles.map(role => ({ ...role }));
     console.log(`State before update:`, { updatedCharacterValues, updatedAvailableRoles });
-  
+
     const sourceRole = updatedAvailableRoles.find(role => role.Role === draggableId);
     const destinationCharacterRole = updatedCharacterValues[destination.droppableId];
-  
+
     if (source.droppableId === "roles") {
       if (destinationCharacterRole) {
         // Make the previously assigned role available again
         const oldRole = updatedAvailableRoles.find(role => role.Role === destinationCharacterRole.Role);
         if (oldRole) oldRole.isAssigned = false;
-        //updatedCharacterValues[source.droppableId] = null; // Ensure this character no longer references
+        // Ensure this character no longer references
       }
       updatedCharacterValues[destination.droppableId] = sourceRole;
       sourceRole.isAssigned = true;
@@ -242,46 +206,38 @@ function CharaterSelecter() {
         updatedCharacterValues[source.droppableId] = null;
       }
     }
-  
+
     // Re-check assignment of roles
     updatedAvailableRoles.forEach(role => {
       role.isAssigned = Object.values(updatedCharacterValues).some(charRole => charRole && charRole.Role === role.Role);
     });
-  
+
     setCharacterValues(updatedCharacterValues);
     setAvailableRoles(updatedAvailableRoles);
     console.log(`State after update:`, { updatedCharacterValues, updatedAvailableRoles });
-    console.log("Roles", availableRoles)
-    
+    console.log("Roles", availableRoles);
   };
-  
-  
-  
-  
-  
-  
-  
 
   const navigate = useNavigate();
 
   const handleNextButtonClick = () => {
     const hasAllRolesAssigned = Object.values(characterValues).every(value => value !== "");
-  
+
     if (!hasAllRolesAssigned) {
       setModalIsOpen(true);
       return;
     }
-    console.log(characterValues)
+
     const selectedOptions = Object.keys(characterValues).map((characterName) => ({
       Character: characterName,
       VA: characterValues[characterName].RoleParameter,
-      role:characterValues[characterName].Role,
+      role: characterValues[characterName].Role,
       img: characterValues[characterName].img
     }));
 
-    navigate("/story", { state: { selectedOptions,id } });
+    navigate("/story", { state: { selectedOptions, id } });
   };
-  
+
   const handleBackButtonClick = () => {
     navigate('/');
   };

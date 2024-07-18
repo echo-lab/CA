@@ -3,7 +3,7 @@ import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import {useHotkeys} from "react-hotkeys-hook";
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
@@ -400,6 +400,8 @@ function stripSSMLTags(text) {
   
 function renderNavigationButtons() {
   const isLastIndex = state.pagesValues[state.page].text.length === state.index;
+  const isLastPage = state.page === state.pagesValues.length - 1; // Define isLastPage
+
   let buttonText;
   let buttonClass = "";  // New variable for button class
 
