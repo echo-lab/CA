@@ -16,11 +16,11 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import "../styles/CharacterCard.css";
 
 
-
+const [isPlayButtonDisabled, setIsPlayButtonDisabled] = useState(false);
 function CharacterCard({ draggableId, character, role  }) {
 
   const defaultMessage = "Select a role from the left side, then drag and drop it onto this box to assign a voice to this character.";
-  const [isPlayButtonDisabled, setIsPlayButtonDisabled] = useState(false);
+ 
 
   return (
     <div className="character-card">
