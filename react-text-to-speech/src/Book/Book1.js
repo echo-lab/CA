@@ -219,7 +219,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara whispered, <break time = '500ms' but Zoe didn’t hear.",
+              Dialogue: "Clara whispered, <break time = '500ms'/> but Zoe didn’t hear.",
             },
             {
               Reading: false,
@@ -395,12 +395,6 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue:
-                "Clara laughed.",
-            },
-            {
-              Reading: false,
-              Character: "Clara",
               Dialogue:
                 "“Helping <emphasis level='strong'>**WAS**</emphasis> fun!”",
             },
