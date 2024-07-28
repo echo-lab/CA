@@ -257,6 +257,12 @@ img {
   border: none;
   cursor: pointer;
   width: auto;
+  width: 50px; /* Adjust the width as needed */
+  height: 50px; /* Adjust the height as needed */
   
   /* Add other styles as needed */
+}
+
+.play-sound-button .MuiSvgIcon-root {
+  font-size: 3rem; /* Adjust the size of the icon as needed */
 }

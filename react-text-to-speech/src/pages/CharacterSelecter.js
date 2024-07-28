@@ -66,7 +66,7 @@ function RoleDraggable({ draggableId, role, index, name, isDragDisabled, style }
     // Re-enable the button after 5 seconds
     setTimeout(() => {
       setIsPlayButtonDisabled(false);
-    }, 5000);
+    }, 2000);
   };
 
   async function speak() {

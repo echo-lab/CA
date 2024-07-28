@@ -54,12 +54,13 @@ function Reader() {
   var CurrentBook = new Book(bookData[0]);
 
   const [state, setState] = useState({
-    page: 0,
+    page: 15,
     index: 0,
     CharacterRoles: selectedOptions,
     pagesKeys: Object.keys(CurrentBook.pages),
     pagesValues: Object.values(CurrentBook.pages),
-    isVolumnOn: false
+    isVolumnOn: false,
+    hasReachedEnd: false // New state variable
   });
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -251,16 +252,16 @@ const handleNextClick = React.useCallback(() => {
           }
         }
       } else {
+        console.log("last page")
           // If we're on the last page, mark the last text as not being read
           if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
-              //state.pagesValues[state.page].text[state.index-1].Reading = false;
-              navigate('/Home', { state: { id: 1 } });
+              state.pagesValues[state.page].text[state.index-1].Reading = false;
           }
-
-          // Reset to the first page and reset the reading index
-          //setState({ ...state, page: 0, index: 0 });
-
-          // Set isPlaying to false since we've reached the end of the book
+          // Set hasReachedEnd to true if at the end of the last page
+          setState(prevState => ({
+            ...prevState,
+            hasReachedEnd: state.page === state.pagesValues.length - 1 && state.pagesValues[state.page].text.length === state.index
+          }));
           setIsPlaying(false);
       }
   }
@@ -399,78 +400,87 @@ function stripSSMLTags(text) {
 
 
   
-function renderNavigationButtons() {
-  const isLastIndex = state.pagesValues[state.page].text.length === state.index;
-  const isLastPage = state.page === state.pagesValues.length - 1; // Define isLastPage
-
-  let buttonText;
-  let buttonClass = "";  // New variable for button class
-
-  if (isLastIndex) {
-    buttonText = isLastPage ? 'End' : 'Next Page';
-    buttonClass = "highlight-button";  // Apply the class when the text is "Next Page"
-  } else {
-    buttonText = isPlaying ? "Pause" : "Play";
-    if (!isPlaying) {
-      buttonClass = "highlight-button";  // Apply the class when the text is "Play"
+  function renderNavigationButtons() {
+    const isLastIndex = state.pagesValues[state.page].text.length === state.index;
+    const isLastPage = state.page === state.pagesValues.length - 1;
+  
+    let buttonText;
+    let buttonClass = "";
+  
+    if (state.hasReachedEnd) {
+      buttonText = 'End';
+      buttonClass = "highlight-button";
+    } else if (isLastIndex) {
+      buttonText = isLastPage ? 'End' : 'Next Page';
+      buttonClass = "highlight-button";
+    } else {
+      buttonText = isPlaying ? "Pause" : "Play";
+      if (!isPlaying) {
+        buttonClass = "highlight-button";
+      }
     }
-  }
-
-  return (
-    <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
-      <div className="btn-group" role="group">
-        <button
-          type="button"
-          className={`btn btn-secondary ${isButtonDisabled ? 'disabled' : ''}`}  // Add the buttonClass here
-          onClick={handlePlayClick}
-          disabled={isButtonDisabled}
-        >
-          {buttonText}
-        </button>
+  
+    return (
+      <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
+        <div className="btn-group" role="group">
+          <button
+            type="button"
+            className={`btn btn-secondary ${isButtonDisabled ? 'disabled' : ''} ${buttonClass}`} // Apply the buttonClass here
+            onClick={handlePlayClick}
+            disabled={isButtonDisabled}
+          >
+            {buttonText}
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
-
-
-
-function handlePlayClick() {
-  console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
-
-  // Disable the button
-  setIsButtonDisabled(true);
-
-   // Re-enable the button after 5 seconds
-   setTimeout(() => {
-    setIsButtonDisabled(false);
-  }, 5000);
-
-  setIsPlaying(prevIsPlaying => {
-    if (prevIsPlaying) {
-      return false;
-    } else {
-         return true;
-      }
-  });
-  if(!isPlaying){
-    console.log("page size ", state.pagesValues[state.page]?.text?.length)
-    console.log("curent index", state.index )
-    if(state.index === 0 || state.pagesValues[state.page]?.text?.length === state.index ){
-    console.log("start reading");
-    handleNextClick();
-    } else {
-      console.log("resume reading")
-      var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index-1].Character);
-      console.log(currentCharacter);
-      if(currentCharacter[0].VA.name === ""){
-        handleNextClick();
-      }
-    }
-  } else {
-    console.log("Was playing and you pause")
-    
+    );
   }
-}
+
+
+
+  function handlePlayClick() {
+    console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
+  
+    // Disable the button
+    setIsButtonDisabled(true);
+  
+    // Re-enable the button after 5 seconds
+    setTimeout(() => {
+      setIsButtonDisabled(false);
+    }, 2000);
+  
+    // If we have reached the end, navigate to another page
+    if (state.hasReachedEnd) {
+      navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
+      return;
+    }
+  
+    setIsPlaying(prevIsPlaying => {
+      if (prevIsPlaying) {
+        return false;
+      } else {
+        return true;
+      }
+    });
+  
+    if (!isPlaying) {
+      console.log("page size ", state.pagesValues[state.page]?.text?.length);
+      console.log("current index", state.index);
+      if (state.index === 0 || state.pagesValues[state.page]?.text?.length === state.index) {
+        console.log("start reading");
+        handleNextClick();
+      } else {
+        console.log("resume reading");
+        var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index - 1].Character);
+        console.log(currentCharacter);
+        if (currentCharacter[0].VA.name === "") {
+          handleNextClick();
+        }
+      }
+    } else {
+      console.log("Was playing and you paused");
+    }
+  }
 
 
   

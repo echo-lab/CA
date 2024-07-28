@@ -636,7 +636,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'>“It still tastes delicious!”<emphasis>",
+                "<emphasis level='strong'>“It still tastes delicious!”</emphasis>",
             },
             {
               Reading: false,
