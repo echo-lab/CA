@@ -247,7 +247,7 @@ function CharaterSelecter() {
   return (
     <div className="characterSelecter">
      <Modal isOpen={modalIsOpen} onRequestClose={()=> setModalIsOpen(false)}  className="modalContent">
-        <h2>Tale Mate</h2>
+        <h2>TaleMate</h2>
         <p>Please assign one role to each character before continuing</p>
         <button onClick={()=> setModalIsOpen(false)}>Close</button>
       </Modal>

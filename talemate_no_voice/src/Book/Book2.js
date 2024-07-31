@@ -526,13 +526,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<epmhasis level='strong'>“But it’s okay if some things are different! Zip, zap, zoodely, zoop!”</emphasis>",
+                "<emphasis level='strong'>“But it’s okay if some things are different! Zip, zap, zoodely, zoop!”</emphasis>",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "<epmhasis level='strong'>“Zip, zap, zoodely, zoop!”</emphasis>",
+                "<emphasis level='strong'>“Zip, zap, zoodely, zoop!”</emphasis>",
             },
             {
               Reading: false,

@@ -54,7 +54,7 @@ function Reader() {
   var CurrentBook = new Book(bookData[0]);
 
   const [state, setState] = useState({
-    page: 15,
+    page: 0,
     index: 0,
     CharacterRoles: selectedOptions,
     pagesKeys: Object.keys(CurrentBook.pages),
@@ -410,7 +410,7 @@ function stripSSMLTags(text) {
     if (state.hasReachedEnd) {
       buttonText = 'End';
       buttonClass = "highlight-button";
-    } else if (isLastIndex) {
+    } else if (isLastIndex && !isPlaying) {
       buttonText = isLastPage ? 'End' : 'Next Page';
       buttonClass = "highlight-button";
     } else {
@@ -419,7 +419,7 @@ function stripSSMLTags(text) {
         buttonClass = "highlight-button";
       }
     }
-  
+    console.log("Rendering Button", buttonText);
     return (
       <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
         <div className="btn-group" role="group">
@@ -441,13 +441,13 @@ function stripSSMLTags(text) {
   function handlePlayClick() {
     console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
   
-    // Disable the button
-    setIsButtonDisabled(true);
+    // // Disable the button
+    // setIsButtonDisabled(true);
   
-    // Re-enable the button after 5 seconds
-    setTimeout(() => {
-      setIsButtonDisabled(false);
-    }, 2000);
+    // // Re-enable the button after 5 seconds
+    // setTimeout(() => {
+    //   setIsButtonDisabled(false);
+    // }, 2000);
   
     // If we have reached the end, navigate to another page
     if (state.hasReachedEnd) {
@@ -455,6 +455,12 @@ function stripSSMLTags(text) {
       return;
     }
   
+    // if this happesn to be last line, no option to pause it, just wait until the playing is done. 
+    if(state.pagesValues[state.page].text.length === state.index && isPlaying){
+      console.log("Too late pause the audio cuz it's the last line. ")
+      return;
+    }
+
     setIsPlaying(prevIsPlaying => {
       if (prevIsPlaying) {
         return false;

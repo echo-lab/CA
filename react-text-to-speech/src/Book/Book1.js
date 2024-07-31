@@ -151,7 +151,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<epmhasis level='strong'> “The birthday girl will love it!”</emphasis>",
+                "<emphasis level='strong'> “The birthday girl will love it!”</emphasis>",
             },
             {
               Reading: false,
