@@ -191,7 +191,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'> “We need more hats!” </emphasis?",
+                "<emphasis level='strong'> “We need more hats!” </emphasis>",
             },
           ],
         },
@@ -456,7 +456,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'> “Happy birthday, happy birthday!”</emphasis",
+                "<emphasis level='strong'> “Happy birthday, happy birthday!”</emphasis>",
             },
             {
               Reading: false,
@@ -510,7 +510,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "<emphasis level='strong'>“Awwww! <break time ='1s'/> Thanks, Zoe!” <emphasis>",
+                "<emphasis level='strong'>“Awwww! <break time ='1s'/> Thanks, Zoe!” </emphasis>",
             },
             {
               Reading: false,
@@ -564,7 +564,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<prosody volume='-2db' rate='0.6' pitch='-2st'> “The colors don’t match the decorations. <break time ='1s'> What should we do?”</prosody>",
+                "<prosody volume='-2db' rate='0.6' pitch='-2st'> “The colors don’t match the decorations. <break time ='1s'/> What should we do?”</prosody>",
             },
           ],
         },

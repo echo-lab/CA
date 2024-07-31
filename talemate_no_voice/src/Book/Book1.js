@@ -191,7 +191,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'> “We need more hats!” </emphasis?",
+                "<emphasis level='strong'> “We need more hats!” </emphasis>",
             },
           ],
         },
@@ -456,7 +456,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'> “Happy birthday, happy birthday!”</emphasis",
+                "<emphasis level='strong'> “Happy birthday, happy birthday!”</emphasis>",
             },
             {
               Reading: false,
@@ -510,7 +510,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "<emphasis level='strong'>“Awwww! <break time ='1s'/> Thanks, Zoe!” <emphasis>",
+                "<emphasis level='strong'>“Awwww! <break time ='1s'/> Thanks, Zoe!” </emphasis>",
             },
             {
               Reading: false,
@@ -636,7 +636,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'>“It still tastes delicious!”<emphasis>",
+                "<emphasis level='strong'>“It still tastes delicious!”</emphasis>",
             },
             {
               Reading: false,

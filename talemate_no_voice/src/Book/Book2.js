@@ -71,7 +71,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Yours is yellow, blue, yellow, blue<break time='1s'/>… mine is green, purple, green, purple. <break time='1s'/> Zip, zap, zip, zap!”",
+              Dialogue: "“Yours is yellow, blue, yellow, blue<break time='1s'/>… mine is green, purple, green, purple. <break time='1s'/> <prosody rate='1.6'>Zip, zap, zip, zap!</prosody>”",
             },
           ],
         },
@@ -205,7 +205,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "<emphasis level='strong'>“Ta-da!”</emphasis>",
+                "<emphasis level='strong'><prosody pitch='+10%' rate='2.5'>Ta-</prosody><prosody pitch='+30%' rate='1.0'>da!</prosody></emphasis>",
             },
             {
               Reading: false,
@@ -316,7 +316,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“It’s the same pattern, though,”",
+                "“It’s the same pattern, though.”",
             },
             {
               Reading: false,
@@ -370,7 +370,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Mine goes purple, pink, green, purple, pink, green. Yours goes blue, yellow, red, blue, yellow, red. See? Zip, zap, zop, zip, zap, zop!” ",
+                "“Mine goes purple, pink, green, purple, pink, green. Yours goes blue, yellow, red, blue, yellow, red. See? <prosody rate='1.6'>Zip, zap, zop, zip, zap, zop</prosody>!” ",
             },
           ],
         },
@@ -400,7 +400,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“The pattern might be, though,”",
+                "“The pattern might be, though.”",
             },
             {
               Reading: false,
@@ -436,7 +436,7 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'>“Zip, zap, zip, zap!”</emphasis>",
+                "<emphasis level='strong'>“<prosody rate='1.6'>Zip, zap, zip, zap</prosody>!”</emphasis>",
             },
             {
               Reading: false,
@@ -526,13 +526,13 @@ export const data = [
               Reading: false,
               Character: "Zoe",
               Dialogue:
-                "<emphasis level='strong'>“But it’s okay if some things are different! Zip, zap, zoodely, zoop!”</emphasis>",
+                "<emphasis level='strong'>“But it’s okay if some things are different! <prosody rate='1.6'>Zip, zap, zoodely, zoop!</prosody>”</emphasis>",
             },
             {
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "<emphasis level='strong'>“Zip, zap, zoodely, zoop!”</emphasis>",
+                "<emphasis level='strong'>“<prosody rate='1.6'>Zip, zap, zoodely, zoop!</prosody>”</emphasis>",
             },
             {
               Reading: false,
@@ -552,4 +552,3 @@ export const data = [
     },
   },
 ];
-
