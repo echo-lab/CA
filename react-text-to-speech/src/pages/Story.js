@@ -81,7 +81,17 @@ function Reader() {
 };
 
 const gotoNextPage = () => {
+  console.log("go to next page button pressed");
+  if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
+
+  setIsPlaying(prevIsPlaying => {
+      return false;
+  });
   if (state.page < state.pagesValues.length - 1) {
+
+    for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
+      state.pagesValues[state.page].text[i].Reading=false;
+    }
     setState(prevState => ({ ...prevState, page: prevState.page + 1, index: 0 }));
   } else {
     navigate('/Home', { state: { id: 1 } });
@@ -90,6 +100,15 @@ const gotoNextPage = () => {
 
 
 const gotoPreviousPage = () => {
+  if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
+
+  setIsPlaying(prevIsPlaying => {
+    return false;
+  });
+  for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
+    state.pagesValues[state.page].text[i].Reading=false;
+  }
+  state.hasReachedEnd = false;
   if (state.page > 0) {
     setState(prevState => ({ ...prevState, page: prevState.page - 1, index: 0 }));
     // Add any other state resets or logic needed when changing pages here
@@ -144,6 +163,7 @@ const playSound = () => {
     }
     
     setAudioHasEnded(true);
+    setIsButtonDisabled(false);
 }, [audio, isPlaying]);
 
 
@@ -218,6 +238,7 @@ const handleNextClick = React.useCallback(() => {
   if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
     console.log("reading page")
       // Continue reading the current page
+      setAudioHasEnded(false);
       setState(prevState => {
         //const newState = {...prevState, index: prevState.index};
         continueReading(
@@ -238,6 +259,9 @@ const handleNextClick = React.useCallback(() => {
           setIsPlaying(false);
         } else {
           console.log("new page")
+          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
+            state.pagesValues[state.page].text[i].Reading=false;
+          }
           setState(prevState => {
             const newState = {...prevState, page: prevState.page + 1, index: 0};
             return newState;
@@ -276,8 +300,27 @@ const handleNextClick = React.useCallback(() => {
   }
   
 }, [state, isPlaying, dialogueRefs, continueReading]);
+const prevStates = useRef({ audioHasEnded, isPlaying, handleNextClick });
 
 React.useEffect(() => {
+  // for debugging purposes, we check which depenency caused thhis useEffect function to run 
+  if (prevStates.current.audioHasEnded !== audioHasEnded) {
+    console.log('audioHasEnded changed', audioHasEnded);
+  }
+  if (prevStates.current.isPlaying !== isPlaying) {
+    console.log('isPlaying changed', isPlaying);
+  }
+  if (prevStates.current.handleNextClick !== handleNextClick) {
+    console.log('handleNextClick changed', handleNextClick);
+  }
+
+  // Update the ref with the current state values after logging changes
+  prevStates.current = {
+    audioHasEnded,
+    isPlaying,
+    handleNextClick,
+  };
+
   if (audioHasEnded && isPlaying) {
       console.log("move to the next line");
       handleNextClick();
@@ -414,7 +457,7 @@ function stripSSMLTags(text) {
       buttonText = isLastPage ? 'End' : 'Next Page';
       buttonClass = "highlight-button";
     } else {
-      buttonText = isPlaying ? "Pause" : "Play";
+      buttonText = (isPlaying && !audioHasEnded) ? "Pause" : "Play";
       if (!isPlaying) {
         buttonClass = "highlight-button";
       }

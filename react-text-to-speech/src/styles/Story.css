@@ -165,8 +165,11 @@ img {
 
 .overlay-image {
   position: absolute;
-  top: -5%;    /* Adjust to place the overlay image in the desired corner */
-  left: 55%;   /* Adjust to place the overlay image in the desired corner */
+  top: -5%;
+  left: 55%;
+  border: solid firebrick;
+  border-radius: 50px;
+  background-color: white;
 }
 
 @keyframes pulse {
