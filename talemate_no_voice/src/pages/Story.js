@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -53,55 +53,38 @@ function Reader() {
     CharacterRoles: selectedOptions,
     pagesKeys: Object.keys(CurrentBook.pages),
     pagesValues: Object.values(CurrentBook.pages),
-    isVolumnOn: false,
   });
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [questionVisible, setQuestionVisible] = useState(true);
-
-  const gotoNextPage = () => {
+  const gotoNextPage = useCallback(() => {
     if (state.page < state.pagesValues.length - 1) {
       setState((prevState) => ({ ...prevState, page: prevState.page + 1 }));
+      scrollToTop();
+    } else {
+      navigate("/", { state: { id: 1 } }); // Navigate to home or another desired route
     }
-  };
+  }, [state.page, state.pagesValues.length, navigate]);
 
-  const gotoPreviousPage = () => {
+  const gotoPreviousPage = useCallback(() => {
     if (state.page > 0) {
       setState((prevState) => ({ ...prevState, page: prevState.page - 1 }));
+      scrollToTop();
+    }
+  }, [state.page]);
+
+  const scrollToTop = () => {
+    const element = document.getElementById("table-scroll");
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }
   };
 
   useHotkeys("space", (event) => {
     event.preventDefault();
-    handleNextClick();
+    gotoNextPage();
   });
-
-  const handleNextClick = useCallback(() => {
-    const container = tableContainerRef.current;
-
-    if (state.page < state.pagesValues.length - 1) {
-      setState((prevState) => ({
-        ...prevState,
-        page: prevState.page + 1,
-        index: 0,
-      }));
-
-      const element = document.getElementById("table-scroll");
-      if (tableContainerRef.current) {
-        element.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }
-    } else {
-      setState({ ...state, page: 0, index: 0 });
-      navigate('/Home', { state: { id: 1 } });
-    }
-  }, [state]);
-
-  function stripSSMLTags(text) {
-    return text.replace(/<\/?[^>]+(>|$)/g, "");
-  }
 
   function parseText(text) {
     const htmlText = text
@@ -125,9 +108,7 @@ function Reader() {
           return (
             <div
               ref={(el) => (dialogueRefs.current[key] = el)}
-              className={`row gx-3 ${
-                isActiveRow ? "active-dialogue" : ""
-              }`}
+              className={`row gx-3 ${isActiveRow ? "active-dialogue" : ""}`}
               key={key}
             >
               <div className="col-3">
@@ -163,21 +144,12 @@ function Reader() {
             </div>
           );
         })}
-        <div className="navigation-buttons-container">
-          <button
-            type="button"
-            className="btn btn-secondary highlight-button"
-            onClick={handleNextClick}
-          >
-             {state.page >= state.pagesValues.length - 1 ? 'End' : 'Next Page'}
-          </button>
-        </div>
       </div>
     );
   }
 
   function renderQuestion() {
-    return questionVisible ? (
+    return state.pagesValues[state.page].question !== undefined ? (
       <div className="p-3 role-image-container">
         <img src={parentImage} alt="Parent" />
         <div className="question-dialogue d-flex justify-content-between align-items-center">
@@ -202,26 +174,26 @@ function Reader() {
         </div>
       </div>
       <div className="navigation-buttons-container">
-      <button 
-        onClick={gotoPreviousPage} 
-        className="btn btn-primary previous-page-button" 
-        disabled={state.page === 0}
-      >Previous Page</button>
-      
-      <button 
-        onClick={gotoNextPage} 
-        className="btn btn-primary next-page-button" 
-        disabled={state.page >= state.pagesValues.length - 1}>
-          {state.page >= state.pagesValues.length - 1 ? 'End' : 'Next Page'}
-      </button>
-    </div>
+        <button
+          onClick={gotoPreviousPage}
+          className="btn btn-primary previous-page-button"
+          disabled={state.page === 0}
+        >
+          Previous Page
+        </button>
 
+        <button
+          onClick={gotoNextPage}
+          className="btn btn-primary next-page-button"
+        >
+          {state.page >= state.pagesValues.length - 1 ? "End" : "Next Page"}
+        </button>
+      </div>
 
       <div className="row">
         <div className="col-md-5">
           <img src={state.pagesValues[state.page].img} alt="current page" />
-          {state.pagesValues[state.page].question !== undefined &&
-            renderQuestion()}
+          {renderQuestion()}
         </div>
         <div className="col-md-7 table-container">
           <div className="container-fluid">{renderPageRows()}</div>
