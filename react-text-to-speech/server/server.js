@@ -2,7 +2,12 @@ const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
 const https = require('https');
-
+require ('dotenv').config({ path: '.env.local' });
+const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
+const keyPath = process.env.KEYPATH;
+const certPath = process.env.CERTPATH;
+console.log(keyPath);
+console.log(certPath);
 const corsOptions = {
     origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','https://localhost:3000' ],
     methods: 'POST',
@@ -13,9 +18,7 @@ const corsOptions = {
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
-let rawData = fs.readFileSync('server/key/key.json'); // replace with the path to your .json keyfile
-let keyData = JSON.parse(rawData);
-const GOOGLE_API_KEY = keyData.key; 
+
 
 
 
@@ -26,9 +29,6 @@ app.post('/synthesize', async (req, res) => {
         sanitizedText = sanitizedText.replace(/'/g, '"');
         //console.log(sanitizedText)
         const ssmlText = `<speak>${sanitizedText}</speak>`;
-
-        
-        
         const request = {
             input: { ssml: ssmlText },
             voice: req.body.voice,
@@ -57,14 +57,19 @@ app.post('/synthesize', async (req, res) => {
     }
 });
 
-//const port = process.env.PORT || 5000;
-//app.listen(port, () => console.log(`Server started on port ${port}`));
-const port = process.env.PORT || 5000;
-const httpsOptions = {
-    key: fs.readFileSync('/home/sangwonlee/TaleMate/cert/key3.pem'),
-    cert: fs.readFileSync('/home/sangwonlee/TaleMate/cert/talemate.cs.vt.edu.crt')
-};
+if(process.env.DEVMODE){
+    const port = process.env.REACT_APP_PORT || 5000;
+    app.listen(port, () => console.log(`Server started on port ${port}`));
+}
+else{
 
-https.createServer(httpsOptions, app).listen(port, () => {
-    console.log(`Server started on https://localhost:${port}`);
-});
+    const port = process.env.REACT_APP_PORT || 5000;
+    const httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Server started on https://localhost:${port}`);
+    });
+}

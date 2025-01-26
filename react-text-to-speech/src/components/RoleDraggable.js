@@ -3,7 +3,9 @@ import { Draggable } from "react-beautiful-dnd";
 import "../styles/RoleDraggable.css"; // Path to your CSS file
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
-
+const url = process.env.REACT_APP_TTSURL;
+const port = process.env.REACT_APP_PORT;
+const TTSurl = url + (port?":"+port:"");
 function RoleDraggable({ draggableId,role, index, name, isDragDisabled}) {
 
     const playSound = () => {
@@ -19,7 +21,7 @@ function RoleDraggable({ draggableId,role, index, name, isDragDisabled}) {
               voice: role.RoleParameter
             };
       
-            const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
+            const response = await fetch(TTSurl+'/synthesize', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

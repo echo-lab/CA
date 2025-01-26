@@ -11,6 +11,9 @@ import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 
+const url = process.env.REACT_APP_TTSURL;
+const port = process.env.REACT_APP_PORT;
+const TTSurl = url + (port?":"+port:"");
 
 
 
@@ -131,7 +134,7 @@ const playSound = () => {
           voice: {languageCode: 'en-US', name :'en-US-Wavenet-B' }
         };
   
-        const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
+        const response = await fetch(TTSurl+':5000/synthesize', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -199,7 +202,7 @@ const playSound = () => {
             voice: currentVoice,
         };
 
-        const response = await fetch('https://talemate.cs.vt.edu:5000/synthesize', {
+        const response = await fetch(TTSurl+'/synthesize', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
