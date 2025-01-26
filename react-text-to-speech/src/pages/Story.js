@@ -134,7 +134,7 @@ const playSound = () => {
           voice: {languageCode: 'en-US', name :'en-US-Wavenet-B' }
         };
   
-        const response = await fetch(TTSurl+':5000/synthesize', {
+        const response = await fetch(TTSurl+'/synthesize', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
