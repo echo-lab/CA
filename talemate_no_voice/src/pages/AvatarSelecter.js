@@ -57,7 +57,7 @@ function AvatarSelecter() {
               <p>Please select an avatar to represent the parent</p>
             </div>
             <button className="btn btn-primary next-btn" onClick={handleNextButtonClick}>
-              <KeyboardDoubleArrowRightIcon />
+              <KeyboardDoubleArrowRightIcon style={{ fontSize: "2rem" }}/>
             </button>
           </div>
           <div className="w-80 p-3 d-flex flex-wrap justify-content-center align-items-center mt-5">
