@@ -76,4 +76,8 @@
   z-index: 1; /* Ensure it's above other elements */
 }
 
+.next-btn {
+  padding: 15px 30px; 
+}
+
 

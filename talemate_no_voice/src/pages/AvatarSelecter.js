@@ -56,7 +56,7 @@ function AvatarSelecter() {
               <div className="sectionTitle display-3">Avatar Selection</div>
               <p>Please select an avatar to represent the parent</p>
             </div>
-            <button className="btn btn-primary" onClick={handleNextButtonClick}>
+            <button className="btn btn-primary next-btn" onClick={handleNextButtonClick}>
               <KeyboardDoubleArrowRightIcon />
             </button>
           </div>
