@@ -162,15 +162,15 @@ function CharaterSelecter() {
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="d-flex flex-column align-items-stretch min-vh-100">
         <div className="d-flex justify-content-between p-3 bg-light">
-            <button className="btn btn-primary" onClick={handleBackButtonClick}>
-              <KeyboardDoubleArrowLeftIcon />
+            <button className="btn btn-primary next-btn" onClick={handleBackButtonClick}>
+              <KeyboardDoubleArrowLeftIcon style={{ fontSize: "2rem" }}/>
             </button>
           <div className="text-center">
             <div className="sectionTitle display-3">Select a Role</div>
             <p>Select a role from the left side, then drag and drop it onto a character on the right to assign voices.</p>
           </div>
-          <button className="btn btn-primary" onClick={handleNextButtonClick}>
-            <KeyboardDoubleArrowRightIcon />
+          <button className="btn btn-primary next-btn" onClick={handleNextButtonClick}>
+            <KeyboardDoubleArrowRightIcon style={{ fontSize: "2rem" }}/>
           </button>
         </div>
   
