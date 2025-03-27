@@ -53,7 +53,7 @@ function AvatarSelecter() {
         <div className="d-flex flex-column min-vh-100">
           <div className="d-flex justify-content-between p-3 bg-light">
             <div className="align-self-start">
-              <div className="sectionTitle display-3">Avatar Selection</div>
+              <div className="sectionTitle display-3">Parent Avatar Selection</div>
               <p>Please select an avatar to represent the parent</p>
             </div>
             <button className="btn btn-primary next-btn" onClick={handleNextButtonClick}>
