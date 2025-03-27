@@ -6,5 +6,5 @@ export const roles = [
     {Role:  "Ruby Randy" ,RoleParameter: {languageCode: 'en-US', name :'en-US-Neural2-D'  },img: require("../Pictures/Mates-06.png")},
     {Role:  "Coral Carly" ,RoleParameter: {languageCode: 'en-US', name :'en-US-Neural2-H'  },img: require("../Pictures/Mates-05.png")},
     {Role: "Parent", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/adult.png")},
-    //{Role: "Child", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/child.png")}
+    {Role: "Child", RoleParameter: {languageCode: ' ', name :''  },img: require("../Pictures/child.png")}
   ]
