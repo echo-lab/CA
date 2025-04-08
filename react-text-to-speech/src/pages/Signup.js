@@ -10,10 +10,8 @@ function Signup() {
   const navigate = useNavigate(); // Hook for programmatic navigation
 
   const handleSubmit = (e) => {
-    e.preventDefault(); // Prevent the default form submission
-    // Check if userName is empty, if so, use "Human" as the userName
-    const userNameToSend = userName || "Human";
-    navigate('/Home', { state: { userName: userNameToSend } }); // Navigate with conditional userName
+    e.preventDefault();
+    navigate('/ChildSelect', { state: { userName: userName } }); // Navigate with conditional userName
   };
 
   return (

@@ -24,6 +24,8 @@ import avatar20 from '../Pictures/Avatars/adult20.png';
 import avatar21 from '../Pictures/Avatars/adult21.png';
 import avatar22 from '../Pictures/Avatars/adult22.png';
 import avatar23 from '../Pictures/Avatars/adult23.png';
+import { useLocation } from 'react-router-dom';
+
 import {roles} from "../Book/Roles.js"
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import "../styles/AvatarSelection.css";
@@ -31,6 +33,7 @@ import "../styles/AvatarSelection.css";
 function AvatarSelecter() {
     const navigate = useNavigate();
     const [selected, setSelected] = useState(null);
+    const { userName } = useLocation().state || {};
   
     const images = [avatar0, avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8, avatar9, avatar10, avatar11, avatar12, avatar13, avatar14, avatar15, avatar16, avatar17, avatar18, avatar19, avatar20, avatar21, avatar22, avatar23];
   
@@ -44,7 +47,7 @@ function AvatarSelecter() {
         console.log(selected)
         parentRole.img = require(`../Pictures/Avatars/adult${selected}.png`)
         console.log(roles)
-        navigate('/Signup'); 
+        navigate('/Home', { state: { userName } }); 
       }
     };
   

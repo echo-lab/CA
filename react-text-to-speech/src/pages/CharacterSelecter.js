@@ -1,47 +1,61 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import "../styles/CharacterSelecter.css"; // Path to your CSS file
+import "../styles/CharacterSelecter.css";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import { roles } from "../Book/Roles.js";
-import { DragDropContext, Droppable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import Modal from 'react-modal';
-import { Draggable } from "react-beautiful-dnd";
-import "../styles/RoleDraggable.css"; // Path to your CSS file
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import Modal from "react-modal";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import "../styles/RoleDraggable.css";
 import "../styles/CharacterCard.css";
+
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
-const TTSurl = url + (port?":"+port:"");
-function CharacterCard({ draggableId, character, role }) {
-  const defaultMessage = "Select a role from the left side, then drag and drop it onto this box to assign a voice to this character.";
+const TTSurl = url + (port ? ":" + port : "");
 
+Modal.setAppElement("#root"); 
+
+// Mapping from book id to difficulty rating for each character
+const difficultyMapping = {
+  1: { Narrator: "Easy", Clara: "Medium", Zoe: "Hard" },
+  2: { Narrator: "Easy", Clara: "Medium", Zoe: "Easy" },
+  3: { Narrator: "Easy", Clara: "Medium", Zoe: "Easy" },
+};
+
+const similarVoicesMapping = {
+  Yellow: ["Blue"],
+  Blue: ["Yellow"],
+  Violet: ["Green"],
+  Green: ["Violet"],
+};
+
+function CharacterCard({ draggableId, character, role, userName, difficulty }) {
+  const defaultMessage =
+    "Select a role from the left side, then drag and drop it onto this box to assign a voice to this character.";
   return (
     <div className="character-card">
       <div className="card">
         <div className="card-content">
           <div className="left-column">
-            <h5 className="card-title">{character.Name}</h5>
+            <h5 className="card-title">
+              {character.Name}
+              <span className={`difficulty-badge difficulty-${difficulty.toLowerCase()}`}>
+                {difficulty}
+              </span>
+            </h5>
             <div className="card-img-container">
-              <img
-                src={character.img}
-                className="card-img-top"
-                alt={character.Name}
-              />
+              <img src={character.img} className="card-img-top" alt={character.Name} />
             </div>
           </div>
           <Droppable droppableId={character.Name}>
             {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="droppable-area"
-              >
+              <div {...provided.droppableProps} ref={provided.innerRef} className="droppable-area">
                 {role ? (
-                  <RoleDraggable draggableId={String(draggableId)} role={role} index={0} />
+                  <RoleDraggable draggableId={String(draggableId)} name={userName} role={role} index={0} />
                 ) : (
                   <>
                     <p className="default-message">{defaultMessage}</p>
@@ -58,14 +72,13 @@ function CharacterCard({ draggableId, character, role }) {
   );
 }
 
+// Draggable component for a role
 function RoleDraggable({ draggableId, role, index, name, isDragDisabled, style }) {
   const [isPlayButtonDisabled, setIsPlayButtonDisabled] = useState(false);
 
   const playSound = () => {
     setIsPlayButtonDisabled(true);
     speak();
-
-    // Re-enable the button after 5 seconds
     setTimeout(() => {
       setIsPlayButtonDisabled(false);
     }, 2000);
@@ -73,24 +86,21 @@ function RoleDraggable({ draggableId, role, index, name, isDragDisabled, style }
 
   async function speak() {
     try {
+      const voice = role.Role === "Parent" ? "en-US-Wavenet-F" : role.RoleParameter;
       const request = {
         text: "Hello " + name + ", I am " + role.Role,
-        voice: role.RoleParameter,
+        voice: voice,
       };
-
-      const response = await fetch(TTSurl+'/synthesize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch(TTSurl + "/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
-
       const data = await response.json();
       const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
       audio.play();
     } catch (error) {
-      console.error('Error in Google Text-to-Speech:', error);
+      console.error("Error in Google Text-to-Speech:", error);
     }
   }
 
@@ -98,7 +108,7 @@ function RoleDraggable({ draggableId, role, index, name, isDragDisabled, style }
     <Draggable draggableId={String(draggableId)} index={index} isDragDisabled={isDragDisabled}>
       {(provided) => (
         <div
-          className="RoleDraggable" // apply the class here
+          className="RoleDraggable"
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           ref={provided.innerRef}
@@ -106,7 +116,7 @@ function RoleDraggable({ draggableId, role, index, name, isDragDisabled, style }
         >
           <img src={role.img} alt={role.Role} />
           <span>{role.Role}</span>
-          {role.Role !== "Parent" && role.Role !== "Child" && (
+          {role.Role !== "Child" && role.Role !== "Parent" && (
             <button onClick={playSound} disabled={isPlayButtonDisabled}>
               <PlayArrowIcon />
             </button>
@@ -117,22 +127,32 @@ function RoleDraggable({ draggableId, role, index, name, isDragDisabled, style }
   );
 }
 
+
+
+// Helper constructor for Book data
 function Book(data) {
   this.name = data[0].Book.Name;
   this.characters = data[0].Book.Characters;
   this.pages = data[0].Book.Pages;
 }
 
-Modal.setAppElement('#root') // Replace #root with your app's root element id
-
 function CharaterSelecter() {
   const location = useLocation();
   const id = location.state ? location.state.id : null;
   const userName = location.state ? location.state.name : null;
-  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const navigate = useNavigate();
 
-  // Generate book based on id
-  let bookData
+  // Modal state
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [similarVoiceModalOpen, setSimilarVoiceModalOpen] = useState(false);
+  const [similarVoicePair, setSimilarVoicePair] = useState(null);
+
+  // Character and role state
+  const [characterValues, setCharacterValues] = useState({});
+  const [availableRoles, setAvailableRoles] = useState(roles.map(role => ({ ...role, isAssigned: false })));
+
+  // Select book data based on id
+  let bookData;
   switch (id) {
     case 1:
       bookData = data1;
@@ -149,9 +169,6 @@ function CharaterSelecter() {
 
   const book = React.useMemo(() => new Book(bookData), [bookData]);
 
-  const [characterValues, setCharacterValues] = useState({});
-  const [availableRoles, setAvailableRoles] = useState(roles.map(role => ({ ...role, isAssigned: false })));
-
   // Populate default character values
   useEffect(() => {
     if (book) {
@@ -167,29 +184,39 @@ function CharaterSelecter() {
     }
   }, [book]);
 
+  const checkForSimilarVoices = () => {
+    const assignedRoles = Object.values(characterValues).filter(role => role !== "");
+    for (let i = 0; i < assignedRoles.length; i++) {
+      for (let j = i + 1; j < assignedRoles.length; j++) {
+        const colorA = assignedRoles[i].voiceColor;
+        const colorB = assignedRoles[j].voiceColor;
+        if (
+          similarVoicesMapping[colorA] &&
+          similarVoicesMapping[colorA].includes(colorB)
+        ) {
+          return { found: true, pair: [colorA, colorB] };
+        }
+      }
+    }
+    return { found: false };
+  };
+
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
-    console.log(`Drag operation started:`, { source, destination, draggableId });
-
-    if (!destination || (source.droppableId === destination.droppableId)) {
+    console.log("Drag operation started:", { source, destination, draggableId });
+    if (!destination || source.droppableId === destination.droppableId) {
       console.log("Dragged to the same spot or no destination found!");
       return;
     }
-
-    // Copying state in a way to ensure re-render
     const updatedCharacterValues = { ...characterValues };
     const updatedAvailableRoles = availableRoles.map(role => ({ ...role }));
-    console.log(`State before update:`, { updatedCharacterValues, updatedAvailableRoles });
-
+    console.log("State before update:", { updatedCharacterValues, updatedAvailableRoles });
     const sourceRole = updatedAvailableRoles.find(role => role.Role === draggableId);
     const destinationCharacterRole = updatedCharacterValues[destination.droppableId];
-
     if (source.droppableId === "roles") {
       if (destinationCharacterRole) {
-        // Make the previously assigned role available again
         const oldRole = updatedAvailableRoles.find(role => role.Role === destinationCharacterRole.Role);
         if (oldRole) oldRole.isAssigned = false;
-        // Ensure this character no longer references
       }
       updatedCharacterValues[destination.droppableId] = sourceRole;
       sourceRole.isAssigned = true;
@@ -197,7 +224,6 @@ function CharaterSelecter() {
       if (destination.droppableId !== "roles") {
         const tempRole = destinationCharacterRole;
         if (tempRole) {
-          // Make the replaced role available again
           const replacedRole = updatedAvailableRoles.find(role => role.Role === tempRole.Role);
           if (replacedRole) replacedRole.isAssigned = false;
         }
@@ -208,104 +234,151 @@ function CharaterSelecter() {
         updatedCharacterValues[source.droppableId] = null;
       }
     }
-
-    // Re-check assignment of roles
     updatedAvailableRoles.forEach(role => {
-      role.isAssigned = Object.values(updatedCharacterValues).some(charRole => charRole && charRole.Role === role.Role);
+      role.isAssigned = Object.values(updatedCharacterValues).some(
+        charRole => charRole && charRole.Role === role.Role
+      );
     });
-
     setCharacterValues(updatedCharacterValues);
     setAvailableRoles(updatedAvailableRoles);
-    console.log(`State after update:`, { updatedCharacterValues, updatedAvailableRoles });
-    console.log("Roles", availableRoles);
+    console.log("State after update:", { updatedCharacterValues, updatedAvailableRoles });
   };
 
-  const navigate = useNavigate();
-
-  const handleNextButtonClick = () => {
+  const navigateToStory = () => {
     const hasAllRolesAssigned = Object.values(characterValues).every(value => value !== "");
-
     if (!hasAllRolesAssigned) {
       setModalIsOpen(true);
       return;
     }
 
-    const selectedOptions = Object.keys(characterValues).map((characterName) => ({
+    const similarCheck = checkForSimilarVoices();
+    if (similarCheck.found) {
+      setSimilarVoicePair(similarCheck.pair);
+      setSimilarVoiceModalOpen(true);
+      return;
+    }
+
+
+    const selectedOptions = Object.keys(characterValues).map(characterName => ({
       Character: characterName,
       VA: characterValues[characterName].RoleParameter,
       role: characterValues[characterName].Role,
-      img: characterValues[characterName].img
+      img: characterValues[characterName].img,
     }));
-
     navigate("/story", { state: { selectedOptions, id } });
   };
 
   const handleBackButtonClick = () => {
-    navigate('/');
+    navigate("/");
   };
 
-    
-  
   return (
     <div className="characterSelecter">
-     <Modal isOpen={modalIsOpen} onRequestClose={()=> setModalIsOpen(false)}  className="modalContent">
+      <Modal isOpen={modalIsOpen} onRequestClose={() => setModalIsOpen(false)} className="modalContent">
         <h2>TaleMate</h2>
         <p>Please assign one role to each character before continuing</p>
-        <button onClick={()=> setModalIsOpen(false)}>Close</button>
+        <button onClick={() => setModalIsOpen(false)}>Close</button>
       </Modal>
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="d-flex flex-column align-items-stretch min-vh-100">
-        <div className="d-flex justify-content-between p-3 bg-light">
+      <Modal isOpen={similarVoiceModalOpen} onRequestClose={() => setSimilarVoiceModalOpen(false)} className="modalContent">
+        <h2>Warning</h2>
+        <p>
+          The selected voices ({similarVoicePair ? similarVoicePair[0] : ""} and {similarVoicePair ? similarVoicePair[1] : ""}) are similar.
+        </p>
+        <p>Please consider choosing different voices to avoid confusion.</p>
+        <button onClick={() => setSimilarVoiceModalOpen(false)}>Okay, I'll change them</button>
+        <button onClick={() => {
+          const selectedOptions = Object.keys(characterValues).map(characterName => ({
+            Character: characterName,
+            VA: characterValues[characterName].RoleParameter,
+            role: characterValues[characterName].Role,
+            img: characterValues[characterName].img,
+          }));
+          setSimilarVoiceModalOpen(false);
+          navigate("/story", { state: { selectedOptions, id } });
+        }}>Proceed Anyway</button>
+      </Modal>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="d-flex flex-column align-items-stretch min-vh-100">
+          <div className="d-flex justify-content-between p-3 bg-light">
             <button className="btn btn-primary next-btn" onClick={handleBackButtonClick}>
-              <KeyboardDoubleArrowLeftIcon style={{ fontSize: "2rem" }}/>
+              <KeyboardDoubleArrowLeftIcon style={{ fontSize: "2rem" }} />
             </button>
-          <div className="text-center">
-            <div className="sectionTitle display-3">Select a Role</div>
-            <p>Select a role from the left side, then drag and drop it onto a character on the right to assign voices.</p>
+            <div className="text-center">
+              <div className="sectionTitle display-3">Select a Role</div>
+              <p>Select a role from the left side, then drag and drop it onto a character on the right to assign voices.</p>
+            </div>
+            <button className="btn btn-primary next-btn" onClick={navigateToStory}>
+              <KeyboardDoubleArrowRightIcon style={{ fontSize: "2rem" }} />
+            </button>
           </div>
-          <button className="btn btn-primary next-btn" onClick={handleNextButtonClick}>
-            <KeyboardDoubleArrowRightIcon style={{ fontSize: "2rem" }}/>
-          </button>
-        </div>
-  
-        <div className="d-flex flex-row justify-content-around flex-grow-1">
-          <div className="col-2">
-            <Droppable droppableId="roles">
-              {(provided) => (
-                <div 
-                  {...provided.droppableProps} 
-                  ref={provided.innerRef}
-                  className="DraggableContainer"
-                >
-                  {availableRoles.map((role, index) => (
-                     < RoleDraggable key={role.Role} role={role} draggableId={role.Role} index={index} name={userName} isDragDisabled={role.isAssigned} style={{ opacity: role.isAssigned ? 0.1 : 1 }}  // Adjust opacity based on assignment
-                     />
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </div>
-    
-          <div className="col-9">
-            <div className="character-cards-container">
-              {book && book.characters.map((character, index) => {
-                const role = characterValues[character.Name];
-                return (
-                  <CharacterCard draggableId = {role} character={character} role={role} key={index}/>
-                );
-              })}
+          <div className="d-flex flex-row justify-content-around flex-grow-1">
+            <div className="col-2">
+              <Droppable droppableId="roles">
+                {(provided) => (
+                  <div {...provided.droppableProps} ref={provided.innerRef} className="DraggableContainer">
+                    {/* Render Parent and Child icons on top in a row with smaller size */}
+                    <div
+                      className="parent-child-row"
+                      style={{ display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "1rem" }}
+                    >
+                      {[...availableRoles]
+                        .filter(role => (role.Role === "Parent" || role.Role === "Child") && !role.isAssigned)
+                        .map((role, index) => (
+                          <div key={role.Role} style={{ margin: "0 0.5rem", transform: "scale(0.8)" }}>
+                            <RoleDraggable
+                              role={role}
+                              draggableId={role.Role}
+                              index={index}
+                              name={userName}
+                              isDragDisabled={false}
+                              style={{ opacity: role.isAssigned ? 0.3 : 1, pointerEvents: role.isAssigned ? "none" : "auto" }}
+                            />
+                          </div>
+                      ))}
+                    </div>
+                    {/* Render other roles */}
+                    {[...availableRoles]
+                      .filter(role => role.Role !== "Parent" && role.Role !== "Child" && !role.isAssigned)
+                      .map((role, index) => (
+                        <RoleDraggable
+                          key={role.Role}
+                          role={role}
+                          draggableId={role.Role}
+                          index={index + 1}
+                          name={userName}
+                          isDragDisabled={false}
+                          style={{ opacity: role.isAssigned ? 0.3 : 1, pointerEvents: role.isAssigned ? "none" : "auto" }}
+                        />
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </div>
+            <div className="col-9">
+              <div className="character-cards-container">
+                {book &&
+                  book.characters.map((character, index) => {
+                    const role = characterValues[character.Name];
+                    const difficulty = difficultyMapping[id] ? difficultyMapping[id][character.Name] : "";
+                    return (
+                      <CharacterCard
+                        draggableId={role ? role.Role : ""}
+                        character={character}
+                        role={role}
+                        key={index}
+                        userName={userName}
+                        difficulty={difficulty}
+                      />
+                    );
+                  })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </DragDropContext>
+      </DragDropContext>
     </div>
   );
-  
-  
-  
-  
 }
 
 export default CharaterSelecter;
