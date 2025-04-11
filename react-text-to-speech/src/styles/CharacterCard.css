@@ -75,3 +75,30 @@
   padding: 10px; /* adjust as needed */
   text-align: center; /* if you want the text to be centered */
 }
+
+.difficulty-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+/* Easy: Green */
+.difficulty-easy {
+  background-color: #28a745;
+  color: #fff;
+}
+
+/* Medium: Orange */
+.difficulty-medium {
+  background-color: #ffc107;
+  color: #000;
+}
+
+/* Hard: Red */
+.difficulty-hard {
+  background-color: #dc3545;
+  color: #fff;
+}

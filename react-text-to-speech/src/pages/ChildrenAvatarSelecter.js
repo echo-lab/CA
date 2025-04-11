@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import avatar0 from '../Pictures/Avatars/child0.png';
 import avatar1 from '../Pictures/Avatars/child1.png';
 import avatar2 from '../Pictures/Avatars/child2.png';
@@ -31,6 +32,8 @@ import "../styles/AvatarSelection.css";
 function ChildrenAvatarSelecter() {
     const navigate = useNavigate();
     const [selected, setSelected] = useState(null);
+    const { userName } = useLocation().state || {};
+
   
     const images = [avatar0, avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8, avatar9, avatar10, avatar11, avatar12, avatar13, avatar14, avatar15, avatar16, avatar17, avatar18, avatar19, avatar20, avatar21, avatar22, avatar23];
   
@@ -44,7 +47,7 @@ function ChildrenAvatarSelecter() {
         console.log(selected)
         childRole.img = require(`../Pictures/Avatars/child${selected}.png`)
         console.log(roles)
-        navigate('/AvatarSelecter'); 
+        navigate('/AvatarSelecter', { state: { userName } }); 
       }
     };
   
