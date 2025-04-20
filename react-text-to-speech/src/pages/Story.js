@@ -387,7 +387,7 @@ function stripSSMLTags(text) {
        
               <div className="col-3">
               <div className="role-image-container-text d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
-              {currentRole && currentRole.role === "Parent" && roleImage && <img src={roleImage} alt={roleName} style={{width: "20%"}}  className="overlay-image"/>}
+              {currentRole && roleImage && <img src={roleImage} alt={roleName} style={{width: "20%"}}  className="overlay-image"/>}
             
                 {/* Add character image */}
                 {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
