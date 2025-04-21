@@ -17,11 +17,21 @@
     margin-bottom: 40px;
     position: relative;
   }
+
+ 
+  
+  .lab-logo {
+    max-width: 200px;   /* adjust as needed */
+    width: 100%;
+    height: auto;
+  }
   
   .logo-container {
     display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+    max-width: 800px;      /* same width as your .hero-content */
+    margin: 0 auto 20px;   /* center it + bottom spacing */
+    justify-content: flex-start;  /* line up logos to the left edge */
+    gap: 20px;             /* space between logos */
   }
   
   .lab-logos {

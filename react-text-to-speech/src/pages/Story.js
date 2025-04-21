@@ -377,12 +377,19 @@ function stripSSMLTags(text) {
           const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
           const character = CurrentBook.characters.find(c => c.Name === val.Character);
           const characterImage = character ? character.img : "";
+          const isChild = currentRole?.role === "Child";
 
           return (
             <div
               ref={(el) => dialogueRefs.current[key] = el}
               className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
               key={key}
+              onClick={() => {
+                if (isChild) {
+                  // speak out this child’s line
+                  speak(val.Dialogue);
+                }
+              }}
             >
        
               <div className="col-3">

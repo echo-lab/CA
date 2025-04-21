@@ -21,9 +21,9 @@ Modal.setAppElement("#root");
 
 // Mapping from book id to difficulty rating for each character
 const difficultyMapping = {
-  1: { Narrator: "Easy", Clara: "Medium", Zoe: "Hard" },
-  2: { Narrator: "Easy", Clara: "Medium", Zoe: "Easy" },
-  3: { Narrator: "Easy", Clara: "Medium", Zoe: "Easy" },
+  1: { Narrator: "Hard", Clara: "Easy", Zoe: "Medium" },
+  2: { Narrator: "Hard", Clara: "Medium", Zoe: "Easy" },
+  3: { Narrator: "Hard", Clara: "Medium", Zoe: "Easy" },
 };
 
 const similarVoicesMapping = {
