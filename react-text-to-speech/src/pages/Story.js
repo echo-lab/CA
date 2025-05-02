@@ -71,17 +71,25 @@ function Reader() {
   const [audioHasEnded, setAudioHasEnded] = useState(false);
 
 
+  let lastSpokenText = "";
+  let lastSpokenTime = 0;
+  
   const handleTextSelection = () => {
     setTimeout(() => {
-      let text = window.getSelection().toString();
-      // Remove isolated symbols and punctuation, and trim whitespace
+      let text = window.getSelection().toString().trim();
       text = text.replace(/(?<=\s|^)[.,!?;:"'“”‘’\-—]?(?=\s|$)/g, '').trim();
-      
-      if(text.length > 0) {
+  
+      const now = Date.now();
+      if (
+        text.length > 0 &&
+        (text !== lastSpokenText || now - lastSpokenTime > 1000)
+      ) {
         speak(text);
+        lastSpokenText = text;
+        lastSpokenTime = now;
       }
     }, 100);
-};
+  };
 
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
@@ -385,8 +393,8 @@ function stripSSMLTags(text) {
               className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
               key={key}
               onClick={() => {
-                if (isChild) {
-                  // speak out this child’s line
+                const selectedText = window.getSelection().toString().trim();
+                if (isChild && val.Reading && selectedText === "") {
                   speak(val.Dialogue);
                 }
               }}
