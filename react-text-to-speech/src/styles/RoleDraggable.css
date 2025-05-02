@@ -1,16 +1,30 @@
 /* RoleDraggable.css */
+
+.DraggableContainer,
+.parent-child-row,
+.character-cards-container,
+.droppable-area {
+  overflow: visible !important;
+}
+
+.row, .col-2, .col-9 {
+  overflow: visible !important;
+}
+
+
+
 .RoleDraggable {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
 
   }
 
   .RoleDraggable img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
 
   }
 
@@ -30,4 +44,9 @@
   .RoleDraggable.disabled {
     opacity: 0.5; /* Make it semi-transparent */
     pointer-events: none; /* Prevent interaction */
+  }
+
+  .RoleDraggable.dragging {
+    z-index: 1000 !important; /* Ensures it's above everything */
+    position: relative;
   }

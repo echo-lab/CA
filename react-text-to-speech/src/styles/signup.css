@@ -4,6 +4,10 @@
     align-items: center;
     height: 100vh;
   }
+
+  input::placeholder {
+    font-size: 0.9rem;
+  }
   
   .signup .signupcard {
     width: 750px; 

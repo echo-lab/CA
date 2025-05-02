@@ -4,6 +4,7 @@ import "../styles/LandingPage.css";
 import labLogos from "../Pictures/labImg.png"; 
 import labLogo1 from "../Pictures/CoDeS.png"; 
 import labLogo2 from "../Pictures/L&D.png"; 
+import vtLogo from "../Pictures/vt.png";
 
 const LandingPage = () => {
   return (
@@ -13,6 +14,7 @@ const LandingPage = () => {
         <div className="logo-container">
          <img src={labLogo1} alt="Echolab logo" className="lab-logo" />
          <img src={labLogo2} alt="Cobélab logo" className="lab-logo" />
+  <img src={vtLogo} alt="Virginia Tech logo" className="lab-logo" />
        </div>
         
         <div className="hero-content">
@@ -35,9 +37,6 @@ const LandingPage = () => {
           </Link>
         </div>
       </header>
-      <footer className="footer">
-        <p>&copy; 2025 TaleMate Research Initiative</p>
-      </footer>
     </div>
   );
 };
