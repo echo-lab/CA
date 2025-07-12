@@ -29,6 +29,8 @@ class Book {
 
 
 function Reader() {
+  // If env true then limit to first three pages
+  const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
   const location = useLocation();
   const navigate = useNavigate();
   const selectedOptions = location.state ? location.state.selectedOptions : {};
@@ -56,12 +58,17 @@ function Reader() {
 
   var CurrentBook = new Book(bookData[0]);
 
+  const allKeys = Object.keys(CurrentBook.pages);
+  const allValues = Object.values(CurrentBook.pages);
+  const pagesKeys = previewOnly ? allKeys.slice(0, 3) : allKeys;
+  const pagesValues = previewOnly ? allValues.slice(0, 3) : allValues;
+
   const [state, setState] = useState({
     page: 0,
     index: 0,
     CharacterRoles: selectedOptions,
-    pagesKeys: Object.keys(CurrentBook.pages),
-    pagesValues: Object.values(CurrentBook.pages),
+    pagesKeys,
+    pagesValues,
     isVolumnOn: false,
     hasReachedEnd: false // New state variable
   });
