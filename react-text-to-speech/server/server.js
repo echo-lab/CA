@@ -23,6 +23,9 @@ app.use(express.json());
 
 app.post('/synthesize', async (req, res) => {
     try {
+        // Log the incoming request body
+        console.log('/synthesize request body:', JSON.stringify(req.body, null, 2));
+        
         const fetch = (await import('node-fetch')).default;
         let sanitizedText = req.body.text.replace(/(\*)+/g, '');
         sanitizedText = sanitizedText.replace(/'/g, '"');
@@ -34,7 +37,9 @@ app.post('/synthesize', async (req, res) => {
             audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
             
         };
-        console.log(request)
+
+        // Log the exact payload sent to Google
+        console.log('TTS API request payload:', JSON.stringify(request, null, 2));
 
         const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
             method: 'POST',
@@ -44,7 +49,10 @@ app.post('/synthesize', async (req, res) => {
             body: JSON.stringify(request),
         });
 
+        const raw = await response.text();
         if (!response.ok) {
+            console.error('TTS API responded with status', response.status);
+            console.error('TTS API error body:', raw);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
