@@ -2,18 +2,17 @@ const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
 const https = require('https');
-require ('dotenv').config({ path: '.env.local' });
+require('dotenv').config({ path: '.env.local' });
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const keyPath = process.env.KEYPATH;
 const certPath = process.env.CERTPATH;
 console.log(keyPath);
 console.log(certPath);
 const corsOptions = {
-    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','https://localhost:3000' ],
+    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','http://localhost:3000', 'https://talemate-new.cs.vt.edu' ],
     methods: 'POST',
     credentials: true
   };
-
 
 const app = express();
 app.use(cors(corsOptions));
