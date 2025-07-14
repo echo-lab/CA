@@ -55,9 +55,17 @@ app.post('/synthesize', async (req, res) => {
             console.error('TTS API error body:', raw);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (parseErr) {
+            console.error('Failed to parse TTS API JSON:', raw);
+            return res.status(500).json({ message: 'Invalid JSON from TTS API' });
+        }
 
-        const data = await response.json();
-        res.json(data);
+        console.log('TTS API success payload (truncated):', raw.slice(0, 100));
+        return res.json(data);
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
         res.status(500).json({ message: error.toString() });
