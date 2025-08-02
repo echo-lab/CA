@@ -212,39 +212,46 @@ const deckRoles = React.useMemo(() => {
   // on drag end
   const handleDragEnd = (result) => {
   const { source, destination, draggableId } = result;
-  // nothing to do if dropped outside or back into the same list
   if (!destination || source.droppableId === destination.droppableId) return;
 
-  // defer our updates until after the built-in drop animation completes
+  // Defer until after RBDnD finishes its own drop animation
   window.requestAnimationFrame(() => {
-    const newChars = { ...characterValues };
-    const newRoles = availableRoles.map((r) => ({ ...r }));
+    setAvailableRoles((prevRoles) => {
+      const rolesCopy = prevRoles.map((r) => ({ ...r }));
 
-    // 1) If dragging out of a character, unassign it using whatever is in that slot
-    if (source.droppableId !== "roles") {
-      const srcRoleName = newChars[source.droppableId]?.Role ?? draggableId;
-      const srcEntry = newRoles.find((r) => r.Role === srcRoleName);
-      if (srcEntry) srcEntry.isAssigned = false;
-      newChars[source.droppableId] = "";
-    }
+      setCharacterValues((prevChars) => {
+        const charsCopy = { ...prevChars };
 
-    // 2) If dropping onto a character, free any old one and assign the dragged
-    if (destination.droppableId !== "roles") {
-      const oldRoleName = newChars[destination.droppableId]?.Role;
-      if (oldRoleName) {
-        const oldEntry = newRoles.find((r) => r.Role === oldRoleName);
-        if (oldEntry) oldEntry.isAssigned = false;
-      }
+        // Unassign from source (if dragging out of a character)
+        if (source.droppableId !== "roles") {
+          const srcRoleName = charsCopy[source.droppableId]?.Role ?? draggableId;
+          const srcEntry = rolesCopy.find((r) => r.Role === srcRoleName);
+          if (srcEntry) srcEntry.isAssigned = false;
+          charsCopy[source.droppableId] = "";
+        }
 
-      const draggedEntry = newRoles.find((r) => r.Role === draggableId);
-      if (draggedEntry) draggedEntry.isAssigned = true;
+        // Assign into destination (if dropping onto a character)
+        if (destination.droppableId !== "roles") {
+          const oldRoleName = charsCopy[destination.droppableId]?.Role;
+          if (oldRoleName) {
+            const oldEntry = rolesCopy.find((r) => r.Role === oldRoleName);
+            if (oldEntry) oldEntry.isAssigned = false;
+          }
 
-      // store a CLONE in characterValues to avoid shared mutations with deck
-      newChars[destination.droppableId] = draggedEntry ? { ...draggedEntry } : "";
-    }
+          const draggedEntry = rolesCopy.find((r) => r.Role === draggableId);
+          if (draggedEntry) draggedEntry.isAssigned = true;
 
-    setCharacterValues(newChars);
-    setAvailableRoles(newRoles);
+          // store a CLONE in the character slot to avoid sharing the deck object
+          charsCopy[destination.droppableId] = draggedEntry
+            ? { ...draggedEntry }
+            : "";
+        }
+
+        return charsCopy;
+      });
+
+      return rolesCopy;
+    });
   });
 };
 
