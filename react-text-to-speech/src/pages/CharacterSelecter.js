@@ -18,6 +18,7 @@ import { data as data3 } from "../Book/Book3";
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
 const TTSurl = url + (port ? `:${port}` : "");
+const ROLE_PRIORITY = { Parent: 0, Child: 1 };
 
 Modal.setAppElement("#root");
 
@@ -116,6 +117,7 @@ function CharacterCard({ character, role, userName, difficulty }) {
                 {role ? (
                   // Notice: no style prop here, so full opacity in the box
                   <RoleDraggable
+                    key={role.Role}
                     role={role}
                     index={0}
                     name={userName}
@@ -171,6 +173,23 @@ export default function CharaterSelecter() {
     setCharacterValues(defaults);
   }, [book]);
 
+  const initialOrder = React.useMemo(() => {
+  const map = new Map();
+  roles.forEach((r, idx) => map.set(r.Role, idx));
+  return map;
+}, []);
+
+const deckRoles = React.useMemo(() => {
+  return availableRoles
+    .filter((r) => !r.isAssigned)
+    .sort((a, b) => {
+      const pa = ROLE_PRIORITY[a.Role] ?? 2;
+      const pb = ROLE_PRIORITY[b.Role] ?? 2;
+      if (pa !== pb) return pa - pb; // Parent/Child first
+      return (initialOrder.get(a.Role) ?? 999) - (initialOrder.get(b.Role) ?? 999); // stable fallback
+    });
+}, [availableRoles, initialOrder]);
+
   // check for similar voices
   const similarVoicesMapping = {
     Yellow: ["Blue"],
@@ -192,36 +211,42 @@ export default function CharaterSelecter() {
 
   // on drag end
   const handleDragEnd = (result) => {
-    const { source, destination, draggableId } = result;
-    // nothing to do if dropped outside or back into the same list
-    if (!destination || source.droppableId === destination.droppableId) return;
+  const { source, destination, draggableId } = result;
+  // nothing to do if dropped outside or back into the same list
+  if (!destination || source.droppableId === destination.droppableId) return;
 
-    // defer our updates until after the built-in drop animation completes
-    window.requestAnimationFrame(() => {
-      const newChars = { ...characterValues };
-      const newRoles = availableRoles.map((r) => ({ ...r }));
+  // defer our updates until after the built-in drop animation completes
+  window.requestAnimationFrame(() => {
+    const newChars = { ...characterValues };
+    const newRoles = availableRoles.map((r) => ({ ...r }));
 
-      // 1) If dragging out of a character, unassign it
-      if (source.droppableId !== "roles") {
-        newRoles.find((r) => r.Role === draggableId).isAssigned = false;
-        newChars[source.droppableId] = "";
+    // 1) If dragging out of a character, unassign it using whatever is in that slot
+    if (source.droppableId !== "roles") {
+      const srcRoleName = newChars[source.droppableId]?.Role ?? draggableId;
+      const srcEntry = newRoles.find((r) => r.Role === srcRoleName);
+      if (srcEntry) srcEntry.isAssigned = false;
+      newChars[source.droppableId] = "";
+    }
+
+    // 2) If dropping onto a character, free any old one and assign the dragged
+    if (destination.droppableId !== "roles") {
+      const oldRoleName = newChars[destination.droppableId]?.Role;
+      if (oldRoleName) {
+        const oldEntry = newRoles.find((r) => r.Role === oldRoleName);
+        if (oldEntry) oldEntry.isAssigned = false;
       }
 
-      // 2) If dropping onto a character, assign it (and free any old one)
-      if (destination.droppableId !== "roles") {
-        const oldRole = newChars[destination.droppableId];
-        if (oldRole) {
-          newRoles.find((r) => r.Role === oldRole.Role).isAssigned = false;
-        }
-        const dragged = newRoles.find((r) => r.Role === draggableId);
-        newChars[destination.droppableId] = dragged;
-        dragged.isAssigned = true;
-      }
+      const draggedEntry = newRoles.find((r) => r.Role === draggableId);
+      if (draggedEntry) draggedEntry.isAssigned = true;
 
-      setCharacterValues(newChars);
-      setAvailableRoles(newRoles);
-    });
-  };
+      // store a CLONE in characterValues to avoid shared mutations with deck
+      newChars[destination.droppableId] = draggedEntry ? { ...draggedEntry } : "";
+    }
+
+    setCharacterValues(newChars);
+    setAvailableRoles(newRoles);
+  });
+};
 
 
   // next button
@@ -245,18 +270,6 @@ export default function CharaterSelecter() {
     navigate("/story", { state: { selectedOptions, id } });
   };
 
-  // split parent/child vs other
-  const parentChildRoles = availableRoles.filter(
-  (r) =>
-    (r.Role === "Parent" || r.Role === "Child") &&
-    !r.isAssigned
-  );
-  const otherRoles = availableRoles.filter(
-    (r) =>
-      r.Role !== "Parent" &&
-      r.Role !== "Child" &&
-      !r.isAssigned
-  );
 
   return (
     <div className="characterSelecter">
@@ -322,23 +335,11 @@ export default function CharaterSelecter() {
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                   >
-                    {/* Parent & Child */}
-                    {parentChildRoles.map((r, i) => (
+                    {deckRoles.map((r, i) => (
                       <RoleDraggable
                         key={r.Role}
                         role={r}
                         index={i}
-                        name={userName}
-                        isDragDisabled={false}
-                      />
-                    ))}
-
-                    {/* Other roles always */}
-                    {otherRoles.map((r, i) => (
-                      <RoleDraggable
-                        key={r.Role}
-                        role={r}
-                        index={i + parentChildRoles.length}
                         name={userName}
                         isDragDisabled={false}
                       />
