@@ -1,72 +1,111 @@
+/* Root layout */
 .characterSelecter {
-  display: flex; 
+  display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden; 
+  /* Allow the drag clone to escape the container while dragging */
+  overflow: visible;
 }
 
+/* Nav buttons */
 .rightbutton,
 .leftbutton {
-  width: 50px; /* adjust as needed */
-  height: 50px; /* adjust as needed */
+  width: 50px;
+  height: 50px;
 }
 
+/* Modal */
 .modalContent {
   width: 300px;
   height: 150px;
   margin: auto;
   background-color: rgb(41, 144, 233);
   padding: 10px;
-  /* additional styles as needed */
 }
 
-
+/* Section title */
 .sectionTitle {
   font-style: italic;
   text-align: left;
 }
 
-
+/* Roles deck (left grid) */
 .DraggableContainer {
   display: grid;
   /* 4–5 columns on wide, fewer on narrow */
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 8px;
-  /* cap height to leave room for header/footer, then scroll */
+
+  /* Cap height to leave room for header/footer, then scroll */
   max-height: calc(100vh - 180px);
   overflow-y: auto;
+
+  /* Smooth, contained scrolling on touch devices */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
   padding: 8px;
 }
 
-/* roles themselves size to the grid cell */
+/* Optional: subtle custom scrollbar (WebKit) */
+.DraggableContainer::-webkit-scrollbar {
+  width: 8px;
+}
+.DraggableContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+.DraggableContainer::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+}
+.DraggableContainer::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Role tile */
 .RoleDraggable {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* let the grid cell control width/height */
+
+  /* Size to the grid cell */
   width: 100%;
   height: 100%;
+  min-height: 80px;
+
   box-sizing: border-box;
-  margin: 0;    /* grid gap handles spacing */
+  margin: 0;
+
+  /* Better touch behavior */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
+/* Make images non-interactive during drag */
+.RoleDraggable img {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
 
+/* Characters grid (right side) */
 .character-cards-container {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between; /* Adjusts space between cards */
+  justify-content: space-between;
   width: 90%;
   margin: 20px auto;
 }
 
 .character-cards-container > div {
   flex-basis: calc(50% - 30px); /* half-width minus margins */
-  box-sizing: border-box;       /* include padding/border in width */
-  margin: 10px;                 /* space around each card */
+  box-sizing: border-box;
+  margin: 10px;
 }
 
-
+/* Utilities */
 .row.justify-content-between {
   display: flex;
   justify-content: space-between;
@@ -79,22 +118,34 @@
 
 .title-container {
   position: absolute;
-  top: 10px; /* Adjust according to your needs */
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
-  z-index: 1; /* Ensure it's above other elements */
+  z-index: 1;
 }
 
 .next-btn {
-  padding: 15px 30px; 
+  padding: 15px 30px;
 }
 
+/* Touch-first tweaks (larger tap targets) */
+@media (pointer: coarse) {
+  .DraggableContainer {
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 12px;
+  }
+  .RoleDraggable {
+    min-height: 88px;
+    padding: 6px;
+  }
+}
 
+/* Small screens */
 @media (max-width: 768px) {
   .DraggableContainer {
-    /* smaller min so you still get 3–4 columns in portrait */
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    /* smaller min so you still get several columns in portrait */
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     max-height: calc(100vh - 160px);
   }
 
@@ -104,6 +155,6 @@
   }
 
   .character-cards-container > div {
-    flex-basis: 90%;  /* full width cards on small screens */
+    flex-basis: 90%; /* full width cards on small screens */
   }
 }
