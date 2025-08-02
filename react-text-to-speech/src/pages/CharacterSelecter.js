@@ -193,38 +193,36 @@ export default function CharaterSelecter() {
   // on drag end
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
-    if (!destination || source.droppableId === destination.droppableId)
-      return;
+    // nothing to do if dropped outside or back into the same list
+    if (!destination || source.droppableId === destination.droppableId) return;
 
-    const newChars = { ...characterValues };
-    const newRoles = availableRoles.map((r) => ({ ...r }));
-    const dragged = newRoles.find((r) => r.Role === draggableId);
+    // defer our updates until after the built-in drop animation completes
+    window.requestAnimationFrame(() => {
+      const newChars = { ...characterValues };
+      const newRoles = availableRoles.map((r) => ({ ...r }));
 
-    // assign
-    if (
-      source.droppableId === "roles" &&
-      destination.droppableId !== "roles"
-    ) {
-      const old = newChars[destination.droppableId];
-      if (old) {
-        newRoles.find((r) => r.Role === old.Role).isAssigned = false;
+      // 1) If dragging out of a character, unassign it
+      if (source.droppableId !== "roles") {
+        newRoles.find((r) => r.Role === draggableId).isAssigned = false;
+        newChars[source.droppableId] = "";
       }
-      newChars[destination.droppableId] = dragged;
-      dragged.isAssigned = true;
-    }
 
-    // unassign
-    if (
-      source.droppableId !== "roles" &&
-      destination.droppableId === "roles"
-    ) {
-      newRoles.find((r) => r.Role === draggableId).isAssigned = false;
-      newChars[source.droppableId] = "";
-    }
+      // 2) If dropping onto a character, assign it (and free any old one)
+      if (destination.droppableId !== "roles") {
+        const oldRole = newChars[destination.droppableId];
+        if (oldRole) {
+          newRoles.find((r) => r.Role === oldRole.Role).isAssigned = false;
+        }
+        const dragged = newRoles.find((r) => r.Role === draggableId);
+        newChars[destination.droppableId] = dragged;
+        dragged.isAssigned = true;
+      }
 
-    setCharacterValues(newChars);
-    setAvailableRoles(newRoles);
+      setCharacterValues(newChars);
+      setAvailableRoles(newRoles);
+    });
   };
+
 
   // next button
   const navigateToStory = () => {
@@ -249,7 +247,9 @@ export default function CharaterSelecter() {
 
   // split parent/child vs other
   const parentChildRoles = availableRoles.filter(
-    (r) => r.Role === "Parent" || r.Role === "Child"
+  (r) =>
+    (r.Role === "Parent" || r.Role === "Child") &&
+    !r.isAssigned
   );
   const otherRoles = availableRoles.filter(
     (r) =>
@@ -329,11 +329,7 @@ export default function CharaterSelecter() {
                         role={r}
                         index={i}
                         name={userName}
-                        isDragDisabled={r.isAssigned}
-                        style={{
-                          opacity: r.isAssigned ? 0.3 : 1,
-                          pointerEvents: r.isAssigned ? "none" : "auto",
-                        }}
+                        isDragDisabled={false}
                       />
                     ))}
 
