@@ -1,4 +1,4 @@
-.characterSelecter{
+.characterSelecter {
   display: flex; 
   flex-direction: column;
   height: 100vh;
@@ -26,36 +26,46 @@
   text-align: left;
 }
 
+
 .DraggableContainer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  width: auto;
-  max-height: calc(100vh - 250px); 
+  display: grid;
+  /* 4–5 columns on wide, fewer on narrow */
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  /* cap height to leave room for header/footer, then scroll */
+  max-height: calc(100vh - 180px);
   overflow-y: auto;
-
+  padding: 8px;
 }
 
+/* roles themselves size to the grid cell */
 .RoleDraggable {
-  flex-basis: calc(50% - 10px); /* Adjust as needed */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* let the grid cell control width/height */
+  width: 100%;
+  height: 100%;
   box-sizing: border-box;
-  margin: 5px; /* Optional, for some space between the items */
+  margin: 0;    /* grid gap handles spacing */
 }
+
 
 .character-cards-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between; /* Adjusts space between cards */
   width: 90%;
-  margin: 20px;
+  margin: 20px auto;
 }
 
 .character-cards-container > div {
-  flex-basis: calc(50% - 30px); /* Allocate half of the space to each card, subtracting for any margins */
-  box-sizing: border-box; /* Make sure padding and border are included in the above width */
-  margin: 10px; /* Small margin for some space around the cards */
-  
+  flex-basis: calc(50% - 30px); /* half-width minus margins */
+  box-sizing: border-box;       /* include padding/border in width */
+  margin: 10px;                 /* space around each card */
 }
+
 
 .row.justify-content-between {
   display: flex;
@@ -81,3 +91,19 @@
 }
 
 
+@media (max-width: 768px) {
+  .DraggableContainer {
+    /* smaller min so you still get 3–4 columns in portrait */
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    max-height: calc(100vh - 160px);
+  }
+
+  .character-cards-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .character-cards-container > div {
+    flex-basis: 90%;  /* full width cards on small screens */
+  }
+}
