@@ -1,9 +1,16 @@
+/* Sizing vars (edit these only) */
+:root {
+  --mate-size: 100px;   /* image size everywhere */
+  --deck-gap: 14px;
+  --card-gap: 20px;
+  --tile-gap: 8px;      /* gap between image, label, button */
+}
+
 /* Root layout */
 .characterSelecter {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  /* Allow the drag clone to escape the container while dragging */
   overflow: visible;
 }
 
@@ -29,132 +36,139 @@
   text-align: left;
 }
 
-/* Roles deck (left grid) */
+/* Left col (roles deck container in Bootstrap grid) */
+.col-2 {
+  /* ensure room for 2 fixed-width mates + gap + a bit of padding */
+  min-width: calc(2 * var(--mate-size) + var(--deck-gap) + 24px);
+}
+
+/* Left column: Roles deck — keep 2 fixed-size columns */
 .DraggableContainer {
   display: grid;
-  /* 4–5 columns on wide, fewer on narrow */
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 8px;
-
-  /* Cap height to leave room for header/footer, then scroll */
+  grid-template-columns: repeat(2, var(--mate-size));
+  justify-content: center;               /* center grid inside column */
+  column-gap: var(--deck-gap);
+  row-gap: var(--deck-gap);
   max-height: calc(100vh - 180px);
   overflow-y: auto;
-
-  /* Smooth, contained scrolling on touch devices */
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-
   padding: 8px;
 }
 
-/* Optional: subtle custom scrollbar (WebKit) */
-.DraggableContainer::-webkit-scrollbar {
-  width: 8px;
-}
-.DraggableContainer::-webkit-scrollbar-track {
-  background: transparent;
-}
-.DraggableContainer::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 8px;
-}
-.DraggableContainer::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.35);
-}
+/* Scrollbar (WebKit) */
+.DraggableContainer::-webkit-scrollbar { width: 8px; }
+.DraggableContainer::-webkit-scrollbar-track { background: transparent; }
+.DraggableContainer::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 8px; }
+.DraggableContainer::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
 
-/* Role tile */
-.RoleDraggable {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  /* Size to the grid cell */
+/* Role tile — constant internal spacing, content pinned to top */
+.characterSelecter .RoleDraggable {
+  display: grid !important;
+  grid-template-rows: var(--mate-size) auto auto;  /* fixed image row */
+  justify-items: center;
+  align-content: start;
+  row-gap: var(--tile-gap);
   width: 100%;
-  height: 100%;
-  min-height: 80px;
-
   box-sizing: border-box;
+  padding: 6px;
   margin: 0;
-
-  /* Better touch behavior */
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
+  justify-content: initial !important; /* override old space-between */
 }
 
-/* Make images non-interactive during drag */
-.RoleDraggable img {
+/* Image in deck — fit inside the fixed image row */
+.characterSelecter .RoleDraggable img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
   pointer-events: none;
-  user-select: none;
   -webkit-user-drag: none;
 }
 
-/* Characters grid (right side) */
+/* Label + play button — spacing by grid gap only */
+.characterSelecter .RoleDraggable span { margin: 0 !important; font-size: 0.95rem; text-align: center; line-height: 1.1; }
+.characterSelecter .RoleDraggable button { margin: 0 !important; border-radius: 10px; padding: 2px 6px; }
+
+/* Character cards */
 .character-cards-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--card-gap);
   width: 90%;
-  margin: 20px auto;
+  margin: 16px auto 24px;
+}
+.character-cards-container > div { box-sizing: border-box; }
+.character-card .card { border-radius: 16px; }
+
+.character-card .card-content {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
 }
 
-.character-cards-container > div {
-  flex-basis: calc(50% - 30px); /* half-width minus margins */
-  box-sizing: border-box;
-  margin: 10px;
+/* Left column on the card — match deck spacing */
+.character-card .left-column {
+  display: grid !important;
+  justify-items: center;
+  align-content: start;
+  row-gap: var(--tile-gap);
 }
+
+/* Title */
+.character-card .card-title { margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+
+/* Image in cards — same fixed square */
+.card-img-container {
+  width: var(--mate-size) !important;
+  height: var(--mate-size) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin: 0 !important;
+}
+.card-img-container img,
+.character-card .card-img-top {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
+}
+
+/* Drop zone */
+.droppable-area {
+  min-height: calc(var(--mate-size) + 34px);
+  border: 2px dashed #cfd8dc;
+  border-radius: 14px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.default-message { margin: 0; color: #607d8b; font-size: 0.95rem; }
+
+/* Make dropped tile look natural */
+.droppable-area .RoleDraggable { background: transparent; box-shadow: none; padding: 0; }
 
 /* Utilities */
-.row.justify-content-between {
-  display: flex;
-  justify-content: space-between;
-}
+.row.justify-content-between { display: flex; justify-content: space-between; }
+.navigation-buttons { padding-top: 20px; padding-bottom: 20px; }
+.title-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 1; }
+.next-btn { padding: 15px 30px; }
 
-.navigation-buttons {
-  padding-top: 20px;
-  padding-bottom: 20px;
-}
-
-.title-container {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 1;
-}
-
-.next-btn {
-  padding: 15px 30px;
-}
-
-/* Touch-first tweaks (larger tap targets) */
+/* Touch tweaks */
 @media (pointer: coarse) {
-  .DraggableContainer {
-    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-    gap: 12px;
-  }
-  .RoleDraggable {
-    min-height: 88px;
-    padding: 6px;
-  }
+  .RoleDraggable { padding: 8px; }
 }
 
 /* Small screens */
 @media (max-width: 768px) {
-  .DraggableContainer {
-    /* smaller min so you still get several columns in portrait */
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-    max-height: calc(100vh - 160px);
-  }
-
-  .character-cards-container {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .character-cards-container > div {
-    flex-basis: 90%; /* full width cards on small screens */
-  }
+  .DraggableContainer { grid-template-columns: repeat(2, var(--mate-size)); } /* still two fixed columns */
+  .character-cards-container { grid-template-columns: 1fr; width: 94%; gap: 12px; }
 }
