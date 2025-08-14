@@ -1,12 +1,11 @@
-/* Sizing vars (edit these only) */
 :root {
-  --mate-size: 100px;   /* image size everywhere */
+  --mate-size: 100px;
   --deck-gap: 14px;
   --card-gap: 20px;
-  --tile-gap: 8px;      /* gap between image, label, button */
+  --tile-gap: 8px;
+  --deck-width: calc(2 * var(--mate-size) + var(--deck-gap) + 24px);
 }
 
-/* Root layout */
 .characterSelecter {
   display: flex;
   flex-direction: column;
@@ -14,14 +13,12 @@
   overflow: visible;
 }
 
-/* Nav buttons */
 .rightbutton,
 .leftbutton {
   width: 50px;
   height: 50px;
 }
 
-/* Modal */
 .modalContent {
   width: 300px;
   height: 150px;
@@ -30,23 +27,39 @@
   padding: 10px;
 }
 
-/* Section title */
 .sectionTitle {
   font-style: italic;
   text-align: left;
 }
 
-/* Left col (roles deck container in Bootstrap grid) */
 .col-2 {
-  /* ensure room for 2 fixed-width mates + gap + a bit of padding */
-  min-width: calc(2 * var(--mate-size) + var(--deck-gap) + 24px);
+  min-width: var(--deck-width);
 }
 
-/* Left column: Roles deck — keep 2 fixed-size columns */
+.characterSelecter .flex-body {
+  display: flex;
+  align-items: flex-start;
+  min-height: 0;
+}
+
+.left-rail {
+  flex: 0 0 var(--deck-width);
+  width: var(--deck-width);
+  max-width: var(--deck-width);
+  padding: 8px;
+}
+
+.main-column {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .DraggableContainer {
   display: grid;
   grid-template-columns: repeat(2, var(--mate-size));
-  justify-content: center;               /* center grid inside column */
+  grid-auto-flow: row dense;
+  align-content: start;
+  justify-content: center;
   column-gap: var(--deck-gap);
   row-gap: var(--deck-gap);
   max-height: calc(100vh - 180px);
@@ -56,27 +69,25 @@
   padding: 8px;
 }
 
-/* Scrollbar (WebKit) */
 .DraggableContainer::-webkit-scrollbar { width: 8px; }
 .DraggableContainer::-webkit-scrollbar-track { background: transparent; }
 .DraggableContainer::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 8px; }
 .DraggableContainer::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
 
-/* Role tile — constant internal spacing, content pinned to top */
 .characterSelecter .RoleDraggable {
   display: grid !important;
-  grid-template-rows: var(--mate-size) auto auto;  /* fixed image row */
+  grid-template-rows: var(--mate-size) auto auto;
   justify-items: center;
   align-content: start;
   row-gap: var(--tile-gap);
-  width: 100%;
+  width: var(--mate-size);
   box-sizing: border-box;
   padding: 6px;
   margin: 0;
-  justify-content: initial !important; /* override old space-between */
+  justify-content: initial !important;
+  min-height: calc(var(--mate-size) + 2 * var(--tile-gap) + 40px);
 }
 
-/* Image in deck — fit inside the fixed image row */
 .characterSelecter .RoleDraggable img {
   max-width: 100% !important;
   max-height: 100% !important;
@@ -87,11 +98,19 @@
   -webkit-user-drag: none;
 }
 
-/* Label + play button — spacing by grid gap only */
-.characterSelecter .RoleDraggable span { margin: 0 !important; font-size: 0.95rem; text-align: center; line-height: 1.1; }
-.characterSelecter .RoleDraggable button { margin: 0 !important; border-radius: 10px; padding: 2px 6px; }
+.characterSelecter .RoleDraggable span {
+  margin: 0 !important;
+  font-size: 0.95rem;
+  text-align: center;
+  line-height: 1.1;
+}
 
-/* Character cards */
+.characterSelecter .RoleDraggable button {
+  margin: 0 !important;
+  border-radius: 10px;
+  padding: 2px 6px;
+}
+
 .character-cards-container {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -99,7 +118,9 @@
   width: 90%;
   margin: 16px auto 24px;
 }
+
 .character-cards-container > div { box-sizing: border-box; }
+
 .character-card .card { border-radius: 16px; }
 
 .character-card .card-content {
@@ -110,7 +131,6 @@
   padding: 14px;
 }
 
-/* Left column on the card — match deck spacing */
 .character-card .left-column {
   display: grid !important;
   justify-items: center;
@@ -118,10 +138,14 @@
   row-gap: var(--tile-gap);
 }
 
-/* Title */
-.character-card .card-title { margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+.character-card .card-title {
+  margin: 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-/* Image in cards — same fixed square */
 .card-img-container {
   width: var(--mate-size) !important;
   height: var(--mate-size) !important;
@@ -131,6 +155,7 @@
   padding: 2px;
   margin: 0 !important;
 }
+
 .card-img-container img,
 .character-card .card-img-top {
   max-width: 100% !important;
@@ -140,7 +165,6 @@
   display: block;
 }
 
-/* Drop zone */
 .droppable-area {
   min-height: calc(var(--mate-size) + 34px);
   border: 2px dashed #cfd8dc;
@@ -151,24 +175,29 @@
   justify-content: center;
   text-align: center;
 }
-.default-message { margin: 0; color: #607d8b; font-size: 0.95rem; }
 
-/* Make dropped tile look natural */
-.droppable-area .RoleDraggable { background: transparent; box-shadow: none; padding: 0; }
+.default-message {
+  margin: 0;
+  color: #607d8b;
+  font-size: 0.95rem;
+}
 
-/* Utilities */
+.droppable-area .RoleDraggable {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
 .row.justify-content-between { display: flex; justify-content: space-between; }
 .navigation-buttons { padding-top: 20px; padding-bottom: 20px; }
 .title-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 1; }
 .next-btn { padding: 15px 30px; }
 
-/* Touch tweaks */
 @media (pointer: coarse) {
   .RoleDraggable { padding: 8px; }
 }
 
-/* Small screens */
 @media (max-width: 768px) {
-  .DraggableContainer { grid-template-columns: repeat(2, var(--mate-size)); } /* still two fixed columns */
+  .DraggableContainer { grid-template-columns: repeat(2, var(--mate-size)); }
   .character-cards-container { grid-template-columns: 1fr; width: 94%; gap: 12px; }
 }
