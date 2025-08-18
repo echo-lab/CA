@@ -1,14 +1,22 @@
-.characterSelecter{
-  display: flex; 
+:root {
+  --mate-size: 100px;
+  --deck-gap: 14px;
+  --card-gap: 20px;
+  --tile-gap: 8px;
+  --deck-width: calc(2 * var(--mate-size) + var(--deck-gap) + 24px);
+}
+
+.characterSelecter {
+  display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden; 
+  overflow: visible;
 }
 
 .rightbutton,
 .leftbutton {
-  width: 50px; /* adjust as needed */
-  height: 50px; /* adjust as needed */
+  width: 50px;
+  height: 50px;
 }
 
 .modalContent {
@@ -17,67 +25,179 @@
   margin: auto;
   background-color: rgb(41, 144, 233);
   padding: 10px;
-  /* additional styles as needed */
 }
-
 
 .sectionTitle {
   font-style: italic;
   text-align: left;
 }
 
-.DraggableContainer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  width: auto;
-  max-height: calc(100vh - 250px); 
-  overflow-y: auto;
-
+.col-2 {
+  min-width: var(--deck-width);
 }
 
-.RoleDraggable {
-  flex-basis: calc(50% - 10px); /* Adjust as needed */
+.characterSelecter .flex-body {
+  display: flex;
+  align-items: flex-start;
+  min-height: 0;
+}
+
+.left-rail {
+  flex: 0 0 var(--deck-width);
+  width: var(--deck-width);
+  max-width: var(--deck-width);
+  padding: 8px;
+}
+
+.main-column {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.DraggableContainer {
+  display: grid;
+  grid-template-columns: repeat(2, var(--mate-size));
+  grid-auto-flow: row dense;
+  align-content: start;
+  justify-content: center;
+  column-gap: var(--deck-gap);
+  row-gap: var(--deck-gap);
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px;
+}
+
+.DraggableContainer::-webkit-scrollbar { width: 8px; }
+.DraggableContainer::-webkit-scrollbar-track { background: transparent; }
+.DraggableContainer::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 8px; }
+.DraggableContainer::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
+
+.characterSelecter .RoleDraggable {
+  display: grid !important;
+  grid-template-rows: var(--mate-size) auto auto;
+  justify-items: center;
+  align-content: start;
+  row-gap: var(--tile-gap);
+  width: var(--mate-size);
   box-sizing: border-box;
-  margin: 5px; /* Optional, for some space between the items */
+  padding: 6px;
+  margin: 0;
+  justify-content: initial !important;
+  min-height: calc(var(--mate-size) + 2 * var(--tile-gap) + 40px);
+}
+
+.characterSelecter .RoleDraggable img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.characterSelecter .RoleDraggable span {
+  margin: 0 !important;
+  font-size: 0.95rem;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.characterSelecter .RoleDraggable button {
+  margin: 0 !important;
+  border-radius: 10px;
+  padding: 2px 6px;
 }
 
 .character-cards-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between; /* Adjusts space between cards */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--card-gap);
   width: 90%;
-  margin: 20px;
+  margin: 16px auto 24px;
 }
 
-.character-cards-container > div {
-  flex-basis: calc(50% - 30px); /* Allocate half of the space to each card, subtracting for any margins */
-  box-sizing: border-box; /* Make sure padding and border are included in the above width */
-  margin: 10px; /* Small margin for some space around the cards */
-  
+.character-cards-container > div { box-sizing: border-box; }
+
+.character-card .card { border-radius: 16px; }
+
+.character-card .card-content {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
 }
 
-.row.justify-content-between {
+.character-card .left-column {
+  display: grid !important;
+  justify-items: center;
+  align-content: start;
+  row-gap: var(--tile-gap);
+}
+
+.character-card .card-title {
+  margin: 0;
+  font-size: 1.1rem;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
-.navigation-buttons {
-  padding-top: 20px;
-  padding-bottom: 20px;
+.card-img-container {
+  width: var(--mate-size) !important;
+  height: var(--mate-size) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin: 0 !important;
 }
 
-.title-container {
-  position: absolute;
-  top: 10px; /* Adjust according to your needs */
-  left: 50%;
-  transform: translateX(-50%);
+.card-img-container img,
+.character-card .card-img-top {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
+}
+
+.droppable-area {
+  min-height: calc(var(--mate-size) + 34px);
+  border: 2px dashed #cfd8dc;
+  border-radius: 14px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  z-index: 1; /* Ensure it's above other elements */
 }
 
-.next-btn {
-  padding: 15px 30px; 
+.default-message {
+  margin: 0;
+  color: #607d8b;
+  font-size: 0.95rem;
 }
 
+.droppable-area .RoleDraggable {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
 
+.row.justify-content-between { display: flex; justify-content: space-between; }
+.navigation-buttons { padding-top: 20px; padding-bottom: 20px; }
+.title-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 1; }
+.next-btn { padding: 15px 30px; }
+
+@media (pointer: coarse) {
+  .RoleDraggable { padding: 8px; }
+}
+
+@media (max-width: 768px) {
+  .DraggableContainer { grid-template-columns: repeat(2, var(--mate-size)); }
+  .character-cards-container { grid-template-columns: 1fr; width: 94%; gap: 12px; }
+}

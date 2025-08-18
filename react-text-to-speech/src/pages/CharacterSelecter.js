@@ -18,10 +18,11 @@ import { data as data3 } from "../Book/Book3";
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
 const TTSurl = url + (port ? `:${port}` : "");
+const ROLE_PRIORITY = { Parent: 0, Child: 1 };
 
 Modal.setAppElement("#root");
 
-// — Draggable role icon — 
+// — Draggable role icon —
 function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   const [playDisabled, setPlayDisabled] = useState(false);
 
@@ -79,8 +80,7 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   );
 }
 
-// — Character card (drop target) — 
-// ——— One character’s card (drop target) ———
+// — Character card (drop target) —
 function CharacterCard({ character, role, userName, difficulty }) {
   const defaultMsg =
     "Select a role from the left, then drag it here to assign the voice.";
@@ -114,8 +114,8 @@ function CharacterCard({ character, role, userName, difficulty }) {
                 ref={provided.innerRef}
               >
                 {role ? (
-                  // Notice: no style prop here, so full opacity in the box
                   <RoleDraggable
+                    key={role.Role}
                     role={role}
                     index={0}
                     name={userName}
@@ -128,13 +128,11 @@ function CharacterCard({ character, role, userName, difficulty }) {
               </div>
             )}
           </Droppable>
-
         </div>
       </div>
     </div>
   );
 }
-
 
 // — Simple Book wrapper —
 function Book(data) {
@@ -171,6 +169,26 @@ export default function CharaterSelecter() {
     setCharacterValues(defaults);
   }, [book]);
 
+  const initialOrder = React.useMemo(() => {
+    const map = new Map();
+    roles.forEach((r, idx) => map.set(r.Role, idx));
+    return map;
+  }, []);
+
+  const deckRoles = React.useMemo(() => {
+    return availableRoles
+      .filter((r) => !r.isAssigned)
+      .sort((a, b) => {
+        const pa = ROLE_PRIORITY[a.Role] ?? 2;
+        const pb = ROLE_PRIORITY[b.Role] ?? 2;
+        if (pa !== pb) return pa - pb; // Parent/Child first
+        return (
+          (initialOrder.get(a.Role) ?? 999) -
+          (initialOrder.get(b.Role) ?? 999)
+        ); // stable fallback
+      });
+  }, [availableRoles, initialOrder]);
+
   // check for similar voices
   const similarVoicesMapping = {
     Yellow: ["Blue"],
@@ -193,37 +211,48 @@ export default function CharaterSelecter() {
   // on drag end
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
-    if (!destination || source.droppableId === destination.droppableId)
-      return;
+    if (!destination || source.droppableId === destination.droppableId) return;
 
-    const newChars = { ...characterValues };
-    const newRoles = availableRoles.map((r) => ({ ...r }));
-    const dragged = newRoles.find((r) => r.Role === draggableId);
+    // Defer until after RBDnD finishes its own drop animation
+    window.requestAnimationFrame(() => {
+      setAvailableRoles((prevRoles) => {
+        const rolesCopy = prevRoles.map((r) => ({ ...r }));
 
-    // assign
-    if (
-      source.droppableId === "roles" &&
-      destination.droppableId !== "roles"
-    ) {
-      const old = newChars[destination.droppableId];
-      if (old) {
-        newRoles.find((r) => r.Role === old.Role).isAssigned = false;
-      }
-      newChars[destination.droppableId] = dragged;
-      dragged.isAssigned = true;
-    }
+        setCharacterValues((prevChars) => {
+          const charsCopy = { ...prevChars };
 
-    // unassign
-    if (
-      source.droppableId !== "roles" &&
-      destination.droppableId === "roles"
-    ) {
-      newRoles.find((r) => r.Role === draggableId).isAssigned = false;
-      newChars[source.droppableId] = "";
-    }
+          // Unassign from source (if dragging out of a character)
+          if (source.droppableId !== "roles") {
+            const srcRoleName =
+              charsCopy[source.droppableId]?.Role ?? draggableId;
+            const srcEntry = rolesCopy.find((r) => r.Role === srcRoleName);
+            if (srcEntry) srcEntry.isAssigned = false;
+            charsCopy[source.droppableId] = "";
+          }
 
-    setCharacterValues(newChars);
-    setAvailableRoles(newRoles);
+          // Assign into destination (if dropping onto a character)
+          if (destination.droppableId !== "roles") {
+            const oldRoleName = charsCopy[destination.droppableId]?.Role;
+            if (oldRoleName) {
+              const oldEntry = rolesCopy.find((r) => r.Role === oldRoleName);
+              if (oldEntry) oldEntry.isAssigned = false;
+            }
+
+            const draggedEntry = rolesCopy.find((r) => r.Role === draggableId);
+            if (draggedEntry) draggedEntry.isAssigned = true;
+
+            // store a CLONE in the character slot to avoid sharing the deck object
+            charsCopy[destination.droppableId] = draggedEntry
+              ? { ...draggedEntry }
+              : "";
+          }
+
+          return charsCopy;
+        });
+
+        return rolesCopy;
+      });
+    });
   };
 
   // next button
@@ -246,17 +275,6 @@ export default function CharaterSelecter() {
     );
     navigate("/story", { state: { selectedOptions, id } });
   };
-
-  // split parent/child vs other
-  const parentChildRoles = availableRoles.filter(
-    (r) => r.Role === "Parent" || r.Role === "Child"
-  );
-  const otherRoles = availableRoles.filter(
-    (r) =>
-      r.Role !== "Parent" &&
-      r.Role !== "Child" &&
-      !r.isAssigned
-  );
 
   return (
     <div className="characterSelecter">
@@ -294,27 +312,23 @@ export default function CharaterSelecter() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="d-flex flex-column min-vh-100">
           <div className="d-flex justify-content-between p-3 bg-light">
-            <button
-              className="btn btn-primary"
-              onClick={() => navigate("/")}
-            >
+            <button className="btn btn-primary" onClick={() => navigate("/")}>
               <KeyboardDoubleArrowLeftIcon fontSize="large" />
             </button>
             <div className="text-center">
               <h1>Select a Role</h1>
               <p>Drag any role onto each character.</p>
             </div>
-            <button
-              className="btn btn-primary"
-              onClick={navigateToStory}
-            >
+            <button className="btn btn-primary" onClick={navigateToStory}>
               <KeyboardDoubleArrowRightIcon fontSize="large" />
             </button>
           </div>
 
-          <div className="d-flex flex-grow-1">
-            {/* Left rack: PC first, then always show other roles */}
-            <div className="col-2">
+          {/* CHANGED: replaced the generic Bootstrap row with a named wrapper
+              so the CSS can enforce a fixed left rail width and keep two columns */}
+          <div className="flex-body">
+            {/* CHANGED: left rail now uses a fixed-width container to guarantee 2-up deck */}
+            <aside className="left-rail">
               <Droppable droppableId="roles">
                 {(provided) => (
                   <div
@@ -322,40 +336,23 @@ export default function CharaterSelecter() {
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                   >
-                    {/* Parent & Child */}
-                    {parentChildRoles.map((r, i) => (
+                    {deckRoles.map((r, i) => (
                       <RoleDraggable
                         key={r.Role}
                         role={r}
                         index={i}
                         name={userName}
-                        isDragDisabled={r.isAssigned}
-                        style={{
-                          opacity: r.isAssigned ? 0.3 : 1,
-                          pointerEvents: r.isAssigned ? "none" : "auto",
-                        }}
-                      />
-                    ))}
-
-                    {/* Other roles always */}
-                    {otherRoles.map((r, i) => (
-                      <RoleDraggable
-                        key={r.Role}
-                        role={r}
-                        index={i + parentChildRoles.length}
-                        name={userName}
                         isDragDisabled={false}
                       />
                     ))}
-
                     {provided.placeholder}
                   </div>
                 )}
               </Droppable>
-            </div>
+            </aside>
 
-            {/* Character cards */}
-            <div className="col-9">
+            {/* CHANGED: main content now in a flexible column that can shrink without breaking layout */}
+            <main className="main-column">
               <div className="character-cards-container">
                 {book.characters.map((char) => (
                   <CharacterCard
@@ -364,16 +361,30 @@ export default function CharaterSelecter() {
                     role={characterValues[char.Name]}
                     userName={userName}
                     difficulty={
-                      ({
-                        1: { Narrator: "Hard", Clara: "Easy", Zoe: "Medium" },
-                        2: { Narrator: "Hard", Clara: "Medium", Zoe: "Easy" },
-                        3: { Narrator: "Hard", Clara: "Medium", Zoe: "Easy" },
-                      }[id] || {})[char.Name] || ""
+                      (
+                        {
+                          1: {
+                            Narrator: "Hard",
+                            Clara: "Easy",
+                            Zoe: "Medium",
+                          },
+                          2: {
+                            Narrator: "Hard",
+                            Clara: "Medium",
+                            Zoe: "Easy",
+                          },
+                          3: {
+                            Narrator: "Hard",
+                            Clara: "Medium",
+                            Zoe: "Easy",
+                          },
+                        }[id] || {}
+                      )[char.Name] || ""
                     }
                   />
                 ))}
               </div>
-            </div>
+            </main>
           </div>
         </div>
       </DragDropContext>

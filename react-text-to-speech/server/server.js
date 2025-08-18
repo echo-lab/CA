@@ -9,7 +9,7 @@ const certPath = process.env.CERTPATH;
 console.log(keyPath);
 console.log(certPath);
 const corsOptions = {
-    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','http://localhost:3000', 'https://talemate-new.cs.vt.edu' ],
+    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','http://localhost:3000', 'https://talemate-new.cs.vt.edu', 'https://talemate-new.cs.vt.edu:3001'],
     methods: 'POST',
     credentials: true
   };
@@ -23,6 +23,9 @@ app.use(express.json());
 
 app.post('/synthesize', async (req, res) => {
     try {
+        // Log the incoming request body
+        console.log('/synthesize request body:', JSON.stringify(req.body, null, 2));
+        
         const fetch = (await import('node-fetch')).default;
         let sanitizedText = req.body.text.replace(/(\*)+/g, '');
         sanitizedText = sanitizedText.replace(/'/g, '"');
@@ -34,7 +37,9 @@ app.post('/synthesize', async (req, res) => {
             audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
             
         };
-        console.log(request)
+
+        // Log the exact payload sent to Google
+        console.log('TTS API request payload:', JSON.stringify(request, null, 2));
 
         const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
             method: 'POST',
@@ -44,12 +49,23 @@ app.post('/synthesize', async (req, res) => {
             body: JSON.stringify(request),
         });
 
+        const raw = await response.text();
         if (!response.ok) {
+            console.error('TTS API responded with status', response.status);
+            console.error('TTS API error body:', raw);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (parseErr) {
+            console.error('Failed to parse TTS API JSON:', raw);
+            return res.status(500).json({ message: 'Invalid JSON from TTS API' });
+        }
 
-        const data = await response.json();
-        res.json(data);
+        console.log('TTS API success payload (truncated):', raw.slice(0, 100));
+        return res.json(data);
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
         res.status(500).json({ message: error.toString() });
