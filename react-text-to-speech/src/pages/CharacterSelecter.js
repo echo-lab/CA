@@ -177,9 +177,7 @@ export default function CharaterSelecter() {
   const navigate = useNavigate();
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [simModalOpen, setSimModalOpen] = useState(false);
-  const [simPair, setSimPair] = useState(null);
-
+  
   const [characterValues, setCharacterValues] = useState({});
   const [availableRoles, setAvailableRoles] = useState(
     roles.map((r) => ({ ...r, isAssigned: false }))
@@ -217,25 +215,6 @@ export default function CharaterSelecter() {
         ); // stable fallback
       });
   }, [availableRoles, initialOrder]);
-
-  // check for similar voices
-  const similarVoicesMapping = {
-    Yellow: ["Blue"],
-    Blue: ["Yellow"],
-    Violet: ["Green"],
-    Green: ["Violet"],
-  };
-  const checkSimilar = () => {
-    const assigned = Object.values(characterValues).filter(Boolean);
-    for (let i = 0; i < assigned.length; i++) {
-      for (let j = i + 1; j < assigned.length; j++) {
-        const a = assigned[i].voiceColor,
-          b = assigned[j].voiceColor;
-        if (similarVoicesMapping[a]?.includes(b)) return [a, b];
-      }
-    }
-    return null;
-  };
 
   // on drag end
   const handleDragEnd = (result) => {
@@ -289,11 +268,6 @@ export default function CharaterSelecter() {
     if (Object.values(characterValues).some((v) => !v)) {
       return setModalOpen(true);
     }
-    const clash = checkSimilar();
-    if (clash) {
-      setSimPair(clash);
-      return setSimModalOpen(true);
-    }
     const selectedOptions = Object.entries(characterValues).map(
       ([Character, role]) => ({
         Character,
@@ -317,27 +291,6 @@ export default function CharaterSelecter() {
         <p>Please assign one role to each character before continuing.</p>
         <button onClick={() => setModalOpen(false)}>Close</button>
       </Modal>
-      <Modal
-        isOpen={simModalOpen}
-        onRequestClose={() => setSimModalOpen(false)}
-        className="modalContent"
-      >
-        <h2>Warning</h2>
-        <p>
-          Voices "{simPair?.[0]}" and "{simPair?.[1]}" are too similar.
-        </p>
-        <p>Please choose different voices to avoid confusion.</p>
-        <button onClick={() => setSimModalOpen(false)}>Go Back</button>
-        <button
-          onClick={() => {
-            setSimModalOpen(false);
-            navigateToStory();
-          }}
-        >
-          Proceed Anyway
-        </button>
-      </Modal>
-
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="d-flex flex-column min-vh-100">
           <div className="d-flex justify-content-between p-3 bg-light">
