@@ -201,3 +201,26 @@
   .DraggableContainer { grid-template-columns: repeat(2, var(--mate-size)); }
   .character-cards-container { grid-template-columns: 1fr; width: 94%; gap: 12px; }
 }
+
+
+/* Base badge */
+.difficulty-badge {
+  display: inline-block;
+  margin-left: .5rem;
+  padding: .15rem .5rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+
+.difficulty-easier {
+  background: #e8f5e9;   /* light green */
+  color: #1b5e20;
+}
+
+.difficulty-harder {
+  background: #fff3e0;   /* light orange */
+  color: #e65100;
+}

@@ -22,6 +22,32 @@ const ROLE_PRIORITY = { Parent: 0, Child: 1 };
 
 Modal.setAppElement("#root");
 
+const DIFFICULTY_MAP = {
+  // 1 = Birthday
+  1: {
+    Narrator: "",      
+    Clara: "Easier",
+    Zoe: "Harder",       
+  },
+  // 2 = Sleepover
+  2: {
+    Narrator: "",        
+    Clara: "Easier",
+    Zoe: "Harder",
+  },
+  // 3 = Levels
+  3: {
+    Narrator: "",        
+    Clara: "Harder",
+    Zoe: "Easier",
+  },
+};
+
+function getDifficultyLabel(bookId, characterName) {
+  return DIFFICULTY_MAP[bookId]?.[characterName] ?? "";
+}
+
+
 // — Draggable role icon —
 function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   const [playDisabled, setPlayDisabled] = useState(false);
@@ -80,10 +106,13 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   );
 }
 
-// — Character card (drop target) —
 function CharacterCard({ character, role, userName, difficulty }) {
   const defaultMsg =
     "Select a role from the left, then drag it here to assign the voice.";
+  const hasBadge = Boolean(difficulty);
+  const badgeClass =
+    hasBadge ? `difficulty-badge difficulty-${difficulty.toLowerCase()}` : "";
+
   return (
     <div className="character-card">
       <div className="card">
@@ -91,11 +120,11 @@ function CharacterCard({ character, role, userName, difficulty }) {
           <div className="left-column">
             <h5 className="card-title">
               {character.Name}
-              <span
-                className={`difficulty-badge difficulty-${difficulty.toLowerCase()}`}
-              >
-                {difficulty}
-              </span>
+              {hasBadge && (
+                <span className={badgeClass}>
+                  {difficulty}
+                </span>
+              )}
             </h5>
             <div className="card-img-container">
               <img
@@ -360,27 +389,7 @@ export default function CharaterSelecter() {
                     character={char}
                     role={characterValues[char.Name]}
                     userName={userName}
-                    difficulty={
-                      (
-                        {
-                          1: {
-                            Narrator: "Hard",
-                            Clara: "Easy",
-                            Zoe: "Medium",
-                          },
-                          2: {
-                            Narrator: "Hard",
-                            Clara: "Medium",
-                            Zoe: "Easy",
-                          },
-                          3: {
-                            Narrator: "Hard",
-                            Clara: "Medium",
-                            Zoe: "Easy",
-                          },
-                        }[id] || {}
-                      )[char.Name] || ""
-                    }
+                    difficulty={getDifficultyLabel(id, char.Name)}
                   />
                 ))}
               </div>
