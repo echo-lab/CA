@@ -7,7 +7,7 @@ export const roles = [
   },
   {
     Role: "Yellow Yancey",
-    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-K" },
+    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-E" },
     img: require("../Pictures/Mates-02.png"),
     voiceColor: "Yellow"
   },
