@@ -9,7 +9,7 @@ const certPath = process.env.CERTPATH;
 console.log(keyPath);
 console.log(certPath);
 const corsOptions = {
-    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','http://localhost:3000', 'https://talemate.cs.vt.edu:3001'],
+    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','http://localhost:3000', 'https://talemate.cs.vt.edu:3001', 'https://talemate.cs.vt.edu:5001'],
     methods: 'POST',
     credentials: true
   };
