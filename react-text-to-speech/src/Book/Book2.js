@@ -71,7 +71,12 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Yours is yellow, blue, yellow, blue<break time='1s'/>… mine is green, purple, green, purple. <break time='1s'/> <prosody rate='1.6'>Zip, zap, zip, zap!</prosody>”",
+              Dialogue: "“Yours is yellow, blue, yellow, blue<break time='1s'/>…”",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "“mine is green, purple, green, purple. <break time='1s'/> <prosody rate='1.6'>Zip, zap, zip, zap!</prosody>”",
             },
           ],
         },
@@ -327,8 +332,12 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue:
-                "“See? Mine go flower, flower, heart, flower, flower, heart. That’s just like star, star, heart!”",
+              Dialogue: "“See? Mine go flower, flower, heart, flower, flower, heart.”",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "“That’s just like star, star, heart!”",
             },
           ],
         },
@@ -369,8 +378,17 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue:
-                "“Mine goes purple, pink, green, purple, pink, green. Yours goes blue, yellow, red, blue, yellow, red. See? <prosody rate='1.6'>Zip, zap, zop, zip, zap, zop</prosody>!” ",
+              Dialogue: "“Mine goes purple, pink, green, purple, pink, green.”",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "“Yours goes blue, yellow, red, blue, yellow, red. See?”",
+            },
+            {
+            Reading: false,
+            Character: "Clara",
+            Dialogue: "“<prosody rate='1.6'>Zip, zap, zop, zip, zap, zop</prosody>!”",
             },
           ],
         },
@@ -423,8 +441,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue:
-                "“My flowers go tall, short, tall, short. <break time='1s'/> It’s the same pattern as yours!”",
+              Dialogue: "“My flowers go tall, short, tall, short.”",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue: "“It’s the same pattern as yours!”",
             },
             {
               Reading: false,
@@ -525,8 +547,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue:
-                "<emphasis level='strong'>“But it’s okay if some things are different! <prosody rate='1.6'>Zip, zap, zoodely, zoop!</prosody>”</emphasis>",
+              Dialogue:"<emphasis level='strong'>“But it’s okay if some things are different!</emphasis>“",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue: "<emphasis level='strong'>“<prosody rate='1.6'>Zip, zap, zoodely, zoop!</prosody>”</emphasis>",
             },
             {
               Reading: false,

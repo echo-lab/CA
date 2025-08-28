@@ -85,7 +85,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“This one has the birthday girl’s favorite colors. <break time='1s'/> <emphasis level='strong'> Purple, green, purple, green!”</emphasis>",
+              Dialogue: "“This one has the birthday girl’s favorite colors.”",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue: "<emphasis level='strong'>“Purple, green, purple, green!”</emphasis>",
             },
             {
               Reading: false,
@@ -122,7 +127,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Um… <break time='1s'/><emphasis level='strong'> look! </emphasis>Purple, green, purple, green!  Same as the cake!  Let’s add more!”",
+              Dialogue: "“Um… <break time='1s'/><emphasis level='strong'>look!</emphasis> Purple, green, purple, green!”",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue: "“Same as the cake! Let’s add more!”",
             },
             {
               Reading: false,
@@ -335,8 +345,12 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue:
-                "<emphasis level='strong'>“Wait!</emphasis> <break time ='1s' />There aren’t enough circle balloons. <break time ='1s' /> Beep, boop, beep, <emphasis level='strong'>***beep***,</emphasis> see?”",
+              Dialogue: "<emphasis level='strong'>“Wait!</emphasis> <break time='1s'/>There aren’t enough circle balloons.”",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue: "“Beep, boop, beep, beep, see?”",
             },
             {
               Reading: false,
@@ -587,8 +601,12 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue:
-                "“It matches the pattern of the streamers. Beep, boop, beep, boop—see?”",
+              Dialogue: "“It matches the pattern of the streamers.”",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "“Beep, boop, beep, boop—see?”",
             },
             {
               Reading: false,

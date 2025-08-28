@@ -88,7 +88,12 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Each of my stacks has one more book than the last. Let’s count them—one book. One, two books. One, two, three books.”",
+              Dialogue: "“Each of my stacks has one more book than the last.”",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "“Let’s count them—one book. One, two books. One, two, three books.”",
             },
             {
               Reading: false,
