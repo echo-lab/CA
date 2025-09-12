@@ -3,6 +3,8 @@ const fs = require('fs');
 const cors = require('cors');
 const https = require('https');
 require('dotenv').config({ path: '.env.local' });
+const { registerLiveTtsRoutes } = require('./liveTTS'); 
+
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const keyPath = process.env.KEYPATH;
 const certPath = process.env.CERTPATH;
@@ -17,8 +19,7 @@ const corsOptions = {
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
-
-
+registerLiveTtsRoutes(app);
 
 
 app.post('/synthesize', async (req, res) => {
@@ -73,7 +74,7 @@ app.post('/synthesize', async (req, res) => {
 });
 
 if(process.env.DEVMODE){
-    const port = process.env.REACT_APP_PORT || 5000;
+    const port = process.env.REACT_APP_PORT || 5001;
     app.listen(port, () => console.log(`Server started on port ${port}`));
 }
 else{
