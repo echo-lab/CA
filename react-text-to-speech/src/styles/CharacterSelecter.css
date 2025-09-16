@@ -40,6 +40,8 @@
   display: flex;
   align-items: flex-start;
   min-height: 0;
+  height: calc(100vh - 88px);
+  overflow: hidden;
 }
 
 .left-rail {
@@ -47,11 +49,21 @@
   width: var(--deck-width);
   max-width: var(--deck-width);
   padding: 8px;
+
+  position: sticky;
+  top: 88px;
+  height: calc(100vh - 88px);
+  overflow-y: auto;
+  overflow-x: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .main-column {
   flex: 1 1 auto;
   min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .DraggableContainer {
@@ -62,10 +74,8 @@
   justify-content: center;
   column-gap: var(--deck-gap);
   row-gap: var(--deck-gap);
-  max-height: calc(100vh - 180px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
+  -webkit-overflow-scrolling: auto;
   padding: 8px;
 }
 
