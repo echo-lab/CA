@@ -1,50 +1,48 @@
 export const roles = [
   {
     Role: "Green Grant",
-    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-I" },
+    RoleParameter: "umbriel",
     img: require("../Pictures/Mates-01.png"),
     voiceColor: "Green"
   },
   {
     Role: "Yellow Yancey",
-    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-E" },
+    RoleParameter: "puck",
     img: require("../Pictures/Mates-02.png"),
     voiceColor: "Yellow"
   },
   {
     Role: "Violet Victor",
-    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-J" },
+    RoleParameter: "orus",
     img: require("../Pictures/Mates-03.png"),
     voiceColor: "Violet"
   },
   {
     Role: "Blue Beatrice",
-    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-F" },
+    RoleParameter: "zephyr",
     img: require("../Pictures/Mates-04.png"),
     voiceColor: "Blue"
   },
   {
     Role: "Ruby Randy",
-    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-D" },
+    RoleParameter: "iacetus",
     img: require("../Pictures/Mates-06.png"),
-    voiceColor: "Ruby"  // Not included in similar mapping
+    voiceColor: "Ruby"
   },
   {
     Role: "Coral Carly",
-    RoleParameter: { languageCode: "en-US", name: "en-US-Neural2-H" },
+    RoleParameter: "kore",
     img: require("../Pictures/Mates-05.png"),
-    voiceColor: "Coral"  // Not included in similar mapping
+    voiceColor: "Coral"
   },
   {
     Role: "Parent",
-    RoleParameter: { languageCode: " ", name: "" },
+    RoleParameter: "leda",
     img: require("../Pictures/adult.png")
-    // No voiceColor needed
   },
   {
     Role: "Child",
-    RoleParameter: { languageCode: " ", name: "" },
+    RoleParameter: "laomedeia",
     img: require("../Pictures/child.png")
-    // No voiceColor needed
   }
 ];

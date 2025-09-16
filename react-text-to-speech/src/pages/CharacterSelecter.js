@@ -15,6 +15,8 @@ import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
+import { say } from "../utils/ttsClient";
+
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
 const TTSurl = url + (port ? `:${port}` : "");
@@ -59,20 +61,16 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   };
 
   async function speak() {
-    try {
-      const voice =
-        role.Role === "Parent" ? "en-US-Wavenet-F" : role.RoleParameter;
-      const request = { text: `Hello ${name}, I am ${role.Role}`, voice };
-      const res = await fetch(`${TTSurl}/synthesize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
-      const data = await res.json();
-      new Audio(`data:audio/mp3;base64,${data.audioContent}`).play();
-    } catch (err) {
-      console.error("TTS error:", err);
-    }
+  try {
+    const defaultVoice = role.Role === "Parent" ? "Kore" : (role.RoleParameter || "Puck");
+    await say({
+      text: `Hello ${name}, I am ${role.Role}`,
+      voiceName: defaultVoice,
+      emotion: role.Emotion || "neutral",
+    });
+  } catch (err) {
+    console.error("TTS error:", err);
+  }
   }
 
   return (
