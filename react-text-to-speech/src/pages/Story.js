@@ -10,13 +10,7 @@ import { data as data3 } from "../Book/Book3";
 import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-
-const url = process.env.REACT_APP_TTSURL;
-const port = process.env.REACT_APP_PORT;
-const TTSurl = url + (port?":"+port:"");
-
-
-
+import { say } from "../utils/ttsClient";
 
 class Book {
   constructor(data) {
@@ -134,36 +128,34 @@ const gotoPreviousPage = () => {
 };
 
 const playSound = () => {
-      
-  speak(state.pagesValues[state.page].question)
+  // Try narrator voice if assigned; fallback to “kore”
+  const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
+  const voiceName = narratorRole?.VA || "kore";
+  speak(state.pagesValues[state.page].question, voiceName);
 };
 
 
 
 
 
-  async function speak(text){
-    try {
-        const request = {
-          text: text,
-          voice: {languageCode: 'en-US', name :'en-US-Wavenet-B' }
-        };
-  
-        const response = await fetch(TTSurl+'/synthesize', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(request),
-        });
-  
-        const data = await response.json();
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        audio.play()
-      } catch (error) {
-        console.error('Error in Google Text-to-Speech:', error);
-      }
+  async function speak(text, voiceName = "kore", emotion = "neutral") {
+  try {
+    const clean = stripSSMLTags(String(text || "").trim());
+    if (!clean) return;
+
+    const { audio } = await say({
+      text: clean,
+      voiceName,
+      emotion,
+    });
+
+    setAudio(audio);
+    audio.addEventListener("ended", audioEnded);
+  } catch (err) {
+    console.error("TTS error:", err);
   }
+}
+
 
 
   useHotkeys("space", (event) => {
@@ -185,63 +177,57 @@ const playSound = () => {
 }, [audio, isPlaying]);
 
 
-  const continueReading = React.useCallback( async (page, index, roles) => {
-    console.log("continueReading triggered for page:", state.page, "and index:", index, "current lenght", page.text.length);
-    if (!page || !page.text || index < 0 || index > page.text.length) {
-      console.error(`Invalid arguments to continueReading: page=${page}, index=${index}`);
-      return;
-    }
-    var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
-    var currentVoice;
-    if (currentCharacter.length > 0) {
-      currentVoice = currentCharacter[0].VA;
-    } else {
-      currentVoice = null;
-    }
-    console.log("currentChar",currentCharacter[0].VA.name);
-    
-    if (index > 0) {
-      page.text[index - 1].Reading = false;
-    }
+const continueReading = React.useCallback(async (page, index, roles) => {
+  if (!page || !page.text || index < 0 || index > page.text.length) {
+    console.error(`Invalid args to continueReading: index=${index}`);
+    return;
+  }
+
+  const line = page.text[index];
+  const currentCharacter = roles.find(obj => obj.Character === line.Character);
+  const currentVoiceName = currentCharacter?.VA || ""; // string voiceName or ""
+
+  // Never speak for Parent or Child (they're meant to read themselves)
+  if (currentCharacter?.role === "Parent" || currentCharacter?.role === "Child") {
+    // keep highlighting behavior but do not play audio
+    if (index > 0) page.text[index - 1].Reading = false;
     page.text[index].Reading = true;
-    if ( currentCharacter.length > 0 
-    &&  currentCharacter[0].VA.name!== "") {
-      console.log("STT",page.text[index].Dialogue )
-      var dialogue = page.text[index].Dialogue.replace(/(?<=\s|^)[.,!?;:"'“”‘’\-—]*(?=\s|$)/g, '').trim();
-      console.log("Dialogue", dialogue)
+    setIsPlaying(false);
+    return;
+  }
 
+  // turn on “Reading” highlight
+  if (index > 0) page.text[index - 1].Reading = false;
+  page.text[index].Reading = true;
 
-      try {
-        const request = {
-            text: dialogue,
-            voice: currentVoice,
-        };
+  // if no voice assigned, just stop/skip
+  if (!currentVoiceName) {
+    setIsPlaying(false);
+    return;
+  }
 
-        const response = await fetch(TTSurl+'/synthesize', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-        });
+  // Strip SSML then TTS
+  const dialogue = stripSSMLTags(String(line.Dialogue || ""));
+  if (!dialogue.trim()) {
+    setIsPlaying(false);
+    return;
+  }
 
-        const data = await response.json();
-        try {
-          const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-          setAudio(newAudio);
-          newAudio.addEventListener("ended", audioEnded);
-          await newAudio.play();
-        } catch (error) {
-          console.error('Error playing audio:', error);
-        }
-    } catch (error) {
-        console.error('Error in Google Text-to-Speech:', error);
-    }
-    }else if(currentCharacter[0].VA.name === ""){
-      setIsPlaying(false);
-      
-    }
-  }, [state.page, audioEnded ]);
+  try {
+    const { audio } = await say({
+      text: dialogue,
+      voiceName: currentVoiceName,
+      emotion: "neutral", // or decide by character/line later
+    });
+
+    setAudio(audio);
+    audio.addEventListener("ended", audioEnded);
+    await audio.play?.(); // say() already calls play(), but this is harmless
+  } catch (error) {
+    console.error("TTS error:", error);
+  }
+}, [audioEnded]);
+
 
 /**
  * Handle the "Next" button click.
@@ -402,7 +388,11 @@ function stripSSMLTags(text) {
               onClick={() => {
                 const selectedText = window.getSelection().toString().trim();
                 if (isChild && val.Reading && selectedText === "") {
-                  speak(val.Dialogue);
+                  const currentRole = selectedOptions.find(
+                    (option) => option.Character === val.Character
+                  );
+                  const voiceName = currentRole?.VA || "kore";
+                  speak(val.Dialogue, voiceName);
                 }
               }}
             >
@@ -547,7 +537,9 @@ function stripSSMLTags(text) {
         console.log("resume reading");
         var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index - 1].Character);
         console.log(currentCharacter);
-        if (currentCharacter[0].VA.name === "") {
+        if (!currentCharacter[0].VA ||
+            currentCharacter[0].role === "Parent" ||
+            currentCharacter[0].role === "Child") {
           handleNextClick();
         }
       }
