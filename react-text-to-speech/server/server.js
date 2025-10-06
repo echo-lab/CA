@@ -5,6 +5,9 @@ const https = require('https');
 require('dotenv').config({ path: '.env.local' });
 const { registerLiveTtsRoutes } = require('./liveTTS'); 
 
+const { startPruner } = require('./cache/prune');
+startPruner();
+
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const keyPath = process.env.KEYPATH;
 const certPath = process.env.CERTPATH;
