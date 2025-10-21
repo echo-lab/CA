@@ -1,0 +1,13 @@
+{
+  "createdAt": 1760533867844,
+  "key": "90965b1b1db1c72643f12ba3861cd71fda625027810ee880d48a4393f199bbbf",
+  "v": "1",
+  "textNorm": "Hello ed, I am Yellow Yancey",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 181050
+}

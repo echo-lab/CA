@@ -1,0 +1,13 @@
+{
+  "createdAt": 1760533699406,
+  "key": "6a391e910d24c9e7fc3684d8663caee7ff3a3d3190881b52a7f276f17409e1c4",
+  "v": "1",
+  "textNorm": "Hello ed, I am Coral Carly",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "kore",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 171450
+}

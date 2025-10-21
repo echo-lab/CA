@@ -1,0 +1,13 @@
+{
+  "createdAt": 1760533985317,
+  "key": "c0346d67d836d13636603dd48f6019b5722ddf79dbe19dd01b6b747987dd288f",
+  "v": "1",
+  "textNorm": "The Pattern Pals: Sleepover Similarities",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "orus",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 198330
+}
