@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761072899125,
+  "key": "95af0843c7279b0d7cc9403f3a8a230ac2837db03420cf788deb84f5608a2fc0",
+  "v": "1",
+  "textNorm": "“Come help!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "kore",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 60090
+}

@@ -27,6 +27,7 @@
     "web-vitals": "^2.1.4",
     "ws": "^8.18.3"
   },
+  "proxy": "https://localhost:5001",
   "scripts": {
     "start": "cross-env HTTPS=true  react-scripts start --openssl-legacy-provider",
     "build": "react-scripts build",

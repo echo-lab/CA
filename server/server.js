@@ -21,8 +21,16 @@ const openai = new OpenAI({
 console.log(keyPath);
 console.log(certPath);
 const corsOptions = {
-    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','https://localhost:3000', 'https://talemate.cs.vt.edu:3001', 'https://talemate.cs.vt.edu:5001'],
-    methods: 'POST',
+    origin: [
+        'https://talemate.cs.vt.edu', 
+        'https://128.173.237.12',
+        'https://localhost:3000',
+        'http://localhost:3000',  // Allow HTTP for local dev
+        'http://localhost:5001',  // Allow same-origin requests
+        'https://talemate.cs.vt.edu:3001', 
+        'https://talemate.cs.vt.edu:5001'
+    ],
+    methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true
   };
 
@@ -30,6 +38,49 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
 registerLiveTtsRoutes(app);
+
+// Realtime API token endpoint
+app.get('/api/rt-connection', async (req, res) => {
+    console.log("Received /api/rt-connection request");
+    try {
+        console.log("Fetching realtime token from OpenAI...");
+        const fetch = (await import('node-fetch')).default;
+        const r = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                session: {
+                    type: "realtime",
+                    model: "gpt-realtime",
+                    audio: {
+                        output: {
+                            voice: "marin",
+                        },
+                    },
+                }
+            })
+        });
+        
+        if (!r.ok) {
+            const errorText = await r.text();
+            console.error(`OpenAI error (${r.status}):`, errorText);
+            return res.status(r.status).json({ 
+                error: "Failed to generate token", 
+                detail: errorText 
+            });
+        }
+        
+        // Return the full JSON response from OpenAI
+        const tokenData = await r.json();
+        res.json(tokenData);
+    } catch (error) {
+        console.error("Token generation error:", error);
+        res.status(500).json({ error: "Request failed", detail: error.message });
+    }
+});
 
 
 app.post('/synthesize', async (req, res) => {
@@ -80,42 +131,6 @@ app.post('/synthesize', async (req, res) => {
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);
         res.status(500).json({ message: error.toString() });
-    }
-});
-
-app.post('/generate-image', async (req, res) => {
-    try {
-        console.log('Received /generate-image request with body:', req.body);
-        if (!OPENAI_API_KEY) {
-            return res.status(500).json({ 
-                message: 'OPENAI_API_KEY not set in environment variables' 
-            });
-        }
-
-        const prompt = req.body.prompt || `
-Create an educational illustration that visually explains the concept of [insert mathematical concept here, e.g., 'Pythagorean theorem' or 'exponential growth'] in a completely new real-world context. The image should feature two friendly characters (a teacher and a student) discussing and interacting with the concept in a fun, story-like scene. Do not use the same example as [briefly describe the original example, e.g., 'triangles on a chalkboard' or 'bacteria in a petri dish']. Instead, use a different metaphorical situation — for example, [suggest an alternative, e.g., 'measuring distances between treehouses' or 'tracking how fast a balloon inflates over time']. The style should be bright, clear, and visually engaging, like an educational textbook illustration.
-Excerpt: ${req.body.excerpt}`.trim();
-        const result = await openai.images.generate({
-            model: "dall-e-3",
-            prompt: prompt,
-            size: "1024x1024",
-            quality: "standard",
-            n: 1
-        });
-        console.log('OpenAI image generation result:', result);
-
-        const imageUrl = result.data[0].url;
-        return res.json({ 
-            imageUrl: imageUrl,
-            success: true 
-        });
-
-    } catch (error) {
-        console.error('Error generating image:', error);
-        return res.status(500).json({ 
-            message: error.message || 'Failed to generate image',
-            error: error.toString()
-        });
     }
 });
 

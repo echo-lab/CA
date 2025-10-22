@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Modal from "react-modal";
@@ -16,6 +16,7 @@ import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
 import { say } from "../utils/ttsClient";
+import { realTimeConnect } from "../utils/conversationalAgent";
 
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
@@ -48,7 +49,6 @@ const DIFFICULTY_MAP = {
 function getDifficultyLabel(bookId, characterName) {
   return DIFFICULTY_MAP[bookId]?.[characterName] ?? "";
 }
-
 
 // — Draggable role icon —
 function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
@@ -181,6 +181,15 @@ export default function CharaterSelecter() {
     roles.map((r) => ({ ...r, isAssigned: false }))
   );
 
+  const [connected, setConnected] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [log, setLog] = useState([]);
+  const pcRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+  const dataChannelRef = useRef(null);
+
+
   // select book JSON
   const bookData = id === 1 ? data1 : id === 2 ? data2 : data3;
   const book = React.useMemo(() => new Book(bookData), [bookData]);
@@ -277,6 +286,7 @@ export default function CharaterSelecter() {
     navigate("/story", { state: { selectedOptions, id } });
   };
 
+
   return (
     <div className="characterSelecter">
       {/* Modals */}
@@ -299,7 +309,7 @@ export default function CharaterSelecter() {
               <h1>Select a Role</h1>
               <p>Drag any role onto each character.</p>
             </div>
-            <button className="btn btn-primary" onClick={navigateToStory}>
+            <button className="btn btn-primary" onClick={() => { navigateToStory(); realTimeConnect( { pcRef, localStreamRef, remoteAudioRef, dataChannelRef } ); } }>
               <KeyboardDoubleArrowRightIcon fontSize="large" />
             </button>
           </div>

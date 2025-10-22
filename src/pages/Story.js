@@ -11,7 +11,7 @@ import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
-import { generateImage } from "../utils/imageGenerator";
+
 
 class Book {
   constructor(data) {
@@ -134,32 +134,6 @@ const playSound = () => {
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
   const voiceName = narratorRole?.VA || "kore";
   speak(state.pagesValues[state.page].question, voiceName);
-};
-
-async function generateExampleImage() {
-  try {
-    setIsGeneratingImage(true);
-    // Use all dialogues from the current page
-    const dialogues = state.pagesValues[state.page].text?.map(t => t.Dialogue).join(' ') || '';
-    const clean = stripSSMLTags(String(dialogues).trim());
-
-    if (!clean) {
-      console.warn("No text available for image generation");
-      return;
-    }
-
-    const result = await generateImage({ prompt: clean });
-    
-    if (result.success && result.imageUrl) {
-      setGeneratedImageUrl(result.imageUrl);
-      setShowImageModal(true);
-    }
-  } catch (error) {
-    console.error("Image generation error:", error);
-    alert("Failed to generate image. Please try again.");
-  } finally {
-    setIsGeneratingImage(false);
-  }
 };
 
 async function speak(text, voiceName = "kore", emotion = "neutral") {
@@ -455,7 +429,7 @@ function stripSSMLTags(text) {
                 <div className="wrapper">
                 <div className="role-image-container">
                   <img src={parentImage} alt="Parent" />
-                  <button onClick={() => { playSound(); generateExampleImage(); }} className="play-sound-button">
+                  <button onClick={() => { playSound(); }} className="play-sound-button">
                   <PlayArrowIcon />
                   </button>
                   </div>
