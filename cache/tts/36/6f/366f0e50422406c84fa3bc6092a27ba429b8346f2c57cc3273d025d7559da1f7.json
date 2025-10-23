@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761253403609,
+  "key": "366f0e50422406c84fa3bc6092a27ba429b8346f2c57cc3273d025d7559da1f7",
+  "v": "1",
+  "textNorm": "said Zoe.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 60090
+}

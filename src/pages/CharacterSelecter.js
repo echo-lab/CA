@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Modal from "react-modal";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
@@ -16,7 +16,6 @@ import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
 import { say } from "../utils/ttsClient";
-import { realTimeConnect } from "../utils/conversationalAgent";
 
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
@@ -181,15 +180,6 @@ export default function CharaterSelecter() {
     roles.map((r) => ({ ...r, isAssigned: false }))
   );
 
-  const [connected, setConnected] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [log, setLog] = useState([]);
-  const pcRef = useRef(null);
-  const localStreamRef = useRef(null);
-  const remoteAudioRef = useRef(null);
-  const dataChannelRef = useRef(null);
-
-
   // select book JSON
   const bookData = id === 1 ? data1 : id === 2 ? data2 : data3;
   const book = React.useMemo(() => new Book(bookData), [bookData]);
@@ -289,6 +279,7 @@ export default function CharaterSelecter() {
 
   return (
     <div className="characterSelecter">
+      
       {/* Modals */}
       <Modal
         isOpen={modalOpen}
@@ -309,7 +300,7 @@ export default function CharaterSelecter() {
               <h1>Select a Role</h1>
               <p>Drag any role onto each character.</p>
             </div>
-            <button className="btn btn-primary" onClick={() => { navigateToStory(); realTimeConnect( { pcRef, localStreamRef, remoteAudioRef, dataChannelRef } ); } }>
+            <button className="btn btn-primary" onClick={() => { navigateToStory(); } }>
               <KeyboardDoubleArrowRightIcon fontSize="large" />
             </button>
           </div>
@@ -355,6 +346,12 @@ export default function CharaterSelecter() {
                 ))}
               </div>
             </main>
+            {/* <button className="btn realtime-connect-button" onClick={connect} disabled={connected}>
+              Connect
+            </button>
+            <button className="btn realtime-disconnect-button" onClick={disconnect} disabled={!connected}>
+              Disconnect
+            </button> */}
           </div>
         </div>
       </DragDropContext>

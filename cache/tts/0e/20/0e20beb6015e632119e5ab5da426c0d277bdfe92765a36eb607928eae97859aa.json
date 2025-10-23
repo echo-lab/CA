@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761254980672,
+  "key": "0e20beb6015e632119e5ab5da426c0d277bdfe92765a36eb607928eae97859aa",
+  "v": "1",
+  "textNorm": "sang Zoe. It was their first sleepover.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 177210
+}

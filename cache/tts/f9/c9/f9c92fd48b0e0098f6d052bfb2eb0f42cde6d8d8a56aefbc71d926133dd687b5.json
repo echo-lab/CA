@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761253407891,
+  "key": "f9c92fd48b0e0098f6d052bfb2eb0f42cde6d8d8a56aefbc71d926133dd687b5",
+  "v": "1",
+  "textNorm": "said Clara.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 63930
+}

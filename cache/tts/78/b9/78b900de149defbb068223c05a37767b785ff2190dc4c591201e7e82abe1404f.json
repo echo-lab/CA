@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761251420165,
+  "key": "78b900de149defbb068223c05a37767b785ff2190dc4c591201e7e82abe1404f",
+  "v": "1",
+  "textNorm": "“My curtains seem different,”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 110010
+}

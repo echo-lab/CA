@@ -11,6 +11,7 @@ import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
+import { useRealtimeConnection } from "../utils/RealtimeConnectionContext";
 
 
 class Book {
@@ -32,6 +33,7 @@ function Reader() {
   const tableContainerRef = useRef(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
+  const { connected, connect, disconnect, sendContentMessage, isAIResponding, remoteAudioRef } = useRealtimeConnection();
 
   let bookData
 
@@ -252,7 +254,13 @@ const handleNextClick = React.useCallback(() => {
         return newState;
       });
   } else {
-    console.log("no more text")
+    // Send current page's text to ask an educational question
+    const currentText = state.pagesValues[state.page].text;
+    sendContentMessage(
+      { type: "page.read", content: { text: currentText } },
+      "Now generate and ask an educational question to teach the toddlers about patterns based on the content of current page"
+    );
+    
       // If there's no more text on the current page, check if there are more pages to go to
       if (state.page < state.pagesValues.length - 1) {
         // Move to the next page
@@ -539,6 +547,9 @@ function stripSSMLTags(text) {
     
   return (
     <div className="story container-fluid reader-container">
+      {/* Hidden audio element for remote audio stream */}
+      <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
+
       <div className="navbar navbar-light bg-light row1">
         <div className="home btn col-1">
           <Link to={{ pathname: "/Home", state: { id: 1 } }}>
@@ -551,35 +562,47 @@ function stripSSMLTags(text) {
         </div>
       </div>
 
-      <div className="navigation-buttons-container">
-  <button 
-    onClick={gotoPreviousPage} 
-    className="btn btn-primary previous-page-button" 
-    disabled={state.page === 0}
-  >Previous Page</button>
-  
-  <button 
-    onClick={gotoNextPage} 
-    className="btn btn-primary next-page-button" 
-    disabled={state.page >= state.pagesValues.length - 1}
-  >Next Page</button>
-</div>
-
-
-      
-    
-      <div className="row">
-        <div className="col-md-5">
-            <img src={state.pagesValues[state.page].img} alt="current page" />
-          {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
-          </div>     
-        <div className="col-md-7 table-container">
-        
-
-          <div className="container-fluid">{renderPageRows()}</div>
-          {renderNavigationButtons()}
-        </div>
+    <div className="navigation-buttons-container">
+      <div className="realtime-toggle-container">
+        <span className="toggle-label">Realtime</span>
+        <label className="toggle-switch">
+          <input 
+            type="checkbox" 
+            checked={connected} 
+            onChange={() => connected ? disconnect() : connect()}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+        <span className={`toggle-status ${connected ? 'connected' : 'disconnected'}`}>
+          {connected ? 'Connected' : 'Disconnected'}
+        </span>
       </div>
+
+      <button 
+        onClick={gotoPreviousPage} 
+        className="btn btn-primary previous-page-button" 
+        disabled={state.page === 0}
+      >Previous Page</button>
+
+      <button 
+        onClick={gotoNextPage} 
+        className="btn btn-primary next-page-button" 
+        disabled={state.page >= state.pagesValues.length - 1}
+      >Next Page</button>
+    </div>
+    
+    <div className="row">
+      <div className="col-md-5">
+          <img src={state.pagesValues[state.page].img} alt="current page" />
+        {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}   
+        </div>     
+      <div className="col-md-7 table-container">
+      
+
+        <div className="container-fluid">{renderPageRows()}</div>
+        {renderNavigationButtons()}
+      </div>
+    </div>
 
       {/* Image Generation Modal */}
       {showImageModal && (
