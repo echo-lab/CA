@@ -1,4 +1,4 @@
-import React,  { useState, useRef } from "react";
+import React,  { useState, useRef, useEffect} from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -11,6 +11,7 @@ import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
+import { warmSay } from "../utils/warmSay";
 
 class Book {
   constructor(data) {
@@ -32,6 +33,8 @@ function Reader() {
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  // How many warm requests to run in parallell
+  const PRELOAD_CONCURRENCY = 1;
 
 
   let bookData
@@ -91,6 +94,66 @@ function Reader() {
       }
     }, 100);
   };
+
+  function canon(text) {
+  return stripSSMLTags(String(text || ""))
+    .trim()
+    .replace(/\s+/g, " ");
+  }
+
+  useEffect(() => {
+    const current = state.pagesValues[state.page];
+    const next = state.pagesValues[state.page + 1];
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    if (!current?.text?.length) return;
+
+    // Build Character → voiceName map (skip muted roles: Parent/Child)
+    const voiceByChar = new Map();
+    for (const opt of state.CharacterRoles || []) {
+      if (opt.role === "Parent" || opt.role === "Child") continue;
+      if (opt.VA) voiceByChar.set(opt.Character, opt.VA);
+    }
+
+    // Collect pages to warm: current + look-ahead (next)
+    const pagesToWarm = [current];
+    if (next?.text?.length) pagesToWarm.push(next);
+
+    // Build a flat list of warm tasks for ALL lines from valid speakers
+    const tasks = [];
+    for (const page of pagesToWarm) {
+      for (const line of page.text) {
+        const voiceName = voiceByChar.get(line.Character);
+        if (!voiceName) continue; // ignore Parent/Child/unassigned
+        const text = canon(line.Dialogue);
+        if (!text) continue;
+        tasks.push({ text, voiceName });
+      }
+    }
+    if (!tasks.length) return;
+
+    // Tiny concurrency pump (best-effort warming)
+    let i = 0;
+    let running = 0;
+    let stopped = false;
+
+    const pump = () => {
+      if (stopped) return;
+      while (running < PRELOAD_CONCURRENCY && i < tasks.length) {
+        const t = tasks[i++];
+        running++;
+        warmSay(t)
+          .catch(() => {}) // warming is best-effort
+          .finally(async () => {
+            running--;
+            await sleep(400);
+            queueMicrotask(pump);
+          });
+      }
+    };
+
+    pump();
+    return () => { stopped = true; };
+  }, [state.page, state.pagesValues, state.CharacterRoles]);
 
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
