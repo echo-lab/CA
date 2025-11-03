@@ -8,12 +8,16 @@ export function RealtimeConnectionProvider({ children }) {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [isAIResponding, setIsAIResponding] = useState(false);
+  const [waitingForTrigger, setWaitingForTrigger] = useState(false);
+  const [triggerDetected, setTriggerDetected] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted by default
 
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const dataChannelRef = useRef(null);
   const messageQueueRef = useRef([]);
+  const pendingResponseRef = useRef(null);
 
   const connect = async () => {
     try {
@@ -47,8 +51,10 @@ export function RealtimeConnectionProvider({ children }) {
         if (remoteAudioRef.current) {
           console.log("Setting remote audio srcObject");
           remoteAudioRef.current.srcObject = e.streams[0];
+          // Set initial muted state
+          remoteAudioRef.current.muted = isMuted;
           remoteAudioRef.current.play()
-            .then(() => console.log("Remote audio playing successfully"))
+            .then(() => console.log(`Remote audio playing successfully (${isMuted ? 'muted' : 'unmuted'})`))
             .catch((err) => console.error("Error playing remote audio:", err));
         } else {
           console.error("remoteAudioRef.current is null!");
@@ -85,6 +91,19 @@ export function RealtimeConnectionProvider({ children }) {
       dc.onopen = () => {
         console.log("DataChannel opened");
         setConnected(true);
+
+        // Configure session to enable input audio transcription
+        const sessionUpdate = {
+          type: "session.update",
+          session: {
+            turn_detection: null, // Disable automatic turn detection
+            input_audio_transcription: {
+              model: "whisper-1"
+            }
+          }
+        };
+        dc.send(JSON.stringify(sessionUpdate));
+        console.log("Session configured with transcription enabled");
 
         // Send system instruction immediately when channel opens
         const systemInstruction = {
@@ -138,6 +157,27 @@ export function RealtimeConnectionProvider({ children }) {
         try {
           const event = JSON.parse(evt.data);
 
+          // Handle transcription events to detect trigger word
+          if (event.type === 'conversation.item.input_audio_transcription.completed') {
+            const transcript = event.transcript?.toLowerCase() || '';
+            console.log("Transcription received:", transcript);
+
+            // Check for trigger phrase "i am ready" or "I'm ready"
+            if (transcript.includes('i am ready') || transcript.includes("i'm ready")) {
+              console.log("Trigger word detected! Allowing AI to respond.");
+              setTriggerDetected(true);
+              setWaitingForTrigger(false);
+
+              // If there's a pending response, trigger it now
+              if (pendingResponseRef.current) {
+                console.log("Triggering pending response");
+                const responseCreate = { type: "response.create" };
+                dc.send(JSON.stringify(responseCreate));
+                pendingResponseRef.current = null;
+              }
+            }
+          }
+
           // Track when AI starts responding
           if (event.type === 'response.created' || event.type === 'response.output_item.added') {
             console.log("AI started responding");
@@ -148,6 +188,8 @@ export function RealtimeConnectionProvider({ children }) {
           if (event.type === 'response.done' || event.type === 'response.completed') {
             console.log("AI finished responding");
             setIsAIResponding(false);
+            // Reset trigger for next interaction
+            setTriggerDetected(false);
           }
 
           // Also handle error cases
@@ -248,7 +290,7 @@ export function RealtimeConnectionProvider({ children }) {
   };
 
   // Send content-based message to ask questions
-  const sendContentMessage = (content, instruction = "Generate and ask an educational question to teach toddlers about patterns based on this content") => {
+  const sendContentMessage = (content, instruction = "Generate and ask an educational question to teach toddlers about patterns based on this content", requireTrigger = true) => {
     const message = {
       type: "conversation.item.create",
       item: {
@@ -266,16 +308,35 @@ export function RealtimeConnectionProvider({ children }) {
     // Send the message using the existing sendMessage function
     sendMessage(message);
 
-    // Set responding state to true before triggering response
-    setIsAIResponding(true);
+    if (requireTrigger) {
+      // Wait for trigger word before responding
+      console.log("Waiting for trigger word 'I am ready' before AI responds...");
+      setWaitingForTrigger(true);
+      pendingResponseRef.current = true; // Mark that we have a pending response
+    } else {
+      // Immediately trigger response (original behavior)
+      setIsAIResponding(true);
+      const responseCreate = {
+        type: "response.create",
+      };
+      sendMessage(responseCreate);
+      console.log("Content message and response trigger sent");
+    }
+  };
 
-    // Trigger a response from the assistant
-    const responseCreate = {
-      type: "response.create",
-    };
+  // Toggle mute/unmute for AI audio
+  const toggleMute = () => {
+    setIsMuted(prev => {
+      const newMutedState = !prev;
+      console.log(`AI audio ${newMutedState ? 'muted' : 'unmuted'}`);
 
-    sendMessage(responseCreate);
-    console.log("Content message and response trigger sent");
+      // Update the remote audio element's muted property
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.muted = newMutedState;
+      }
+
+      return newMutedState;
+    });
   };
 
   // Cleanup on unmount
@@ -289,10 +350,14 @@ export function RealtimeConnectionProvider({ children }) {
     connected,
     error,
     isAIResponding,
+    waitingForTrigger,
+    triggerDetected,
+    isMuted,
     connect,
     disconnect,
     sendMessage,
     sendContentMessage,
+    toggleMute,
     remoteAudioRef,
   };
 

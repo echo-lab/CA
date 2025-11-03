@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761327190157,
+  "key": "4f07afd48c7cb23d48cab444e143799ffa45a30814ce9c37a2a458dd7973ab61",
+  "v": "1",
+  "textNorm": "“mine is green, purple, green, purple. Zip, zap, zip, zap!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 376890
+}

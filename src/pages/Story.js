@@ -1,4 +1,4 @@
-import React,  { useState, useRef, useCallback } from "react";
+import React,  { useState, useRef, useCallback, useEffect } from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -33,7 +33,7 @@ function Reader() {
   const tableContainerRef = useRef(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
-  const { connected, connect, disconnect, sendContentMessage, isAIResponding, remoteAudioRef } = useRealtimeConnection();
+  const { connected, connect, disconnect, sendContentMessage, isAIResponding, waitingForTrigger, triggerDetected, isMuted, toggleMute, remoteAudioRef } = useRealtimeConnection();
 
   let bookData
 
@@ -71,10 +71,14 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
+  useEffect(() => {
+    console.log("isPopupOpen changed:", isPopupOpen);
+  }, [isPopupOpen]); 
 
   let lastSpokenText = "";
   let lastSpokenTime = 0;
@@ -177,7 +181,7 @@ async function speak(text, voiceName = "kore", emotion = "neutral") {
 }, [audio, isPlaying]);
 
 
-const continueReading = React.useCallback(async (page, index, roles) => {
+const continueReading = React.useCallback(async (page, index, roles, isLastLine = false) => {
   if (!page || !page.text || index < 0 || index > page.text.length) {
     console.error(`Invalid args to continueReading: index=${index}`);
     return;
@@ -192,24 +196,52 @@ const continueReading = React.useCallback(async (page, index, roles) => {
     // keep highlighting behavior but do not play audio
     if (index > 0) page.text[index - 1].Reading = false;
     page.text[index].Reading = true;
-    setIsPlaying(false);
+
+    // If this is the last line, we need to keep isPlaying true briefly
+    // and simulate audio ending so the next step (question popup) gets triggered
+    if (isLastLine) {
+      console.log("Last line is Parent/Child - simulating audio end");
+      // Use a timeout to trigger the audio ended event
+      setTimeout(() => {
+        setAudioHasEnded(true);
+        // Don't set isPlaying to false yet - let the useEffect handle it
+      }, 100);
+    } else {
+      setIsPlaying(false);
+    }
     return;
   }
 
-  // turn on “Reading” highlight
+  // turn on "Reading" highlight
   if (index > 0) page.text[index - 1].Reading = false;
   page.text[index].Reading = true;
 
   // if no voice assigned, just stop/skip
   if (!currentVoiceName) {
-    setIsPlaying(false);
+    // If this is the last line and no voice, simulate audio ending
+    if (isLastLine) {
+      console.log("Last line has no voice - simulating audio end");
+      setTimeout(() => {
+        setAudioHasEnded(true);
+      }, 100);
+    } else {
+      setIsPlaying(false);
+    }
     return;
   }
 
   // Strip SSML then TTS
   const dialogue = stripSSMLTags(String(line.Dialogue || ""));
   if (!dialogue.trim()) {
-    setIsPlaying(false);
+    // If this is the last line and no dialogue, simulate audio ending
+    if (isLastLine) {
+      console.log("Last line has no dialogue - simulating audio end");
+      setTimeout(() => {
+        setAudioHasEnded(true);
+      }, 100);
+    } else {
+      setIsPlaying(false);
+    }
     return;
   }
 
@@ -230,86 +262,89 @@ const continueReading = React.useCallback(async (page, index, roles) => {
 
 
 /**
- * Handle the "Next" button click.
- * This function determines if we should continue reading from the current page
- * or move to the next page.
- */
+* Handle the "Next" button click.
+* This function determines if we should continue reading from the current page
+* or move to the next page.
+*/
 const handleNextClick = React.useCallback(() => {
-  console.log("Current isPlaying", isPlaying);
-  console.log("handleNextClick triggered. Current page:", state.page, "Current Index: ", state.index);
+ console.log("Current isPlaying", isPlaying);
+ console.log("handleNextClick triggered. Current page:", state.page, "Current Index: ", state.index);
 
-  // Check if there's more text on the current page to read
-  if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
-    console.log("reading page")
-      // Continue reading the current page
-      setAudioHasEnded(false);
-      setState(prevState => {
-        //const newState = {...prevState, index: prevState.index};
-        continueReading(
-          prevState.pagesValues[prevState.page],
-          prevState.index,
-          state.CharacterRoles
-        );
-        const newState = {...prevState, index: prevState.index+1};
-        return newState;
-      });
-  } else {
+
+ // Check if there's more text on the current page to read
+ if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
+   console.log("reading page")
+     // Continue reading the current page
+     setAudioHasEnded(false);
+     setState(prevState => {
+       //const newState = {...prevState, index: prevState.index};
+       const isLastLine = prevState.index === prevState.pagesValues[prevState.page].text.length - 1;
+       continueReading(
+         prevState.pagesValues[prevState.page],
+         prevState.index,
+         state.CharacterRoles,
+         isLastLine
+       );
+       const newState = {...prevState, index: prevState.index+1};
+       return newState;
+     });
+ } else {
+    setIsPopupOpen(true);
     // Send current page's text to ask an educational question
     const currentText = state.pagesValues[state.page].text;
     sendContentMessage(
       { type: "page.read", content: { text: currentText } },
       "Now generate and ask an educational question to teach the toddlers about patterns based on the content of current page"
     );
-    
-      // If there's no more text on the current page, check if there are more pages to go to
-      if (state.page < state.pagesValues.length - 1) {
-        // Move to the next page
-        if (isPlaying) {
-          // Move to the next page
-          setIsPlaying(false);
-        } else {
-          console.log("new page")
-          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
-            state.pagesValues[state.page].text[i].Reading=false;
-          }
-          setState(prevState => {
-            const newState = {...prevState, page: prevState.page + 1, index: 0};
-            return newState;
-          });
-          setIsPlaying(false);
-          if (tableContainerRef.current) {
-            tableContainerRef.current.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-            console.log("scrolledup")
-          }
-        }
-      } else {
-        console.log("last page")
-          // If we're on the last page, mark the last text as not being read
-          if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
-              state.pagesValues[state.page].text[state.index-1].Reading = false;
-          }
-          // Set hasReachedEnd to true if at the end of the last page
-          setState(prevState => ({
-            ...prevState,
-            hasReachedEnd: state.page === state.pagesValues.length - 1 && state.pagesValues[state.page].text.length === state.index
-          }));
-          setIsPlaying(false);
-      }
-  }
-
-  // If a table container reference exists, scroll it into view
-  if (dialogueRefs.current[state.index]) {
-      dialogueRefs.current[state.index].scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-      });
-      console.log("scrolledup")
-  }
   
-}, [state, isPlaying, dialogueRefs, continueReading]);
+     // If there's no more text on the current page, check if there are more pages to go to
+     if (state.page < state.pagesValues.length - 1) {
+       if (isPlaying) {
+         // Move to the next page
+         setIsPlaying(false);
+       } else {
+         console.log("new page")
+         for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
+           state.pagesValues[state.page].text[i].Reading=false;
+         }
+         setState(prevState => {
+           const newState = {...prevState, page: prevState.page + 1, index: 0};
+           return newState;
+         });
+         setIsPlaying(false);
+         if (tableContainerRef.current) {
+           tableContainerRef.current.scrollIntoView({
+             behavior: "smooth",
+             block: "start",
+           });
+           console.log("scrolledup")
+         }
+       }
+     } else {
+       console.log("last page")
+         // If we're on the last page, mark the last text as not being read
+         if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
+             state.pagesValues[state.page].text[state.index-1].Reading = false;
+         }
+         // Set hasReachedEnd to true if at the end of the last page
+         setState(prevState => ({
+           ...prevState,
+           hasReachedEnd: state.page === state.pagesValues.length - 1 && state.pagesValues[state.page].text.length === state.index
+         }));
+         setIsPlaying(false);
+     }
+ }
+
+
+ // If a table container reference exists, scroll it into view
+ if (dialogueRefs.current[state.index]) {
+     dialogueRefs.current[state.index].scrollIntoView({
+         behavior: "smooth",
+         block: "center",
+     });
+     console.log("scrolledup")
+ }
+ }, [state, isPlaying, dialogueRefs, continueReading]);
 const prevStates = useRef({ audioHasEnded, isPlaying, handleNextClick });
 
 React.useEffect(() => {
@@ -466,6 +501,7 @@ function stripSSMLTags(text) {
       buttonText = isLastPage ? 'End' : 'Next Page';
       buttonClass = "highlight-button";
     } else {
+      // TODO: Send Current text over to Realtime
       buttonText = (isPlaying && !audioHasEnded) ? "Pause" : "Play";
       if (!isPlaying) {
         buttonClass = "highlight-button";
@@ -493,15 +529,6 @@ function stripSSMLTags(text) {
   function handlePlayClick() {
     console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
   
-    // // Disable the button
-    // setIsButtonDisabled(true);
-  
-    // // Re-enable the button after 5 seconds
-    // setTimeout(() => {
-    //   setIsButtonDisabled(false);
-    // }, 2000);
-  
-    // If we have reached the end, navigate to another page
     if (state.hasReachedEnd) {
       navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
       return;
@@ -566,9 +593,9 @@ function stripSSMLTags(text) {
       <div className="realtime-toggle-container">
         <span className="toggle-label">Realtime</span>
         <label className="toggle-switch">
-          <input 
-            type="checkbox" 
-            checked={connected} 
+          <input
+            type="checkbox"
+            checked={connected}
             onChange={() => connected ? disconnect() : connect()}
           />
           <span className="toggle-slider"></span>
@@ -578,15 +605,31 @@ function stripSSMLTags(text) {
         </span>
       </div>
 
-      <button 
-        onClick={gotoPreviousPage} 
-        className="btn btn-primary previous-page-button" 
+      <div className="realtime-toggle-container">
+        <span className="toggle-label">AI Audio</span>
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            checked={!isMuted}
+            onChange={toggleMute}
+            disabled={!connected}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+        <span className={`toggle-status ${!isMuted ? 'connected' : 'disconnected'}`}>
+          {!isMuted ? 'Unmuted' : 'Muted'}
+        </span>
+      </div>
+
+      <button
+        onClick={gotoPreviousPage}
+        className="btn btn-primary previous-page-button"
         disabled={state.page === 0}
       >Previous Page</button>
 
-      <button 
-        onClick={gotoNextPage} 
-        className="btn btn-primary next-page-button" 
+      <button
+        onClick={gotoNextPage}
+        className="btn btn-primary next-page-button"
         disabled={state.page >= state.pagesValues.length - 1}
       >Next Page</button>
     </div>
@@ -617,6 +660,52 @@ function stripSSMLTags(text) {
             ) : (
               <div className="loading-spinner">Loading image...</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* AI Conversation Popup */}
+      {isPopupOpen && (
+        <div className="image-modal-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="image-modal-close"
+              onClick={() => {
+                console.log("AI conversation popup closed by user");
+                setIsPopupOpen(false);
+              }}
+            >
+              X
+            </button>
+            <h3>AI Initiated Conversation</h3>
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              {waitingForTrigger ? (
+                <>
+                  <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#2196F3' }}>
+                    🎤 Listening for you to say: "I am ready"
+                  </p>
+                  <div className="loading-spinner" style={{ margin: '20px auto' }}>
+                    Waiting for trigger word...
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#666', marginTop: '20px' }}>
+                    The AI will ask a question once you say "I am ready"
+                  </p>
+                </>
+              ) : triggerDetected || isAIResponding ? (
+                <>
+                  <p>Listen carefully! The AI is asking an educational question based on what you just read.</p>
+                  <div className="loading-spinner" style={{ margin: '20px auto' }}>🎤 Speaking...</div>
+                  <p style={{ fontSize: '14px', color: '#666', marginTop: '20px' }}>
+                    Close this popup when you're ready to move to the next page
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>Preparing conversation...</p>
+                  <div className="loading-spinner" style={{ margin: '20px auto' }}>Loading...</div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762132680117,
+  "key": "751f1f8899132be980beadaeffde811604751968f2508d1739cf8559b17156bf",
+  "v": "1",
+  "textNorm": "“It’s the same pattern as yours!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 125370
+}

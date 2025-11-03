@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762132671727,
+  "key": "c752359e55fc404ec406e23154a8a387847319f783ac635f377cec1ac03e310f",
+  "v": "1",
+  "textNorm": "“My flowers go tall, short, tall, short.”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 229050
+}

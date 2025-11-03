@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762131302404,
+  "key": "792fc77bd954c9a0d6610d80b58f260ae002a0f4e1a85cde9fed3778b02fe97c",
+  "v": "1",
+  "textNorm": "“But your flowers aren’t the same.”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 152250
+}

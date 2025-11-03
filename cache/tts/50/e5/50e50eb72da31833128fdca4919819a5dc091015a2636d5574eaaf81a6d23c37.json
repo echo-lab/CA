@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761314360601,
+  "key": "50e50eb72da31833128fdca4919819a5dc091015a2636d5574eaaf81a6d23c37",
+  "v": "1",
+  "textNorm": "“Let’s play hide and seek!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 96570
+}

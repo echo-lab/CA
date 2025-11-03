@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762132692801,
+  "key": "39a04554962d539a3d1443cf9e72176966c3cc133e2c94bff5e903e8eef94f5a",
+  "v": "1",
+  "textNorm": "“You got it!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 48570
+}
