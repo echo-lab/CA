@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762183176270,
+  "key": "c63556b92da71fb6c4d624e0a5c194a32ffebc42debb6cbc14067b298397d5a8",
+  "v": "1",
+  "textNorm": "“Our sleeping bags have the same pattern!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "zephyr",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 148410
+}

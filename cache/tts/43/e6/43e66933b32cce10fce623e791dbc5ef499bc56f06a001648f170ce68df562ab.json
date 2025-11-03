@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762183186687,
+  "key": "43e66933b32cce10fce623e791dbc5ef499bc56f06a001648f170ce68df562ab",
+  "v": "1",
+  "textNorm": "“Yours is yellow, blue, yellow, blue…”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "zephyr",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 236730
+}

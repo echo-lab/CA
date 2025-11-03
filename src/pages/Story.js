@@ -294,7 +294,7 @@ const handleNextClick = React.useCallback(() => {
     const currentText = state.pagesValues[state.page].text;
     sendContentMessage(
       { type: "page.read", content: { text: currentText } },
-      "Now generate and ask an educational question to teach the toddlers about patterns based on the content of current page"
+      "Now generate and ask an educational question to teach the toddlers about patterns based on the content of current page. However, generate question with new examples that are not directly from the text."
     );
   
      // If there's no more text on the current page, check if there are more pages to go to
