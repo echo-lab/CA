@@ -73,12 +73,12 @@ app.post('/synthesize', async (req, res) => {
 });
 
 if(process.env.DEVMODE){
-    const port = process.env.REACT_APP_PORT || 5000;
+    const port = process.env.REACT_APP_PORT || 5001;
     app.listen(port, () => console.log(`Server started on port ${port}`));
 }
 else{
 
-    const port = process.env.REACT_APP_PORT || 5000;
+    const port = process.env.REACT_APP_PORT || 5001;
     const httpsOptions = {
         key: fs.readFileSync(keyPath),
         cert: fs.readFileSync(certPath)

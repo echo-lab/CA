@@ -47,6 +47,26 @@
   }
 
   .RoleDraggable.dragging {
-    z-index: 1000 !important; /* Ensures it's above everything */
+    z-index: 9999 !important; /* Ensures it's above everything */
     position: relative;
+  }
+  
+  /* Fix for dragged items appearing behind character cards */
+  .RoleDraggable[style*="position: fixed"] {
+    z-index: 9999 !important;
+  }
+  
+  /* Ensure any dragging role (even from inside droppable areas) appears on top */
+  div[data-rbd-draggable-context-id] .RoleDraggable {
+    position: relative;
+  }
+  
+  /* When react-beautiful-dnd is actively dragging */
+  [data-rbd-drag-handle-draggable-id] {
+    z-index: 9999 !important;
+  }
+  
+  /* Portal layer for dragging (react-beautiful-dnd creates this) */
+  [data-rbd-draggable-id][style*="position: fixed"] {
+    z-index: 9999 !important;
   }
