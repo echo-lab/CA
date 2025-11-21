@@ -25,7 +25,7 @@ export const roles = [
   },
   {
     Role: "Ruby Randy",
-    RoleParameter: "iacetus",
+    RoleParameter: "iapetus",
     img: require("../Pictures/Mates-06.png"),
     voiceColor: "Ruby"
   },
