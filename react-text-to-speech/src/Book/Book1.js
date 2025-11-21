@@ -410,7 +410,7 @@ export const data = [
               Reading: false,
               Character: "Narrator",
               Dialogue:
-                "“Helping <emphasis level='strong'>**WAS**</emphasis> fun!”",
+                "Helping <emphasis level='strong'>**WAS**</emphasis> fun!",
             },
           ],
         },

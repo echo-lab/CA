@@ -20,11 +20,64 @@
 }
 
 .modalContent {
-  width: 300px;
-  height: 150px;
-  margin: auto;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 400px;
   background-color: rgb(41, 144, 233);
-  padding: 10px;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  z-index: 10000;
+}
+
+.modalContent h2 {
+  margin: 0;
+  color: white;
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.modalContent p {
+  margin: 0;
+  color: white;
+  font-size: 1.1rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.modalContent button {
+  background-color: white;
+  color: rgb(41, 144, 233);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 40px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.modalContent button:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.modalContent button:active {
+  transform: scale(0.98);
+}
+
+/* Modal overlay */
+.ReactModal__Overlay {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  z-index: 9999;
 }
 
 .sectionTitle {
@@ -40,6 +93,8 @@
   display: flex;
   align-items: flex-start;
   min-height: 0;
+  height: calc(100vh - 88px);
+  overflow: hidden;
 }
 
 .left-rail {
@@ -47,11 +102,23 @@
   width: var(--deck-width);
   max-width: var(--deck-width);
   padding: 8px;
+
+  position: sticky;
+  top: 88px;
+  height: calc(100vh - 88px);
+  overflow-y: auto;
+  overflow-x: visible;
+  -webkit-overflow-scrolling: touch;
+  z-index: 10; /* Give left rail a base z-index */
 }
 
 .main-column {
   flex: 1 1 auto;
   min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  z-index: 1; /* Lower than left rail but dragged items will be higher */
 }
 
 .DraggableContainer {
@@ -62,10 +129,8 @@
   justify-content: center;
   column-gap: var(--deck-gap);
   row-gap: var(--deck-gap);
-  max-height: calc(100vh - 180px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
+  -webkit-overflow-scrolling: auto;
   padding: 8px;
 }
 
@@ -121,7 +186,10 @@
 
 .character-cards-container > div { box-sizing: border-box; }
 
-.character-card .card { border-radius: 16px; }
+.character-card .card { 
+  border-radius: 16px;
+  /* Removed position and z-index to avoid creating stacking context */
+}
 
 .character-card .card-content {
   display: grid;
@@ -186,6 +254,12 @@
   background: transparent;
   box-shadow: none;
   padding: 0;
+}
+
+/* Ensure roles inside character cards appear on top when dragged */
+.droppable-area .RoleDraggable[style*="position: fixed"],
+.droppable-area .RoleDraggable[data-rbd-draggable-id] {
+  z-index: 9999 !important;
 }
 
 .row.justify-content-between { display: flex; justify-content: space-between; }

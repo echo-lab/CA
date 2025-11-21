@@ -82,7 +82,7 @@ if(process.env.DEVMODE){
 }
 else{
 
-    const port = process.env.REACT_APP_PORT || 5000;
+    const port = process.env.REACT_APP_PORT || 5001;
     const httpsOptions = {
         key: fs.readFileSync(keyPath),
         cert: fs.readFileSync(certPath)
