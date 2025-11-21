@@ -34,7 +34,7 @@ async function withRetries(fn, { attempts = 2, delayMs = 300 } = {}) {
   throw lastErr;
 }
 
-const { CFG, buildKey, readIfFresh, writeAtomically, normalizeText, normEmotion } = require('./cache/ttsCache');
+const { CFG, buildKey, readIfFresh, writeAtomically, normalizeText, normEmotion, pathsFor } = require('./cache/ttsCache');
 const { oncePerKey } = require('./cache/inflight');
 
 async function liveSayHandler(req, res) {
@@ -51,11 +51,9 @@ async function liveSayHandler(req, res) {
     const textNorm = normalizeText(text);
     const emo = normEmotion(emotion);
 
-    // Resolve model priority: request -> env -> default TTS
     const requestedModel = modelFromReq && String(modelFromReq).trim();
     const model = requestedModel || process.env.GEMINI_LIVE_MODEL || "gemini-2.5-flash-preview-tts";
 
-    // This endpoint uses the non-Live generateContent API; reject Live models here.
     if (/gemini-.*live/i.test(model)) {
       return res.status(400).json({
         message: `Model "${model}" is a Live (WebSocket) model. Use a TTS model (e.g., "gemini-2.5-flash-preview-tts") with this endpoint.`,
@@ -65,7 +63,6 @@ async function liveSayHandler(req, res) {
     const format = 'wav';
     const sampleRate = CFG.sampleRate;
 
-    // Cache key + policy
     const bypass =
       String(req.headers[CFG.bypassHeader] || '').toLowerCase() === '1' ||
       req.query.nocache === '1';
@@ -91,7 +88,6 @@ async function liveSayHandler(req, res) {
         return res.status(200).send(hit.buf);
       }
       if (hit.state === 'STALE') {
-        // simple policy: regenerate now (no serve-stale)
         console.log(`[live/say][cache] STALE key=${key.slice(0,8)} → regenerate`);
       } else {
         console.log(`[live/say][cache] MISS key=${key.slice(0,8)}`);
@@ -110,11 +106,9 @@ async function liveSayHandler(req, res) {
       const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
       const systemInstructionText = buildSystemInstructionText({ emotion: emo });
 
-      // Build config; include speakingRate if provided
       const speechConfig =
         speechRate != null
           ? {
-              // Keep voiceConfig if provided
               ...(voiceName ? { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } : {}),
               speakingRate: speechRate,
             }
@@ -132,7 +126,7 @@ async function liveSayHandler(req, res) {
 
       const response = await withRetries(
         () => ai.models.generateContent(reqBody),
-        { attempts: 2, delayMs: 400 }
+        { attempts: 3, delayMs: 500 } // Increased retries
       );
 
       const b64 = extractAudioBase64FromCandidates(response);
@@ -149,7 +143,7 @@ async function liveSayHandler(req, res) {
       return buf;
     });
 
-    // Write-through cache (best effort)
+    // Write-through cache with better error handling
     const meta = {
       createdAt: Date.now(),
       key,
@@ -157,7 +151,15 @@ async function liveSayHandler(req, res) {
       bytes: wavBuf.byteLength,
     };
     if (!bypass) {
-      writeAtomically(base, wavBuf, meta).catch(e => console.warn('[tts cache] write failed', e));
+      writeAtomically(base, wavBuf, meta)
+        .then(() => {
+          console.log(`[tts cache] write SUCCESS key=${key.slice(0,8)}`);
+        })
+        .catch(e => {
+          console.error('[tts cache] write failed:', e.message);
+          console.error('[tts cache] key:', key.slice(0, 8));
+          console.error('[tts cache] base path:', base);
+        });
     }
 
     res.setHeader('Content-Type', 'audio/wav');
@@ -168,8 +170,8 @@ async function liveSayHandler(req, res) {
   } catch (err) {
     const status = err?.status || err?.error?.code || 500;
     const message = err?.message || err?.error?.message || String(err);
-    console.error("Error in /live/say [tts]:", status, message);
-    res.status(500).json({ message, status });
+    console.error("Error in /live/say [tts]:", status, err);
+    res.status(status).json({ message, error: err?.error || {} });
   }
 }
 

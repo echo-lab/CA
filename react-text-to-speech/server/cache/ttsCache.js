@@ -70,13 +70,48 @@ async function readIfFresh(base) {
 }
 
 async function writeAtomically(base, buf, metaObj) {
-  const { audio, meta, tmp } = pathsFor(base);
-  await fsp.mkdir(path.dirname(audio), { recursive: true });
-  await fsp.writeFile(tmp, buf);
-  await fsp.rename(tmp, audio);
-  const metaTmp = meta + `.tmp-${process.pid}-${Date.now()}`;
-  await fsp.writeFile(metaTmp, JSON.stringify(metaObj, null, 2));
-  await fsp.rename(metaTmp, meta);
+  const { audio, meta } = pathsFor(base);
+  
+  // Ensure directory exists with better error handling
+  const dir = path.dirname(audio);
+  try {
+    await fsp.mkdir(dir, { recursive: true });
+  } catch (err) {
+    if (err.code !== 'EEXIST') {
+      console.error('[tts cache] mkdir failed:', err.message);
+      throw err;
+    }
+  }
+  
+  // Create unique temp file names
+  const audioTmp = `${audio}.tmp-${process.pid}-${Date.now()}`;
+  const metaTmp = `${meta}.tmp-${process.pid}-${Date.now()}`;
+  
+  try {
+    // Write audio to temp file
+    await fsp.writeFile(audioTmp, buf);
+    
+    // Verify temp file exists before rename
+    await fsp.access(audioTmp);
+    
+    // Rename temp to final (atomic operation)
+    await fsp.rename(audioTmp, audio);
+    
+    // Write metadata to temp file
+    await fsp.writeFile(metaTmp, JSON.stringify(metaObj, null, 2));
+    
+    // Verify temp file exists before rename
+    await fsp.access(metaTmp);
+    
+    // Rename temp to final (atomic operation)
+    await fsp.rename(metaTmp, meta);
+    
+  } catch (err) {
+    // Clean up temp files if they exist
+    await fsp.unlink(audioTmp).catch(() => {});
+    await fsp.unlink(metaTmp).catch(() => {});
+    throw err;
+  }
 }
 
 module.exports = {
@@ -87,4 +122,5 @@ module.exports = {
   readIfFresh,
   writeAtomically,
   ensureDirSync,
+  pathsFor,
 };
