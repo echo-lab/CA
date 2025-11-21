@@ -2,22 +2,19 @@ const inFlight = new Map();
 
 function oncePerKey(key, producer) {
   if (inFlight.has(key)) {
-    console.log(`[inflight] Reusing existing request for key=${key.slice(0, 8)}`);
     return inFlight.get(key);
   }
   
-  console.log(`[inflight] Starting new request for key=${key.slice(0, 8)}`);
-  
   const p = (async () => {
     try {
-      return await producer();
+      const result = await producer();
+      // Keep in cache briefly for concurrent requests
+      setTimeout(() => inFlight.delete(key), 100);
+      return result;
     } catch (err) {
-      // Remove from inflight on error so it can be retried
+      // CRITICAL: Remove immediately on error so retries can happen
       inFlight.delete(key);
       throw err;
-    } finally {
-      // Only delete after a delay to prevent race conditions
-      setTimeout(() => inFlight.delete(key), 100);
     }
   })();
   

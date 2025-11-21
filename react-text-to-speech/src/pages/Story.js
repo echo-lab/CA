@@ -203,44 +203,26 @@ const playSound = () => {
 
 
   async function speak(text, voiceName = "kore", emotion = "neutral") {
-    try {
-      const clean = stripSSMLTags(String(text || "").trim());
-      if (!clean) return;
+  try {
+    const clean = stripSSMLTags(String(text || "").trim());
+    if (!clean) return;
 
-      // Create a unique key for this request
-      const requestKey = `${clean}-${voiceName}-${emotion}`;
-      
-      // If already in flight, wait for the existing request
-      if (inflightRequests.current.has(requestKey)) {
-        return await inflightRequests.current.get(requestKey);
-      }
+    const { audio } = await say({
+      text: clean,
+      voiceName,
+      emotion,
+    });
 
-      // Create new request promise
-      const requestPromise = (async () => {
-        try {
-          const { audio } = await say({
-            text: clean,
-            voiceName,
-            emotion,
-          });
-
-          setAudio(audio);
-          audio.addEventListener("ended", audioEnded);
-          return { audio };
-        } finally {
-          // Clean up after request completes
-          inflightRequests.current.delete(requestKey);
-        }
-      })();
-
-      // Store promise for deduplication
-      inflightRequests.current.set(requestKey, requestPromise);
-      
-      return await requestPromise;
-    } catch (err) {
-      console.error("TTS error:", err);
-    }
+    setAudio(audio);
+    audio.addEventListener("ended", audioEnded);
+  } catch (err) {
+    console.error("TTS error:", err);
+    
+    setTimeout(() => {
+      setAudioHasEnded(true);
+    }, 100);
   }
+}
 
 
 
