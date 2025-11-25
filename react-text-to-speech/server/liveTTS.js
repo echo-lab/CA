@@ -56,7 +56,9 @@ async function liveSayHandler(req, res) {
     }
 
     // Normalize inputs
-    const textNorm = normalizeText(text);
+    let textNorm = normalizeText(text);
+    textNorm = textNorm.replace(/\bZoe\b/g, "Zoey"); // correct speaking issue to avoid confusion
+    console.log("TEXT AFTER NORMALIZE:", textNorm); 
     const emo = normEmotion(emotion);
 
     const requestedModel = modelFromReq && String(modelFromReq).trim();
