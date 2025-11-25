@@ -1,14 +1,16 @@
 function buildSystemInstructionText({ emotion, role }) {
   const tone = (emotion && String(emotion).trim()) || "neutral";
+
+  const baseInstruction = `Read EVERY single word exactly as written. Do NOT skip any words. Read the complete text word-for-word.`;
   
   // Check if the role is "Child" and provide child-specific instructions
   if (role === "Child") {
     console.log("Child prompt");
-    return `You are a young, energetic child. Read this text in a youthful, and lively voice suitable for a kid character in a story. Use a higher pitch and speak with childlike enthusiasm and energy.`;
+    return `You are a young, energetic child. Read this text in a youthful, and lively voice suitable for a kid character in a story. Use a higher pitch and speak with childlike enthusiasm and energy. ${baseInstruction}`;
   }
   
   // Default instruction for other roles
-  return `Read in a ${tone} tone suitable for a children's story.`;
+  return `Read in a ${tone} tone suitable for a children's story. ${baseInstruction}`;
 }
 
 function asSystemContent(text) {
@@ -58,7 +60,10 @@ async function liveSayHandler(req, res) {
     // Normalize inputs
     let textNorm = normalizeText(text);
     textNorm = textNorm.replace(/\bZoe\b/g, "Zoey"); // correct speaking issue to avoid confusion
-    console.log("TEXT AFTER NORMALIZE:", textNorm); 
+    
+    // Wrap text to force TTS to read all words literally (including attribution verbs)
+    const ttsText = `The following words are: ${textNorm}`;
+    
     const emo = normEmotion(emotion);
 
     const requestedModel = modelFromReq && String(modelFromReq).trim();
@@ -77,8 +82,9 @@ async function liveSayHandler(req, res) {
       String(req.headers[CFG.bypassHeader] || '').toLowerCase() === '1' ||
       req.query.nocache === '1';
 
+    // Use ttsText for cache key to differentiate from old cached versions
     const { key, base, fields } = buildKey({
-      text: textNorm,
+      text: ttsText,
       model,
       voiceName,
       emotion: emo,
@@ -127,7 +133,7 @@ async function liveSayHandler(req, res) {
 
       const reqBody = {
         model,
-        contents: [{ parts: [{ text: textNorm }]}],
+        contents: [{ parts: [{ text: ttsText }]}],  // Use wrapped text
         systemInstruction: asSystemContent(systemInstructionText),
         config: {
           responseModalities: ["AUDIO"],
