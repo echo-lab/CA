@@ -86,20 +86,14 @@
   margin-left: 8px;
 }
 
-/* Easy: Green */
-.difficulty-easy {
-  background-color: #28a745;
-  color: #fff;
+.difficulty-parent {
+  background-color: #8cc63f;
+  color: #ffffff;
+  border: 1px solid #7ab62f;
 }
 
-/* Medium: Orange */
-.difficulty-medium {
-  background-color: #ffc107;
-  color: #000;
-}
-
-/* Hard: Red */
-.difficulty-hard {
-  background-color: #dc3545;
-  color: #fff;
+.difficulty-child {
+  background-color: #f7ce46;
+  color: #5a4a15;
+  border: 1px solid #e5bd35;
 }

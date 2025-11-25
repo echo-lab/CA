@@ -28,20 +28,20 @@ const DIFFICULTY_MAP = {
   // 1 = Birthday
   1: {
     Narrator: "",      
-    Clara: "Easier",
-    Zoe: "Harder",       
+    Clara: "Child",
+    Zoe: "Parent",       
   },
   // 2 = Sleepover
   2: {
     Narrator: "",        
-    Clara: "Easier",
-    Zoe: "Harder",
+    Clara: "Child",
+    Zoe: "Parent",
   },
   // 3 = Levels
   3: {
     Narrator: "",        
-    Clara: "Harder",
-    Zoe: "Easier",
+    Clara: "Parent",
+    Zoe: "Child",
   },
 };
 
