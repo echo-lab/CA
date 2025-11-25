@@ -112,7 +112,7 @@ function Reader() {
     const voiceByChar = new Map();
     for (const opt of state.CharacterRoles || []) {
       if (opt.role === "Parent" || opt.role === "Child") continue;
-      if (opt.VA) voiceByChar.set(opt.Character, opt.VA);
+      if (opt.VA) voiceByChar.set(opt.Character, { voiceName: opt.VA, role: opt.role });
     }
 
     // Collect pages to warm: current + look-ahead (next)
@@ -123,11 +123,15 @@ function Reader() {
     const tasks = [];
     for (const page of pagesToWarm) {
       for (const line of page.text) {
-        const voiceName = voiceByChar.get(line.Character);
-        if (!voiceName) continue; // ignore Parent/Child/unassigned
+        const charInfo = voiceByChar.get(line.Character);
+        if (!charInfo) continue; // ignore Parent/Child/unassigned
         const text = canon(line.Dialogue);
         if (!text) continue;
-        tasks.push({ text, voiceName });
+        tasks.push({ 
+          text, 
+          voiceName: charInfo.voiceName,
+          role: charInfo.role 
+        });
       }
     }
     if (!tasks.length) return;
@@ -195,14 +199,15 @@ const playSound = () => {
   // Try narrator voice if assigned; fallback to “kore”
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
   const voiceName = narratorRole?.VA || "kore";
-  speak(state.pagesValues[state.page].question, voiceName);
+  const role = narratorRole?.role || null;
+  speak(state.pagesValues[state.page].question, voiceName, "neutral", role);
 };
 
 
 
 
 
-  async function speak(text, voiceName = "kore", emotion = "neutral") {
+  async function speak(text, voiceName = "kore", emotion = "neutral", role = null) {
   try {
     const clean = stripSSMLTags(String(text || "").trim());
     if (!clean) return;
@@ -211,6 +216,7 @@ const playSound = () => {
       text: clean,
       voiceName,
       emotion,
+      role,
     });
 
     setAudio(audio);
@@ -254,9 +260,10 @@ const continueReading = React.useCallback(async (page, index, roles) => {
   const line = page.text[index];
   const currentCharacter = roles.find(obj => obj.Character === line.Character);
   const currentVoiceName = currentCharacter?.VA || ""; // string voiceName or ""
+  const currentRole = currentCharacter?.role || null;
 
   // Never speak for Parent or Child (they're meant to read themselves)
-  if (currentCharacter?.role === "Parent" || currentCharacter?.role === "Child") {
+  if (currentRole === "Parent" || currentRole === "Child") {
     // keep highlighting behavior but do not play audio
     if (index > 0) page.text[index - 1].Reading = false;
     page.text[index].Reading = true;
@@ -286,6 +293,7 @@ const continueReading = React.useCallback(async (page, index, roles) => {
       text: dialogue,
       voiceName: currentVoiceName,
       emotion: "neutral", // or decide by character/line later
+      role: currentRole,
     });
 
     setAudio(audio);
@@ -460,7 +468,8 @@ function stripSSMLTags(text) {
                     (option) => option.Character === val.Character
                   );
                   const voiceName = currentRole?.VA || "kore";
-                  speak(val.Dialogue, voiceName);
+                  const role = currentRole?.role || null;
+                  speak(val.Dialogue, voiceName, "neutral", role);
                 }
               }}
             >

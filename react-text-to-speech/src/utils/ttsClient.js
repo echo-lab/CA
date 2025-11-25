@@ -4,6 +4,7 @@ export async function say({
   text,
   voiceName,
   emotion = "neutral",
+  role = null,
 }) {
   if (!BASE_URL) {
     throw new Error("REACT_APP_TTSURL not defined in .env.local");
@@ -13,7 +14,7 @@ export async function say({
   const res = await fetch(`${BASE_URL}/live/say`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, voiceName, emotion }),
+    body: JSON.stringify({ text, voiceName, emotion, role }),
   });
 
   if (!res.ok) {

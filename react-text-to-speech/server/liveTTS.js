@@ -1,5 +1,13 @@
-function buildSystemInstructionText({ emotion }) {
+function buildSystemInstructionText({ emotion, role }) {
   const tone = (emotion && String(emotion).trim()) || "neutral";
+  
+  // Check if the role is "Child" and provide child-specific instructions
+  if (role === "Child") {
+    console.log("Child prompt");
+    return `You are a young, energetic child. Read this text in a youthful, and lively voice suitable for a kid character in a story. Use a higher pitch and speak with childlike enthusiasm and energy.`;
+  }
+  
+  // Default instruction for other roles
   return `Read in a ${tone} tone suitable for a children's story.`;
 }
 
@@ -42,7 +50,7 @@ async function liveSayHandler(req, res) {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     if (!GEMINI_API_KEY) return res.status(500).json({ message: "GEMINI_API_KEY not set" });
 
-    let { text, voiceName, emotion, model: modelFromReq, speechRate } = req.body || {};
+    let { text, voiceName, emotion, model: modelFromReq, speechRate, role } = req.body || {};
     if (!text || typeof text !== "string" || !text.trim()) {
       return res.status(400).json({ message: 'Missing or invalid "text"' });
     }
@@ -75,6 +83,7 @@ async function liveSayHandler(req, res) {
       format,
       sampleRate,
       speechRate,
+      role,
     });
 
     // Try cache unless bypassed
@@ -84,7 +93,7 @@ async function liveSayHandler(req, res) {
         res.setHeader('Content-Type', 'audio/wav');
         res.setHeader('X-TTS-Cache', 'HIT');
         res.setHeader('ETag', `"${key}"`);
-        console.log(`[live/say][cache] HIT key=${key.slice(0,8)} model=${model} voice=${voiceName||'(default)'} emotion=${emo} bytes=${hit.buf.byteLength}`);
+        console.log(`[live/say][cache] HIT key=${key.slice(0,8)} model=${model} voice=${voiceName||'(default)'} emotion=${emo} role=${role||'(none)'} bytes=${hit.buf.byteLength}`);
         return res.status(200).send(hit.buf);
       }
       if (hit.state === 'STALE') {
@@ -104,7 +113,7 @@ async function liveSayHandler(req, res) {
       const WaveFile = wavefileMod.WaveFile || (wavefileMod.default && wavefileMod.default.WaveFile);
 
       const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-      const systemInstructionText = buildSystemInstructionText({ emotion: emo });
+      const systemInstructionText = buildSystemInstructionText({ emotion: emo, role });
 
       const speechConfig =
         speechRate != null
@@ -139,7 +148,7 @@ async function liveSayHandler(req, res) {
       wav.fromScratch(1, sampleRate, "16", int16);
       const buf = Buffer.from(wav.toBuffer());
 
-      console.log(`[live/say][tts] 200 model=${model} voice=${voiceName || "(default)"} emotion=${emo} bytes=${pcm.byteLength}`);
+      console.log(`[live/say][tts] 200 model=${model} voice=${voiceName || "(default)"} emotion=${emo} role=${role || "(none)"} bytes=${pcm.byteLength}`);
       return buf;
     });
 
