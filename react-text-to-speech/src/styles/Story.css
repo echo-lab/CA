@@ -269,3 +269,38 @@ img {
 .play-sound-button .MuiSvgIcon-root {
   font-size: 3rem; /* Adjust the size of the icon as needed */
 }
+
+/* Child interaction hand pointer */
+.child-tap-icon {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  transform: translateY(-50%); /* Centers it vertically */
+  color: #2196F3; /* Nice blue color */
+  animation: bounceAndPulse 1.5s ease-in-out infinite;
+  cursor: pointer;
+  z-index: 10;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  pointer-events: none; /* Allows clicks to pass through to the text */
+}
+
+@keyframes bounceAndPulse {
+  0%, 100% {
+    transform: translateY(-50%) translateX(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-50%) translateX(0) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Ensure the active child row has relative positioning */
+.active-child {
+  position: relative;
+}
+
+/* Add padding to the dialogue box so text doesn't go under the icon */
+.active-child .active-dialogue {
+  padding-right: 40px !important; /* Extra space for the larger icon */
+}

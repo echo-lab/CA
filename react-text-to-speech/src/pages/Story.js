@@ -2,6 +2,7 @@ import React,  { useState, useRef, useEffect} from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import TouchAppIcon from '@mui/icons-material/TouchApp';
 import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
@@ -461,10 +462,8 @@ function stripSSMLTags(text) {
   
   
  function renderPageRows() {
-  
-    
-    return (
-      <ReactScrollableFeed>
+  return (
+    <ReactScrollableFeed>
       <div className="table-column" ref={tableContainerRef}>
         {state.pagesValues[state.page]?.text?.map((val, key) => {
           let isActiveRowParent = false;
@@ -483,7 +482,7 @@ function stripSSMLTags(text) {
           }
           
           const roleImage = currentRole ? currentRole.img : "";
-          const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
+          const roleName = currentRole ? currentRole.Role : "Role image";
           const character = CurrentBook.characters.find(c => c.Name === val.Character);
           const characterImage = character ? character.img : "";
           const isChild = currentRole?.role === "Child";
@@ -491,7 +490,7 @@ function stripSSMLTags(text) {
           return (
             <div
               ref={(el) => dialogueRefs.current[key] = el}
-              className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
+              className={`row gx-3${isActiveRowParent && isActiveRow ? " active active-parent" : ""}${isActiveRowChild && isActiveRow ? " active active-child" : ""}`}
               key={key}
               onClick={() => {
                 const selectedText = window.getSelection().toString().trim();
@@ -506,32 +505,56 @@ function stripSSMLTags(text) {
                 }
               }}
             >
+              {/* Animated hand pointer for child lines */}
+              {isChild && isActiveRow && !childHasPlayed && (
+                <TouchAppIcon 
+                  className="child-tap-icon" 
+                  sx={{ fontSize: 48 }}
+                />
+              )}
        
               <div className="col-3">
-              <div className="role-image-container-text d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
-              {currentRole && roleImage && <img src={roleImage} alt={roleName} style={{width: "20%"}}  className="overlay-image"/>}
-            
-                {/* Add character image */}
-                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
+                <div className="role-image-container-text d-flex justify-content-around">
+                  {currentRole && roleImage && (
+                    <img 
+                      src={roleImage} 
+                      alt={roleName} 
+                      style={{width: "20%"}} 
+                      className="overlay-image"
+                    />
+                  )}
+                  {characterImage && (
+                    <img 
+                      src={characterImage} 
+                      alt={val.Character} 
+                      style={{width: "45%"}} 
+                      className={`${isActiveRow ? "active-roleImage" : ""}`} 
+                    />
+                  )}
+                </div>
               </div>
-              </div>
+              
               <div className="col-8">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
-                  {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : 
-                  <>
-                    {parseText(str)}
-                     <br />
-                  </>
-              )}
+                <div 
+                  className={`p-3 borderless text-size ${isActiveRow ? "active-dialogue" : ""}`} 
+                  onMouseUp={handleTextSelection}
+                >
+                  {val.Dialogue.split('\n').map((str, index, array) => 
+                    index === array.length - 1 ? parseText(str) : 
+                    <>
+                      {parseText(str)}
+                      <br />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           );
         })}
       </div>
-      </ReactScrollableFeed>
-    );
-  }
+    </ReactScrollableFeed>
+  );
+}
   
   
 
