@@ -29,6 +29,7 @@ function Reader() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [childHasPlayed, setChildHasPlayed] = useState(false);
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
@@ -255,6 +256,7 @@ const playSound = () => {
     if (currentRole?.role === "Child") {
       const voiceName = currentRole?.VA || "kore";
       speak(currentLine.Dialogue, voiceName, "neutral", currentRole.role);
+      setChildHasPlayed(true);
     }
   });
 
@@ -288,6 +290,9 @@ const continueReading = React.useCallback(async (page, index, roles) => {
   const currentCharacter = roles.find(obj => obj.Character === line.Character);
   const currentVoiceName = currentCharacter?.VA || ""; // string voiceName or ""
   const currentRole = currentCharacter?.role || null;
+
+  // Reset childHasPlayed flag for new line
+  setChildHasPlayed(false);
 
   // Never speak for Parent or Child (they're meant to read themselves)
   if (currentRole === "Parent" || currentRole === "Child") {
@@ -497,6 +502,7 @@ function stripSSMLTags(text) {
                   const voiceName = currentRole?.VA || "kore";
                   const role = currentRole?.role || null;
                   speak(val.Dialogue, voiceName, "neutral", role);
+                  setChildHasPlayed(true);
                 }
               }}
             >
@@ -565,6 +571,16 @@ function stripSSMLTags(text) {
   function renderNavigationButtons() {
     const isLastIndex = state.pagesValues[state.page].text.length === state.index;
     const isLastPage = state.page === state.pagesValues.length - 1;
+
+    // Check if current line is child's turn
+    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
+    const currentRole = currentLine ? state.CharacterRoles.find(
+      (option) => option.Character === currentLine.Character
+    ) : null;
+    const isChildTurn = currentRole?.role === "Child" && currentLine?.Reading;
+    
+    // Disable button if it's child's turn and they haven't played yet
+    const shouldDisableButton = isButtonDisabled || (isChildTurn && !childHasPlayed);
   
     let buttonText;
     let buttonClass = "";
@@ -577,7 +593,7 @@ function stripSSMLTags(text) {
       buttonClass = "highlight-button";
     } else {
       buttonText = "Next";
-      if (!isPlaying) {
+      if (!isPlaying && !shouldDisableButton) {
         buttonClass = "highlight-button";
       }
     }
@@ -587,9 +603,9 @@ function stripSSMLTags(text) {
         <div className="btn-group" role="group">
           <button
             type="button"
-            className={`btn btn-secondary ${isButtonDisabled ? 'disabled' : ''} ${buttonClass}`} // Apply the buttonClass here
+            className={`btn btn-secondary ${shouldDisableButton ? 'disabled' : ''} ${buttonClass}`} // Apply the buttonClass here
             onClick={handlePlayClick}
-            disabled={isButtonDisabled}
+            disabled={shouldDisableButton}
           >
             {buttonText}
           </button>
@@ -602,22 +618,27 @@ function stripSSMLTags(text) {
 
   function handlePlayClick() {
     console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
-  
-    // // Disable the button
-    // setIsButtonDisabled(true);
-  
-    // // Re-enable the button after 5 seconds
-    // setTimeout(() => {
-    //   setIsButtonDisabled(false);
-    // }, 2000);
-  
+
+    // Check if it's child's turn and they haven't played yet
+    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
+    const currentRole = currentLine ? state.CharacterRoles.find(
+      (option) => option.Character === currentLine.Character
+    ) : null;
+    const isChildTurn = currentRole?.role === "Child" && currentLine?.Reading;
+    
+    // If it's child's turn and they haven't played, don't allow advancement
+    if (isChildTurn && !childHasPlayed) {
+      console.log("Child must play their line first!");
+      return;
+    }
+
     // If we have reached the end, navigate to another page
     if (state.hasReachedEnd) {
       navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
       return;
     }
-  
-    // if this happesn to be last line, no option to pause it, just wait until the playing is done. 
+
+    // if this happens to be last line, no option to pause it, just wait until the playing is done. 
     if(state.pagesValues[state.page].text.length === state.index && isPlaying){
       console.log("Too late pause the audio cuz it's the last line. ")
       return;
@@ -630,7 +651,7 @@ function stripSSMLTags(text) {
         return true;
       }
     });
-  
+
     if (!isPlaying) {
       console.log("page size ", state.pagesValues[state.page]?.text?.length);
       console.log("current index", state.index);
