@@ -28,6 +28,7 @@ function Reader() {
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
   const location = useLocation();
   const navigate = useNavigate();
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
@@ -208,9 +209,17 @@ const playSound = () => {
 
 
   async function speak(text, voiceName = "kore", emotion = "neutral", role = null) {
+  
+  // prevent multiple audio calls
+  if (isAudioPlaying) {
+    return;
+  }
+  
   try {
     const clean = stripSSMLTags(String(text || "").trim());
     if (!clean) return;
+
+    setIsAudioPlaying(true);
 
     const { audio } = await say({
       text: clean,
@@ -223,7 +232,7 @@ const playSound = () => {
     audio.addEventListener("ended", audioEnded);
   } catch (err) {
     console.error("TTS error:", err);
-    
+    setIsAudioPlaying(false);
     setTimeout(() => {
       setAudioHasEnded(true);
     }, 100);
@@ -263,6 +272,7 @@ const playSound = () => {
         audio.removeEventListener("ended", audioEnded);
     }
     
+    setIsAudioPlaying(false);
     setAudioHasEnded(true);
     setIsButtonDisabled(false);
 }, [audio, isPlaying]);
