@@ -580,7 +580,7 @@ function stripSSMLTags(text) {
     const isChildTurn = currentRole?.role === "Child" && currentLine?.Reading;
     
     // Disable button if it's child's turn and they haven't played yet
-    const shouldDisableButton = isButtonDisabled || (isChildTurn && !childHasPlayed);
+    const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
   
     let buttonText;
     let buttonClass = "";
@@ -618,6 +618,10 @@ function stripSSMLTags(text) {
 
   function handlePlayClick() {
     console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
+
+    if (isAudioPlaying) {
+      return;
+    }
 
     // Check if it's child's turn and they haven't played yet
     const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
