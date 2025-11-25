@@ -234,7 +234,24 @@ const playSound = () => {
 
   useHotkeys("space", (event) => {
     event.preventDefault();
-    handlePlayClick();
+    
+    // Only play audio if it's the child's turn (yellow highlighted line)
+    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
+    if (!currentLine || !currentLine.Reading) return;
+    
+    const currentRole = state.CharacterRoles.find(
+      (option) => option.Character === currentLine.Character
+    );
+    
+    if (currentRole?.role === "Child") {
+      const voiceName = currentRole?.VA || "kore";
+      speak(currentLine.Dialogue, voiceName, "neutral", currentRole.role);
+    }
+  });
+
+  useHotkeys("enter", (event) => {
+    event.preventDefault();
+    handlePlayClick(); // Acts as "Next" button
   });
 
  
@@ -549,7 +566,7 @@ function stripSSMLTags(text) {
       buttonText = isLastPage ? 'End' : 'Next Page';
       buttonClass = "highlight-button";
     } else {
-      buttonText = (isPlaying && !audioHasEnded) ? "Pause" : "Play";
+      buttonText = "Next";
       if (!isPlaying) {
         buttonClass = "highlight-button";
       }
