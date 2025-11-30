@@ -114,7 +114,7 @@ function Reader() {
     // Build Character → voiceName map (skip muted roles: Parent/Child)
     const voiceByChar = new Map();
     for (const opt of state.CharacterRoles || []) {
-      if (opt.role === "Parent" || opt.role === "Child") continue;
+      if (opt.role === "Parent") continue;
       if (opt.VA) voiceByChar.set(opt.Character, { voiceName: opt.VA, role: opt.role });
     }
 
