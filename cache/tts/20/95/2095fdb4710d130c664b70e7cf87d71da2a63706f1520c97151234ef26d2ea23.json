@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761254975285,
+  "key": "2095fdb4710d130c664b70e7cf87d71da2a63706f1520c97151234ef26d2ea23",
+  "v": "1",
+  "textNorm": "Clara beamed.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 85050
+}

@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761616801439,
+  "key": "8993d81f7561b0fb8635d597883d330176a1a133c1155e3c5233167eee97a5a2",
+  "v": "1",
+  "textNorm": "“Our sleeping bags have the same pattern!” Clara said. “Yours is yellow, blue, yellow, blue…” “mine is green, purple, green, purple. Zip, zap, zip, zap!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "kore",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 714810
+}

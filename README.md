@@ -11,7 +11,7 @@
   - REACT_APP_TTSURL=[http://localhost for local development] or [https://talemate.cs.vt.edu for production]
   - DEVMODE=[true if local development, false for production]
 
-The following instructions are for Production Server 
+The following instructions are for Production Server
 - Install serve package: npm install serve@11.3.0
 - Ensure Node.js version >= 14.
 - Build with: `npm run build`

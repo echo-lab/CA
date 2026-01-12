@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762132389958,
+  "key": "5985ec8e45d0055c0b15d2a85aeda752b8f28fd0369f18d5d870e1a3a51ef184",
+  "v": "1",
+  "textNorm": "“You count, and I’ll hide,”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 117690
+}

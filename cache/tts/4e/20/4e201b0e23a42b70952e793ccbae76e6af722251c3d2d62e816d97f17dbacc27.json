@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761249675496,
+  "key": "4e201b0e23a42b70952e793ccbae76e6af722251c3d2d62e816d97f17dbacc27",
+  "v": "1",
+  "textNorm": "“This is going to be so much fun!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "zephyr",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 133050
+}

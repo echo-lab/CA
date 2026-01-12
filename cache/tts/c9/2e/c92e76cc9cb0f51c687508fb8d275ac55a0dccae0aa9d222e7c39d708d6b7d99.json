@@ -1,0 +1,13 @@
+{
+  "createdAt": 1760534011286,
+  "key": "c92e76cc9cb0f51c687508fb8d275ac55a0dccae0aa9d222e7c39d708d6b7d99",
+  "v": "1",
+  "textNorm": "“Welcome to my house!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 81210
+}

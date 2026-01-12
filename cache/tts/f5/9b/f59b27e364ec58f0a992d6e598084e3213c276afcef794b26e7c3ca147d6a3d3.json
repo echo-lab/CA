@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762131313641,
+  "key": "f59b27e364ec58f0a992d6e598084e3213c276afcef794b26e7c3ca147d6a3d3",
+  "v": "1",
+  "textNorm": "“Mine go blue, orange, blue, orange. How do yours go?”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 244410
+}

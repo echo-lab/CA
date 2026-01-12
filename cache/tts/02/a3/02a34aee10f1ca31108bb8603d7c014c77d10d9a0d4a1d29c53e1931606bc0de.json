@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761168664792,
+  "key": "02a34aee10f1ca31108bb8603d7c014c77d10d9a0d4a1d29c53e1931606bc0de",
+  "v": "1",
+  "textNorm": "You will see questions in this box while reading the book. Feel free to use them at your convenience.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 328890
+}

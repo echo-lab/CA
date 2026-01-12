@@ -1,0 +1,13 @@
+{
+  "createdAt": 1760533846813,
+  "key": "cfddec155c6d331e74b10ab27cdcaf6acb36fad6858b4430cdbbc46e4afdcfb8",
+  "v": "1",
+  "textNorm": "Hello ed, I am Blue Beatrice",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "zephyr",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 173370
+}

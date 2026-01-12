@@ -1,0 +1,13 @@
+{
+  "createdAt": 1760533768446,
+  "key": "2e1616c5923306758c480232320fe20a5c7cfd75b4c4f59959672ba80e6ec82e",
+  "v": "1",
+  "textNorm": "Hello ed, I am Green Grant",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 144570
+}

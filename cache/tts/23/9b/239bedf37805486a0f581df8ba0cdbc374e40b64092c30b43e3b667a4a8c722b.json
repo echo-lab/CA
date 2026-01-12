@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761072891077,
+  "key": "239bedf37805486a0f581df8ba0cdbc374e40b64092c30b43e3b667a4a8c722b",
+  "v": "1",
+  "textNorm": "“Ummm, a surprise party for… uhhh… someone,”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "kore",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 230970
+}

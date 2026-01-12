@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762131307394,
+  "key": "4243a6ea4add5119e6676ab20925ad61b35bfff3cbda5aa7ce2a7f56562f7453",
+  "v": "1",
+  "textNorm": "“The pattern might be, though.”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "umbriel",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 90810
+}

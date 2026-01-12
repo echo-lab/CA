@@ -1,0 +1,347 @@
+
+.row1 {
+  display: flex;
+  align-items: center; /* This will vertically center-align the flex items */
+  justify-content: space-between; /* This puts space between the flex items */
+ height: 75px;
+}
+
+.wrapper {
+  display: flex;
+  align-items: center; /* This will vertically center-align the flex items */
+  flex-direction: row;
+}
+.storyTitle {
+ margin-bottom: 10px;
+ margin: 0px;
+ padding: 0;
+ font-style: italic;
+ text-align: center;
+ font-size: 20px;
+}
+
+.reader-container {
+ position: relative;
+ max-height: 100vh; 
+overflow: auto;
+}
+
+.image-column {
+ flex: 1;
+ display: flex;
+ flex-direction: column; 
+ justify-content: space-between;  /* Distribute space evenly */
+ align-items: center;
+}
+
+.table-container {
+  max-height: calc(100vh - 200px); 
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.table-column {
+ flex: 1;
+ height: 100%;
+ overflow: auto;
+ padding: 10px;
+}
+
+img {
+ max-width: 100%;
+ max-height: 100%;
+ object-fit: contain;
+ margin-bottom: 10px;  /* Add margin at the bottom */
+
+}
+
+.navigation-buttons {
+ position: absolute;
+ bottom: 0;
+ right: 0;
+}
+
+.italic-text {
+  font-style: italic;
+}
+
+.active-parent {
+  background-color: #98ff98;
+}
+
+.active-child {
+  background-color: #ffbf00;
+}
+
+.active-character {
+  font-weight: bold;
+}
+
+.active-dialogue{
+  color: #0000cc;
+  font-weight: bold;
+}
+
+
+
+.text-size {
+  font-size: 28px; /* adjust as needed */
+}
+
+.row.d-flex {
+  display: flex;
+}
+
+.question-dialogue {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  border: 1px solid #ccc;
+  position: relative;
+  border-radius: 20px;
+  background-color: #97d597;
+  font-size: 22px;
+  text-align: center;
+  padding: 20px; /* Add padding to ensure the text doesn't touch the edges */
+  overflow: auto; /* Ensures the content is scrollable if it overflows */
+  width: 100%; /* Take up the remaining width */
+}
+
+.row1 {
+  display: flex;
+  align-items: start; /* Align to the top */
+  justify-content: start; /* Align to the left */
+}
+
+
+.show-icon {
+  position: relative;
+  background-color: #0d6efd;
+  border-radius: 30px 30px 30px 30px; 
+  justify-content: center;  /* Center text horizontally */
+  
+}
+
+.question-header {
+  font-size: 15px; 
+  text-align: center; 
+  border-radius: 10px 10px 0 0;  /* Round the top corners */
+  width: 100%;
+}
+
+
+.image-column {
+  display: flex;
+  flex-direction: column; 
+  align-items: center;
+ }
+
+ .role-image-container img {
+  display: flex;  
+  align-items: center; /* Center children horizontally */
+  height: 60px;
+  width: auto;
+}
+
+.role-image-container {
+  display: flex;
+  flex-direction: column; 
+  justify-content: flex-start; /* Start from the top */
+  align-items: center; /* Center horizontally */
+  margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
+  flex-shrink: 0; /* Prevent the container from shrinking */
+}
+
+.role-image-container-text {
+  display: flex;
+  flex-direction: row; 
+  justify-content: flex-start; /* Start from the top */
+  align-items: center; /* Center horizontally */
+  margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
+  flex-shrink: 0; /* Prevent the container from shrinking */
+  position: relative;
+}
+
+.overlay-image {
+  position: absolute;
+  top: -5%;
+  left: 55%;
+  border: solid firebrick;
+  border-radius: 50px;
+  background-color: white;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0px 0px 15px 5px rgba(0, 255, 50, 0.7);
+  }
+  50% {
+    box-shadow: 0px 0px 20px 10px rgba(0, 255, 50, 0.9);
+  }
+  100% {
+    box-shadow: 0px 0px 15px 5px rgba(0, 255, 50, 0.7);
+  }
+}
+
+.highlight-button {
+  background: linear-gradient(45deg, rgba(0, 255, 50, 0.1), rgba(0, 200, 50, 0.2));
+  border-width: 4px; /* Even thicker border */
+  border-color: rgb(0, 255, 50);
+  border-style: solid;
+  box-shadow: 0px 0px 15px 5px rgba(0, 255, 50, 0.7);
+  transition: all 0.5s ease-in-out;
+  color: rgb(0, 150, 50); /* Assuming the text color is some shade of green */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for readability */
+  animation: pulse 1.5s infinite; /* Pulsing animation */
+}
+
+.navigationButton {
+  background-color: #0d6efd; /* Bootstrap primary color */
+  color: white;
+  padding: 10px 20px;
+  margin: 3dvh;
+  border: none;
+  border-radius: .25rem; /* Bootstrap standard border-radius */
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  font-size: 1rem;
+  line-height: 1.5;
+  transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.control-button {
+  background: linear-gradient(45deg, rgba(0, 255, 50, 0.1), rgba(0, 200, 50, 0.2));
+  border-width: 4px; /* Even thicker border */
+  border-color: rgb(0, 0, 0);
+  border-style: solid;
+  color: rgb(0, 150, 50); /* Assuming the text color is some shade of green */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for readability */
+}
+
+.highlight-button:hover {
+  box-shadow: 0px 0px 20px 10px rgba(0, 255, 50, 0.9);
+  border-color: rgb(0, 255, 0);
+  background: linear-gradient(45deg, rgba(0, 255, 50, 0.2), rgba(0, 200, 50, 0.3));
+}
+
+
+ 
+
+
+
+
+.navigation-buttons-container {
+  display: flex;
+  align-items: center;
+  /* ... any other styles ... */
+}
+
+
+.next-page-button, .previous-page-button {
+  /* Removed the position absolute and added some margin for spacing */
+  margin: 0 10px; /* Adjust the margin as needed */
+}
+
+
+.navigation-buttons-container {
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  padding: 20px; /* Add padding as needed */
+}
+
+.play-sound-button {
+  /* Style your button as needed */
+ 
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: auto;
+  width: 50px; /* Adjust the width as needed */
+  height: 50px; /* Adjust the height as needed */
+  
+  /* Add other styles as needed */
+}
+
+.play-sound-button .MuiSvgIcon-root {
+  font-size: 3rem; /* Adjust the size of the icon as needed */
+}
+/* Realtime Toggle Switch Styles */
+.realtime-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 20px;
+}
+
+.toggle-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #4CAF50;
+}
+
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 1px #4CAF50;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.toggle-status {
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 90px;
+}
+
+.toggle-status.connected {
+  color: #4CAF50;
+}
+
+.toggle-status.disconnected {
+  color: #999;
+}

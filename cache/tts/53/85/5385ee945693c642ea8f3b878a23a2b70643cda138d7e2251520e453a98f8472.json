@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761251428831,
+  "key": "5385ee945693c642ea8f3b878a23a2b70643cda138d7e2251520e453a98f8472",
+  "v": "1",
+  "textNorm": "“They go star, star, heart, star, star, heart.”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 321210
+}

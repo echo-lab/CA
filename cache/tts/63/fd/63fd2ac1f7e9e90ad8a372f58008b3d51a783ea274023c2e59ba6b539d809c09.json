@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762131297499,
+  "key": "63fd2ac1f7e9e90ad8a372f58008b3d51a783ea274023c2e59ba6b539d809c09",
+  "v": "1",
+  "textNorm": "“You’re right,”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 62010
+}

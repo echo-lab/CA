@@ -1,0 +1,13 @@
+{
+  "createdAt": 1761255704553,
+  "key": "900b424082298eb740c9ffb8922a118032485828cb2cc29428d12c320c3f7ea8",
+  "v": "1",
+  "textNorm": "What is something fun you like to do with your friends?",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 156090
+}

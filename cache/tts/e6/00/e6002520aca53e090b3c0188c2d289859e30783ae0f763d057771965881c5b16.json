@@ -1,0 +1,13 @@
+{
+  "createdAt": 1762132687926,
+  "key": "e6002520aca53e090b3c0188c2d289859e30783ae0f763d057771965881c5b16",
+  "v": "1",
+  "textNorm": "“Zip, zap, zip, zap!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 144570
+}

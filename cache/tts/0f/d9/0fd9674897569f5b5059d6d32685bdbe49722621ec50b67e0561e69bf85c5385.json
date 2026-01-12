@@ -1,0 +1,13 @@
+{
+  "createdAt": 1760533721288,
+  "key": "0fd9674897569f5b5059d6d32685bdbe49722621ec50b67e0561e69bf85c5385",
+  "v": "1",
+  "textNorm": "Hello ed, I am Violet Victor",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "orus",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "bytes": 171450
+}
