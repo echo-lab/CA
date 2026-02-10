@@ -11,11 +11,11 @@ import "../styles/RoleDraggable.css";
 import "../styles/CharacterCard.css";
 
 import { roles } from "../Book/Roles.js";
-import { data as data1 } from "../Book/Book1";
-import { data as data2 } from "../Book/Book2";
-import { data as data3 } from "../Book/Book3";
+import { data as data1 } from "../Book/Book1.js";
+import { data as data2 } from "../Book/Book2.js";
+import { data as data3 } from "../Book/Book3.js";
 
-import { say } from "../utils/ttsClient";
+import { say } from "../utils/ttsClient.js";
 
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;

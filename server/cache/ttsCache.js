@@ -30,7 +30,7 @@ function normEmotion(e) {
   return (e && String(e).trim().toLowerCase()) || 'neutral';
 }
 
-function buildKey({ text, model, voiceName, emotion, format, sampleRate, speechRate }) {
+function buildKey({ text, model, voiceName, emotion, format, sampleRate, speechRate, role }) {
   const fields = {
     v: CFG.version,
     textNorm: normalizeText(text),
@@ -40,6 +40,7 @@ function buildKey({ text, model, voiceName, emotion, format, sampleRate, speechR
     fmt: String(format || 'wav'),
     sr: String(sampleRate || CFG.sampleRate),
     rate: speechRate == null ? '' : String(speechRate),
+    role: String(role || ''),
   };
   const serialized = JSON.stringify(fields);
   const hex = crypto.createHash('sha256').update(serialized).digest('hex');
@@ -70,13 +71,33 @@ async function readIfFresh(base) {
 }
 
 async function writeAtomically(base, buf, metaObj) {
-  const { audio, meta, tmp } = pathsFor(base);
-  await fsp.mkdir(path.dirname(audio), { recursive: true });
-  await fsp.writeFile(tmp, buf);
-  await fsp.rename(tmp, audio);
-  const metaTmp = meta + `.tmp-${process.pid}-${Date.now()}`;
-  await fsp.writeFile(metaTmp, JSON.stringify(metaObj, null, 2));
-  await fsp.rename(metaTmp, meta);
+  const { audio, meta } = pathsFor(base);
+  const dir = path.dirname(audio);
+
+  // Create unique temp file names
+  const audioTmp = `${audio}.tmp-${process.pid}-${Date.now()}`;
+  const metaTmp = `${meta}.tmp-${process.pid}-${Date.now()}`;
+
+  try {
+    // Ensure directory exists - use sync to avoid race condition
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Write audio
+    await fsp.writeFile(audioTmp, buf);
+    await fsp.rename(audioTmp, audio);
+
+    // Write metadata
+    await fsp.writeFile(metaTmp, JSON.stringify(metaObj, null, 2));
+    await fsp.rename(metaTmp, meta);
+
+  } catch (err) {
+    // Clean up temp files
+    await fsp.unlink(audioTmp).catch(() => {});
+    await fsp.unlink(metaTmp).catch(() => {});
+    throw err;
+  }
 }
 
 module.exports = {
@@ -87,4 +108,5 @@ module.exports = {
   readIfFresh,
   writeAtomically,
   ensureDirSync,
+  pathsFor,
 };

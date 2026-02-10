@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom'
 import '../styles/Home.css';
 import { bookInfo } from "../Book/Books.js"; // assuming that Books.js is in the same directory as Home.js
-import NavigationBar from '../components/NavigationBar';
+import NavigationBar from '../components/NavigationBar.js';
 
 
 function Home() {
