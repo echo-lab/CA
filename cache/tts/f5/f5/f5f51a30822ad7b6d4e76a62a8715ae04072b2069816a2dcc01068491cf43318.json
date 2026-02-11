@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770838933985,
+  "key": "f5f51a30822ad7b6d4e76a62a8715ae04072b2069816a2dcc01068491cf43318",
+  "v": "1",
+  "textNorm": "“And it’s my birthday.”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 113850
+}

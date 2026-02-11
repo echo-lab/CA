@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770836743115,
+  "key": "5d0b42d167366052d5d6051b7b7018cd8895d54a7c813746286f7f2615f837a8",
+  "v": "1",
+  "textNorm": "The Pattern Pals: Birthday Beeps and Boops",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

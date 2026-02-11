@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770838963908,
+  "key": "0eb89eb56c7437eea5e084f5791ccd752f5634afbccf228fc8bf12c829dcf657",
+  "v": "1",
+  "textNorm": "Zoe turned to the streamers.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

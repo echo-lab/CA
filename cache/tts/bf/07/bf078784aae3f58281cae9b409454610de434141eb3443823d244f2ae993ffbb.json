@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770838964389,
+  "key": "bf078784aae3f58281cae9b409454610de434141eb3443823d244f2ae993ffbb",
+  "v": "1",
+  "textNorm": "Clara hugged her tail. Who else could the party be for?",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

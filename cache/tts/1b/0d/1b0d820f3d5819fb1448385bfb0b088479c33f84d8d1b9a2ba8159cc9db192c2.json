@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770836744949,
+  "key": "1b0d820f3d5819fb1448385bfb0b088479c33f84d8d1b9a2ba8159cc9db192c2",
+  "v": "1",
+  "textNorm": "said Zoe.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

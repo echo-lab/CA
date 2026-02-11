@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770841851580,
+  "key": "ba67f42e9d8e4a2a4e16b8930ed6a98b78ef882bcb95e56bea4f5d8dd460c664",
+  "v": "1",
+  "textNorm": "Clara beamed.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

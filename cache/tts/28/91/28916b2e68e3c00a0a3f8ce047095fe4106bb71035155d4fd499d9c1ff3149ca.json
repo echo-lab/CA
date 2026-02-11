@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770838931184,
+  "key": "28916b2e68e3c00a0a3f8ce047095fe4106bb71035155d4fd499d9c1ff3149ca",
+  "v": "1",
+  "textNorm": "“Those are my favorite colors, too!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 121530
+}

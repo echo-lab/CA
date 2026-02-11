@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770841852567,
+  "key": "30f074a7209cebd46b069fd0f8eeb4751264e58e43aca007304401ce8b014dc6",
+  "v": "1",
+  "textNorm": "sang Zoe. It was their first sleepover.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

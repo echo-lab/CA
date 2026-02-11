@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770838962083,
+  "key": "b5d01e07586a125bda20ac7e9ace5e53b0351df8c72f46014342cb319e04fa99",
+  "v": "1",
+  "textNorm": "squawked Zoe.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

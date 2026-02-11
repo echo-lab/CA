@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770836744478,
+  "key": "b9e91553178e91e7fd289984fc90dfcfbaa8ed001985f601151a96031d671685",
+  "v": "1",
+  "textNorm": "Clara asked.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}

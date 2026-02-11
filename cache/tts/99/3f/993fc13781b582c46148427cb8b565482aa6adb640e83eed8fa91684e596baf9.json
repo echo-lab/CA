@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770841851031,
+  "key": "993fc13781b582c46148427cb8b565482aa6adb640e83eed8fa91684e596baf9",
+  "v": "1",
+  "textNorm": "“Welcome to my house!”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 85050
+}

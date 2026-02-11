@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770836729726,
+  "key": "66497ecc911087ed58890fb2e6629df768b928bbf98d9d760fc3c494308bd677",
+  "v": "1",
+  "textNorm": "“Hey, what are these decorations for?”",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 133050
+}

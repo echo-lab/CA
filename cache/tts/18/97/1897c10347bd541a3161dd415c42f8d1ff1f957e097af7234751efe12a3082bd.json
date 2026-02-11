@@ -1,0 +1,14 @@
+{
+  "createdAt": 1770836743590,
+  "key": "1897c10347bd541a3161dd415c42f8d1ff1f957e097af7234751efe12a3082bd",
+  "v": "1",
+  "textNorm": "Clara the chameleon found Zoe making a BIG mess.",
+  "model": "gemini-2.5-flash-preview-tts",
+  "voice": "alloy",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Dummy",
+  "bytes": 4844
+}
