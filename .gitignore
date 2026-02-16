@@ -25,3 +25,8 @@ yarn-error.log*
 
 # Project specific
 react-text-to-speech/server/key/
+
+# Ignore all files with the following extensions
+.key
+.csr
+.pem
