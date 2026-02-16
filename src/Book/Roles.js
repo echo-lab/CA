@@ -37,7 +37,7 @@ export const roles = [
   },
   {
     Role: "Dummy",
-    RoleParameter: "alloy",
+    RoleParameter: "gacrux",
     img: require("../Pictures/adult.png"),
     voiceColor: "Gray",
     isDummy: true
