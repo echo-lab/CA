@@ -1,6 +1,6 @@
 function buildNaturalLanguagePrompt({ text, emotion, role }) {
   if (role === "Child") {
-    return `You are a young, energetic child reading a children's story. Speak with a high-pitched, youthful voice full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: ${text}`;
+    return `You are a 5-year-old child reading a children's story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: ${text}`;
   }
   return `Say the following in a clear, natural, conversational way suitable for narrating a children's story: ${text}`;
 }
@@ -12,6 +12,7 @@ function extractAudioBase64FromCandidates(response) {
   for (const p of parts) {
     if (p?.inline_data?.data) return p.inline_data.data;
     if (p?.inlineData?.data) return p.inlineData.data;
+    if (p?.audio?.data) return p.audio.data;
   }
   return null;
 }
