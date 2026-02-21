@@ -32,8 +32,8 @@ const corsOptions = {
         'https://localhost:3000',
         'http://localhost:3000',  // Allow HTTP for local dev
         'http://localhost:5001',  // Allow same-origin requests
-        'https://talemate.cs.vt.edu:3001',
-        'https://talemate.cs.vt.edu:5001'
+        'https://talemate.cs.vt.edu:3004',
+        'https://talemate.cs.vt.edu:5004'
     ],
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true
