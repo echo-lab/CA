@@ -56,14 +56,23 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords) {
   offScriptLogRef.current.push({ lineIndex, text: leftoverWords.join(' ') });
 }
 
-function sendOffScriptLog(offScriptLogRef, oldPage, state) {
+export function sendOffScriptLog(offScriptLogRef, oldPage, state) {
   if (!offScriptLogRef?.current?.length) return;
 
   const oldPageText = state.pagesValues[oldPage]?.text
     ?.map(l => stripSSMLTags(l.Dialogue)).join(' ') || '';
 
-  const formattedLog = offScriptLogRef.current
-    .map(e => `Line ${e.lineIndex + 1}: "${e.text}"`)
+  // Merge all entries by line index, then format as "line2: text"
+  const lineMap = new Map();
+  for (const e of offScriptLogRef.current) {
+    lineMap.set(e.lineIndex, lineMap.has(e.lineIndex)
+      ? lineMap.get(e.lineIndex) + ' ' + e.text
+      : e.text);
+  }
+
+  const formattedLog = [...lineMap.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([idx, text]) => `line${idx + 1}: ${text}`)
     .join('\n');
 
   console.log(`Sending off-script log for page ${oldPage + 1}:\n${formattedLog}`);
@@ -156,8 +165,17 @@ export async function processUserUtterance({
 }) {
   if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
 
+  const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
   const currentLine = state.pagesValues[state.page]?.text?.[currentLineIndex];
+
+  // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
+  if (totalLines > 0 && state.index >= totalLines) {
+    lastProcessedUtteranceRef.current = userUtterance;
+    captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0));
+    console.log(`Post-last-line utterance collected: "${userUtterance}"`);
+    return;
+  }
 
   if (!currentLine?.Reading) return;
 
@@ -189,7 +207,6 @@ export async function processUserUtterance({
   utteranceQueueRef.current.push(...newWords);
 
   // Prepare expected text
-  const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const expectedText = stripPunctuation(stripSSMLTags(currentLine.Dialogue).toLowerCase().trim());
   const expectedWords = expectedText.split(/\s+/).filter(w => w.length > 0);
   const expectedWordCount = expectedWords.length;

@@ -14,7 +14,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useRealtimeConnection } from "../utils/RealtimeConnectionContext";
-import { processUserUtterance } from "../utils/utteranceProcessor";
+import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
 
 class Book {
   constructor(data) {
@@ -187,6 +187,9 @@ const gotoNextPage = () => {
   setIsPlaying(prevIsPlaying => {
       return false;
   });
+
+  sendOffScriptLog(offScriptLogRef, state.page, state);
+
   if (state.page < state.pagesValues.length - 1) {
 
     for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
