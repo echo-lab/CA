@@ -469,6 +469,7 @@ const utteranceQueueRef = useRef([]); // Queue for sliding window word compariso
 const currentLineTrackingRef = useRef({ page: -1, index: -1 }); // Track which line we're accumulating for
 const silenceTimeoutRef = useRef(null); // Track timeout for silence detection
 const pendingUtteranceRef = useRef(""); // Store utterance waiting to be sent after silence
+const offScriptLogRef = useRef([]); // Log of off-script words by line, sent to LLM on page change
 
 // Jump to a specific line index
 const jumpToLine = useCallback((lineIndex) => {
@@ -507,6 +508,7 @@ React.useEffect(() => {
     currentLineTrackingRef,
     silenceTimeoutRef,
     pendingUtteranceRef,
+    offScriptLogRef,
     state,
     speakerLabels,
     sendContentMessage,

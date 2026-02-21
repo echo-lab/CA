@@ -329,6 +329,79 @@ Which phase is the speaker in?`
     }
 });
 
+app.post('/api/categorize-utterances', async (req, res) => {
+    try {
+        const { formattedUtterances, bookPageText } = req.body;
+
+        if (!formattedUtterances) {
+            return res.status(400).json({
+                error: 'Missing required fields',
+                required: ['formattedUtterances']
+            });
+        }
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "developer",
+                    content: `You are analyzing a parent-child book reading session. The reader has spoken words beyond the expected book text. These off-script utterances are tagged by the line number when they were spoken. Classify each utterance as BOOK_RELATED (questions, comments, or reactions about the story, characters, or themes) or OFF_TOPIC (unrelated to the book content). Also provide a brief overall summary of the reading interaction.`
+                },
+                {
+                    role: "user",
+                    content: `Book page text:
+"${bookPageText}"
+
+Off-script utterances by line:
+${formattedUtterances}
+
+Classify each utterance.`
+                }
+            ],
+            response_format: {
+                type: "json_schema",
+                json_schema: {
+                    name: "utterance_categorization",
+                    strict: true,
+                    schema: {
+                        type: "object",
+                        properties: {
+                            items: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        line: { type: "string" },
+                                        text: { type: "string" },
+                                        category: { type: "string", enum: ["BOOK_RELATED", "OFF_TOPIC"] },
+                                        rationale: { type: "string" }
+                                    },
+                                    required: ["line", "text", "category", "rationale"],
+                                    additionalProperties: false
+                                }
+                            },
+                            summary: { type: "string" }
+                        },
+                        required: ["items", "summary"],
+                        additionalProperties: false
+                    }
+                }
+            },
+            temperature: 0.3
+        });
+
+        const result = JSON.parse(completion.choices[0].message.content);
+        res.json(result);
+
+    } catch (error) {
+        console.error('Error categorizing utterances:', error);
+        res.status(500).json({
+            error: 'Failed to categorize utterances',
+            detail: error.message
+        });
+    }
+});
+
 app.post('/synthesize', async (req, res) => {
     try {
         // Log the incoming request body

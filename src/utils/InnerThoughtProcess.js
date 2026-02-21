@@ -41,34 +41,58 @@ const calculateRelevancy = async (bookContent, currentLine, utterances, utteranc
     }
 };
 
-const classifyUtterance = async (bookContent, currentLine, utterances, utterance) => {
+// const classifyUtterance = async (bookContent, currentLine, utterances, utterance) => {
+//     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
+
+//     try { 
+//         const response = await fetch(`${BASE_URL}/api/classify-utterance`, {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//             },
+//             body: JSON.stringify({
+//                 bookContent,
+//                 currentLine,
+//                 utterances,
+//                 utterance
+//             })
+//         });
+
+//         if (!response.ok) {
+//             const errorData = await response.json();
+//             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+//         }
+        
+//         const result = await response.json();
+//         return result;
+//     } catch (error) {
+//         console.error('Error classifying utterance:', error);
+//     }
+//     return { classification: 'UNKNOWN' };
+// };
+
+const categorizeOffScriptUtterances = async (formattedUtterances, bookPageText) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
-    try { 
-        const response = await fetch(`${BASE_URL}/api/classify-utterance`, {
+    try {
+        const response = await fetch(`${BASE_URL}/api/categorize-utterances`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                bookContent,
-                currentLine,
-                utterances,
-                utterance
-            })
+            body: JSON.stringify({ formattedUtterances, bookPageText })
         });
 
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
-        
-        const result = await response.json();
-        return result;
+
+        return response.json();
     } catch (error) {
-        console.error('Error classifying utterance:', error);
+        console.error('Error categorizing off-script utterances:', error);
+        return null;
     }
-    return { classification: 'UNKNOWN' };
 };
 
-export { calculateRelevancy, classifyUtterance };
+export { calculateRelevancy, categorizeOffScriptUtterances };
