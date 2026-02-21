@@ -274,7 +274,7 @@ app.post('/api/classify-utterance', async (req, res) => {
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-4o",
             messages: [
                 {
                     role: "developer",
@@ -331,7 +331,7 @@ Which phase is the speaker in?`
 
 app.post('/api/categorize-utterances', async (req, res) => {
     try {
-        const { formattedUtterances, bookPageText } = req.body;
+        const { formattedUtterances, bookPageText, currentPageQuestion, bookText } = req.body;
 
         if (!formattedUtterances) {
             return res.status(400).json({
@@ -341,19 +341,39 @@ app.post('/api/categorize-utterances', async (req, res) => {
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-4o",
             messages: [
                 {
                     role: "developer",
-                    content: `You are analyzing a parent-child book reading session. The reader has spoken words beyond the expected book text. These off-script utterances are tagged by the line number when they were spoken. Classify each utterance as BOOK_RELATED (questions, comments, or reactions about the story, characters, or themes) or OFF_TOPIC (unrelated to the book content). Also provide a brief overall summary of the reading interaction.`
+                    content: `You are a reading interaction analyst for a parent-child co-reading system. You classify off-script utterances — words spoken beyond the expected book text — during reading sessions.
+                    
+Categories:
+- COMPREHENSION: Questions or comments that check or promote story understanding (vocabulary, predictions, recall).
+- ELABORATION: Expanding on story content through real-world connections, background knowledge, or personal experiences.
+- ENGAGEMENT: Emotional reactions, praise, encouragement, or expressive performance (e.g., "Wow!", "Great reading!", dramatic voices).
+- PROMPTED_QUESTION: Asking or paraphrasing a question that is provided on the current page of the book. This includes reading the question verbatim, rephrasing it, or prompting the child to answer it (e.g., "So what color comes next?" when the page asks "What color should come next in the pattern?").
+- OFF_TOPIC: Unrelated to the book content or reading activity.
+
+Classification rules:
+- Classify by the speaker's primary communicative intent.
+- Loose story connections count as book-related. Parents often link the story to the child's life — classify these as ELABORATION, not OFF_TOPIC.
+- Redirections or attention prompts (e.g., "Pay attention", "Let's focus") are READING_MANAGEMENT, not OFF_TOPIC.
+- When uncertain, favor a book-related category over OFF_TOPIC.`
                 },
                 {
                     role: "user",
-                    content: `Book page text:
-"${bookPageText}"
+                    content: `Full book text:
+${bookText}
 
-Off-script utterances by line:
+<current_page>
+Page: ${req.body.currentPageNumber || ''}
+Text: "${bookPageText}"
+Question: "${currentPageQuestion}"
+</current_page>
+
+<off_script_utterances>
 ${formattedUtterances}
+</off_script_utterances>
 
 Classify each utterance.`
                 }
@@ -373,10 +393,11 @@ Classify each utterance.`
                                     properties: {
                                         line: { type: "string" },
                                         text: { type: "string" },
-                                        category: { type: "string", enum: ["BOOK_RELATED", "OFF_TOPIC"] },
+                                        category: { type: "string", enum: ["COMPREHENSION", "ELABORATION", "ENGAGEMENT", "PROMPTED_QUESTION", "OFF_TOPIC"] },
+                                        confidence: { type: "number", minimum: 0, maximum: 1 },
                                         rationale: { type: "string" }
                                     },
-                                    required: ["line", "text", "category", "rationale"],
+                                    required: ["line", "text", "category", "confidence", "rationale"],
                                     additionalProperties: false
                                 }
                             },

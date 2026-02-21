@@ -71,7 +71,7 @@ const calculateRelevancy = async (bookContent, currentLine, utterances, utteranc
 //     return { classification: 'UNKNOWN' };
 // };
 
-const categorizeOffScriptUtterances = async (formattedUtterances, bookPageText) => {
+const categorizeOffScriptUtterances = async (formattedUtterances, bookPageText, currentPageQuestion, bookText, currentPageNumber) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
     try {
@@ -80,7 +80,7 @@ const categorizeOffScriptUtterances = async (formattedUtterances, bookPageText) 
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ formattedUtterances, bookPageText })
+            body: JSON.stringify({ formattedUtterances, bookPageText, currentPageQuestion, bookText, currentPageNumber })
         });
 
         if (!response.ok) {

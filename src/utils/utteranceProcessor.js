@@ -59,8 +59,16 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords) {
 export function sendOffScriptLog(offScriptLogRef, oldPage, state) {
   if (!offScriptLogRef?.current?.length) return;
 
-  const oldPageText = state.pagesValues[oldPage]?.text
+  const currentPageText = state.pagesValues[oldPage]?.text
     ?.map(l => stripSSMLTags(l.Dialogue)).join(' ') || '';
+
+  const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
+
+  const bookText = state.pagesValues
+    .map((page, i) =>
+      `Page ${i + 1}:\n` +
+      (page.text || []).map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n')
+    ).join('\n\n');
 
   // Merge all entries by line index, then format as "line2: text"
   const lineMap = new Map();
@@ -77,7 +85,7 @@ export function sendOffScriptLog(offScriptLogRef, oldPage, state) {
 
   console.log(`Sending off-script log for page ${oldPage + 1}:\n${formattedLog}`);
 
-  categorizeOffScriptUtterances(formattedLog, oldPageText)
+  categorizeOffScriptUtterances(formattedLog, currentPageText, currentPageQuestion, bookText, oldPage + 1)
     .then(r => console.log('Off-script categorization:', r))
     .catch(err => console.error('Categorization error:', err));
 
