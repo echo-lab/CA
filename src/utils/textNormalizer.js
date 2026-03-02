@@ -21,9 +21,10 @@ export function normalizeText(text) {
 
   // Expand contractions: "don't" → "do not", "I'm" → "I am"
   let expandedResult = expandContractions(result);
-
-  resultOptions.push(expandedResult);
-
+  if (expandedResult !== result) {
+    resultOptions.push(expandedResult);
+  }
+  
   return resultOptions;
 }
 
