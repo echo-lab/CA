@@ -15,7 +15,7 @@ export function normalizeText(text) {
   result = result.replace(/[*.,!?;:'"'""“”()\-—…]/g, "");
 
   // Replace hyphens with spaces: "well-known" → "well known"
-  //result = result.replace(/-/g, ' ');
+  result = result.replace(/-/g, ' ');
 
   resultOptions.push(result);
 
@@ -24,7 +24,7 @@ export function normalizeText(text) {
   if (expandedResult !== result) {
     resultOptions.push(expandedResult);
   }
-  
+
   return resultOptions;
 }
 
