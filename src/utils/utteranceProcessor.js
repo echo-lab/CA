@@ -8,7 +8,7 @@ function stripSSMLTags(text) {
 
 function calculateConfidence(spokenWords, expectedText) {
   const mergedUtterance = spokenWords.filter(w => w.length > 0).join(' ');
-  return calculateHybridScore(mergedUtterance, normalizeText(expectedText), {
+  return calculateHybridScore(mergedUtterance, expectedText, {
     exactWordWeight: 0.0,
     fuzzyWeight: 0.5,
     phoneticWeight: 0.5,
@@ -242,7 +242,7 @@ export async function processUserUtterance({
   // Debug log (use first variant queue for logging)
   const primaryQueue = utteranceQueuesRef.current[0] || [];
   console.log(`--- No match for current line ---`);
-  console.log(`Expected: "${expectedText.join(' | ')}" | All: [${primaryQueue.join(', ')}]`);
+  console.log(`Expected: "${expectedText.join(' | ')}" | User Utterance: [${primaryQueue.join(', ')}]`);
   console.log(`Scanned ${Math.max(0, primaryQueue.length - expectedWordCount + 1)} window(s) of size ${expectedWordCount} — no hybrid match >= 60%`);
   console.log(`---------------------------------`);
 

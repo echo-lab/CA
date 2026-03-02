@@ -12,7 +12,7 @@ export function normalizeText(text) {
   result = convertNumbersToWords(result);
 
   // Strip punctuation (contractions already expanded, apostrophes safe to remove)
-  result = result.replace(/[*.,!?;:'"'""()\-—…]/g, "");
+  result = result.replace(/[*.,!?;:'"'""“”()\-—…]/g, "");
 
   // Replace hyphens with spaces: "well-known" → "well known"
   //result = result.replace(/-/g, ' ');
