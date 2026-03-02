@@ -16,9 +16,9 @@ function calculateConfidence(spokenWords, expectedText) {
   }).confidence;
 }
 
-function clearMatchState({ accumulatedUtterancesRef, utteranceQueueRef, silenceTimeoutRef, pendingUtteranceRef }, wordsToConsume) {
+function clearMatchState({ accumulatedUtterancesRef, utteranceQueuesRef, silenceTimeoutRef, pendingUtteranceRef }, wordsToConsume) {
   accumulatedUtterancesRef.current = [];
-  utteranceQueueRef.current = utteranceQueueRef.current.slice(wordsToConsume);
+  utteranceQueuesRef.current = utteranceQueuesRef.current.map(q => q.slice(wordsToConsume));
   if (silenceTimeoutRef.current) {
     clearTimeout(silenceTimeoutRef.current);
     silenceTimeoutRef.current = null;
@@ -79,9 +79,7 @@ function jumpToFutureLine(jumpToLine, checkIndex, totalLines) {
   setTimeout(() => jumpToLine(Math.min(checkIndex + 2, totalLines)), 100);
 }
 
-function checkFutureLines({ allSpokenWords, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef }) {
-  const allSpokenWordCount = allSpokenWords.length;
-
+function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef }) {
   for (let offset = 1; offset <= 3; offset++) {
     const checkIndex = currentLineIndex + offset;
     if (checkIndex >= totalLines) break;
@@ -92,36 +90,40 @@ function checkFutureLines({ allSpokenWords, currentLineIndex, totalLines, state,
     const checkText = normalizeText(stripSSMLTags(checkLine.Dialogue));
     const checkWordCount = checkText[0].split(/\s+/).filter(w => w.length > 0).length;
 
-    // Exact subsequence match first
-    const exactMatch = findSubsequenceMatch(checkText, allSpokenWords);
-    if (exactMatch !== null) {
-      console.log(`Exact subsequence match on future line ${checkIndex} at position ${exactMatch.startIdx}!`);
-      captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx));
-      clearMatchState(refs, exactMatch.endIdx);
-      jumpToFutureLine(jumpToLine, checkIndex, totalLines);
-      return true;
-    }
+    for (const allSpokenWords of utteranceQueuesRef.current) {
+      const allSpokenWordCount = allSpokenWords.length;
 
-    if (checkWordCount <= allSpokenWordCount) {
-      // Sliding window: try each window position
-      const maxStartIndex = allSpokenWordCount - checkWordCount;
-      for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
-        const windowWords = allSpokenWords.slice(startIdx, startIdx + checkWordCount);
-        if (calculateConfidence(windowWords, checkText) >= 0.6) {
-          console.log(`Match found at line ${checkIndex} with window starting at ${startIdx}! Jumping ahead.`);
-          captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx));
-          clearMatchState(refs, startIdx + checkWordCount);
+      // Exact subsequence match first
+      const exactMatch = findSubsequenceMatch(checkText, allSpokenWords);
+      if (exactMatch !== null) {
+        console.log(`Exact subsequence match on future line ${checkIndex} at position ${exactMatch.startIdx}!`);
+        captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx));
+        clearMatchState(refs, exactMatch.endIdx);
+        jumpToFutureLine(jumpToLine, checkIndex, totalLines);
+        return true;
+      }
+
+      if (checkWordCount <= allSpokenWordCount) {
+        // Sliding window: try each window position
+        const maxStartIndex = allSpokenWordCount - checkWordCount;
+        for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
+          const windowWords = allSpokenWords.slice(startIdx, startIdx + checkWordCount);
+          if (calculateConfidence(windowWords, checkText) >= 0.6) {
+            console.log(`Match found at line ${checkIndex} with window starting at ${startIdx}! Jumping ahead.`);
+            captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx));
+            clearMatchState(refs, startIdx + checkWordCount);
+            jumpToFutureLine(jumpToLine, checkIndex, totalLines);
+            return true;
+          }
+        }
+      } else {
+        // Queue shorter than future line — use full queue
+        if (calculateConfidence(allSpokenWords, checkText) >= 0.6) {
+          captureOffScriptWords(offScriptLogRef, checkIndex, []);
+          clearMatchState(refs, allSpokenWordCount);
           jumpToFutureLine(jumpToLine, checkIndex, totalLines);
           return true;
         }
-      }
-    } else {
-      // Queue shorter than future line — use full queue
-      if (calculateConfidence(allSpokenWords, checkText) >= 0.6) {
-        captureOffScriptWords(offScriptLogRef, checkIndex, []);
-        clearMatchState(refs, allSpokenWordCount);
-        jumpToFutureLine(jumpToLine, checkIndex, totalLines);
-        return true;
       }
     }
   }
@@ -133,7 +135,7 @@ export async function processUserUtterance({
   userUtterance,
   lastProcessedUtteranceRef,
   accumulatedUtterancesRef,
-  utteranceQueueRef,
+  utteranceQueuesRef,
   currentLineTrackingRef,
   silenceTimeoutRef,
   pendingUtteranceRef,
@@ -171,7 +173,7 @@ export async function processUserUtterance({
     // Send off-script log before clearing
     sendOffScriptLog(offScriptLogRef, currentLineTrackingRef.current.page, state);
     accumulatedUtterancesRef.current = [];
-    utteranceQueueRef.current = [];
+    utteranceQueuesRef.current = [];
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
     currentLineTrackingRef.current.index = currentLineIndex;
@@ -182,68 +184,78 @@ export async function processUserUtterance({
     pendingUtteranceRef.current = "";
   }
 
-  // Accumulate utterance and words
+  // Accumulate utterance and words — build parallel queues for each normalized variant
   accumulatedUtterancesRef.current.push({ speaker: speakerLabels || 'Unknown', utterance: userUtterance.toLowerCase().trim() });
   lastProcessedUtteranceRef.current = userUtterance;
-  const newWords = normalizeText(userUtterance).split(/\s+/).filter(w => w.length > 0);
-  utteranceQueueRef.current.push(...newWords);
+  const variants = normalizeText(userUtterance);
+  if (utteranceQueuesRef.current.length === 0) {
+    utteranceQueuesRef.current = variants.map(() => []);
+  }
+  variants.forEach((variant, i) => {
+    const words = variant.split(/\s+/).filter(w => w.length > 0);
+    utteranceQueuesRef.current[i].push(...words);
+  });
 
-  // Prepare expected text
+  // Prepare expected text (array of variants)
   const expectedText = normalizeText(stripSSMLTags(currentLine.Dialogue));
   const expectedWordCount = expectedText[0].split(/\s+/).filter(w => w.length > 0).length;
-  const allSpokenWords = utteranceQueueRef.current;
-  const refs = { accumulatedUtterancesRef, utteranceQueueRef, silenceTimeoutRef, pendingUtteranceRef };
+  const refs = { accumulatedUtterancesRef, utteranceQueuesRef, silenceTimeoutRef, pendingUtteranceRef };
 
-  // Step 1: Exact subsequence match on whole queue
-  const exactMatch = findSubsequenceMatch(expectedText, allSpokenWords);
-  if (exactMatch !== null) {
-    console.log(`Exact subsequence match at position ${exactMatch.startIdx}!`);
-    captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx));
-    clearMatchState(refs, exactMatch.endIdx);
-    advanceToNextLine(setAudioHasEnded, setIsPlaying);
-    return;
-  }
+  // Try matching across all spoken variant queues
+  for (const allSpokenWords of utteranceQueuesRef.current) {
+    // Step 1: Exact subsequence match on whole queue
+    const exactMatch = findSubsequenceMatch(expectedText, allSpokenWords);
+    if (exactMatch !== null) {
+      console.log(`Exact subsequence match at position ${exactMatch.startIdx}!`);
+      captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx));
+      clearMatchState(refs, exactMatch.endIdx);
+      advanceToNextLine(setAudioHasEnded, setIsPlaying);
+      return;
+    }
 
-  // Step 2: Sliding window hybrid (fuzzy + phonetic) — scan all N-word windows left to right
-  let hybridStartIdx = -1;
-  let hybridResult = null;
+    // Step 2: Sliding window hybrid (fuzzy + phonetic)
+    let hybridStartIdx = -1;
+    let hybridResult = null;
 
-  if (allSpokenWords.length >= expectedWordCount) {
-    const maxStartIndex = allSpokenWords.length - expectedWordCount;
-    for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
-      const window = allSpokenWords.slice(startIdx, startIdx + expectedWordCount);
-      const confidence = calculateConfidence(window, expectedText);
-      if (confidence >= 0.6) {
-        hybridResult = { confidence };
-        hybridStartIdx = startIdx;
-        break;
+    if (allSpokenWords.length >= expectedWordCount) {
+      const maxStartIndex = allSpokenWords.length - expectedWordCount;
+      for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
+        const window = allSpokenWords.slice(startIdx, startIdx + expectedWordCount);
+        const confidence = calculateConfidence(window, expectedText);
+        if (confidence >= 0.6) {
+          hybridResult = { confidence };
+          hybridStartIdx = startIdx;
+          break;
+        }
       }
+    }
+
+    if (hybridStartIdx !== -1) {
+      console.log(`Sliding window hybrid match at position ${hybridStartIdx}! Confidence: ${(hybridResult.confidence * 100).toFixed(1)}%`);
+      captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, hybridStartIdx));
+      clearMatchState(refs, hybridStartIdx + expectedWordCount);
+      advanceToNextLine(setAudioHasEnded, setIsPlaying);
+      return;
     }
   }
 
-  if (hybridStartIdx !== -1) {
-    console.log(`Sliding window hybrid match at position ${hybridStartIdx}! Confidence: ${(hybridResult.confidence * 100).toFixed(1)}%`);
-    captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, hybridStartIdx));
-    clearMatchState(refs, hybridStartIdx + expectedWordCount);
-    advanceToNextLine(setAudioHasEnded, setIsPlaying);
-    return;
-  }
-
-  // Debug log
+  // Debug log (use first variant queue for logging)
+  const primaryQueue = utteranceQueuesRef.current[0] || [];
   console.log(`--- No match for current line ---`);
-  console.log(`Expected: "${expectedText.join(' | ')}" | All: [${allSpokenWords.join(', ')}]`);
-  console.log(`Scanned ${Math.max(0, allSpokenWords.length - expectedWordCount + 1)} window(s) of size ${expectedWordCount} — no hybrid match >= 60%`);
+  console.log(`Expected: "${expectedText.join(' | ')}" | All: [${primaryQueue.join(', ')}]`);
+  console.log(`Scanned ${Math.max(0, primaryQueue.length - expectedWordCount + 1)} window(s) of size ${expectedWordCount} — no hybrid match >= 60%`);
   console.log(`---------------------------------`);
 
   // Step 3: Check if user skipped ahead (next 3 lines)
-  const foundMatch = checkFutureLines({ allSpokenWords, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef });
+  const foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef });
 
   // Step 4: Slide queue if no match found
   if (!foundMatch) {
-    if (utteranceQueueRef.current.length >= expectedWordCount) {
-      console.log(`No match found. Sliding queue: removed "${utteranceQueueRef.current.shift()}"`);
+    if (primaryQueue.length >= expectedWordCount) {
+      const removed = utteranceQueuesRef.current.map(q => q.shift());
+      console.log(`No match found. Sliding queue: removed "${removed[0]}"`);
     } else {
-      console.log(`Waiting for more words: ${utteranceQueueRef.current.length}/${expectedWordCount} words in queue`);
+      console.log(`Waiting for more words: ${primaryQueue.length}/${expectedWordCount} words in queue`);
     }
   }
 }

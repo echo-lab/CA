@@ -468,7 +468,7 @@ React.useEffect(() => {
 const lastProcessedUtteranceRef = useRef("");
 const userUtterancesRef = useRef([]);
 const accumulatedUtterancesRef = useRef([]); // Accumulate utterances for current line
-const utteranceQueueRef = useRef([]); // Queue for sliding window word comparison
+const utteranceQueuesRef = useRef([]); // Parallel queues for each normalizeText variant
 const currentLineTrackingRef = useRef({ page: -1, index: -1 }); // Track which line we're accumulating for
 const silenceTimeoutRef = useRef(null); // Track timeout for silence detection
 const pendingUtteranceRef = useRef(""); // Store utterance waiting to be sent after silence
@@ -507,7 +507,7 @@ React.useEffect(() => {
     lastProcessedUtteranceRef,
     userUtterancesRef,
     accumulatedUtterancesRef,
-    utteranceQueueRef,
+    utteranceQueuesRef,
     currentLineTrackingRef,
     silenceTimeoutRef,
     pendingUtteranceRef,
