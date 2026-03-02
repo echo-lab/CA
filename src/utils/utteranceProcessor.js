@@ -1,44 +1,19 @@
 import { categorizeOffScriptUtterances } from "./InnerThoughtProcess";
-import { calculateHybridScore } from "./intentMatcher";
+import { calculateHybridScore, findSubsequenceMatch } from "./intentMatcher";
+import { normalizeText } from "./textNormalizer";
 
 function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
 }
 
-function stripPunctuation(text) {
-  return text.replace(/[*.,!?;:'"'""()\-—…]/g, "");
-}
-
 function calculateConfidence(spokenWords, expectedText) {
-  const mergedUtterance = spokenWords.map(w => stripPunctuation(w)).filter(w => w.length > 0).join(' ');
-  return calculateHybridScore(mergedUtterance, stripPunctuation(expectedText), {
+  const mergedUtterance = spokenWords.filter(w => w.length > 0).join(' ');
+  return calculateHybridScore(mergedUtterance, normalizeText(expectedText), {
     exactWordWeight: 0.0,
     fuzzyWeight: 0.5,
     phoneticWeight: 0.5,
     matchThreshold: 0.6,
   }).confidence;
-}
-
-// Returns {startIdx, endIdx} if expectedWords appear in order (with gaps allowed) in spokenWords, else null.
-// startIdx: index of first matched word (words before it are off-script)
-// endIdx: index after last matched word (words 0..endIdx-1 are consumed from queue)
-function findSubsequenceMatch(expectedWords, spokenWords) {
-  if (expectedWords.length === 0) return null;
-  let queueIdx = 0;
-  let firstMatchIdx = -1;
-  let lastMatchIdx = -1;
-
-  for (const word of expectedWords) {
-    while (queueIdx < spokenWords.length && spokenWords[queueIdx] !== word) {
-      queueIdx++;
-    }
-    if (queueIdx >= spokenWords.length) return null;
-    if (firstMatchIdx === -1) firstMatchIdx = queueIdx;
-    lastMatchIdx = queueIdx;
-    queueIdx++;
-  }
-
-  return { startIdx: firstMatchIdx, endIdx: lastMatchIdx + 1 };
 }
 
 function clearMatchState({ accumulatedUtterancesRef, utteranceQueueRef, silenceTimeoutRef, pendingUtteranceRef }, wordsToConsume) {
@@ -114,12 +89,11 @@ function checkFutureLines({ allSpokenWords, currentLineIndex, totalLines, state,
     const checkLine = state.pagesValues[state.page]?.text?.[checkIndex];
     if (!checkLine?.Dialogue) continue;
 
-    const checkText = stripPunctuation(stripSSMLTags(checkLine.Dialogue).toLowerCase().trim());
-    const checkExpectedWords = checkText.split(/\s+/).filter(w => w.length > 0);
-    const checkWordCount = checkExpectedWords.length;
+    const checkText = normalizeText(stripSSMLTags(checkLine.Dialogue));
+    const checkWordCount = checkText[0].split(/\s+/).filter(w => w.length > 0).length;
 
     // Exact subsequence match first
-    const exactMatch = findSubsequenceMatch(checkExpectedWords, allSpokenWords);
+    const exactMatch = findSubsequenceMatch(checkText, allSpokenWords);
     if (exactMatch !== null) {
       console.log(`Exact subsequence match on future line ${checkIndex} at position ${exactMatch.startIdx}!`);
       captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx));
@@ -211,20 +185,19 @@ export async function processUserUtterance({
   // Accumulate utterance and words
   accumulatedUtterancesRef.current.push({ speaker: speakerLabels || 'Unknown', utterance: userUtterance.toLowerCase().trim() });
   lastProcessedUtteranceRef.current = userUtterance;
-  const newWords = stripPunctuation(userUtterance.toLowerCase().trim()).split(/\s+/).filter(w => w.length > 0);
+  const newWords = normalizeText(userUtterance).split(/\s+/).filter(w => w.length > 0);
   utteranceQueueRef.current.push(...newWords);
 
   // Prepare expected text
-  const expectedText = stripPunctuation(stripSSMLTags(currentLine.Dialogue).toLowerCase().trim());
-  const expectedWords = expectedText.split(/\s+/).filter(w => w.length > 0);
-  const expectedWordCount = expectedWords.length;
+  const expectedText = normalizeText(stripSSMLTags(currentLine.Dialogue));
+  const expectedWordCount = expectedText[0].split(/\s+/).filter(w => w.length > 0).length;
   const allSpokenWords = utteranceQueueRef.current;
   const refs = { accumulatedUtterancesRef, utteranceQueueRef, silenceTimeoutRef, pendingUtteranceRef };
 
   // Step 1: Exact subsequence match on whole queue
-  const exactMatch = findSubsequenceMatch(expectedWords, allSpokenWords);
+  const exactMatch = findSubsequenceMatch(expectedText, allSpokenWords);
   if (exactMatch !== null) {
-    console.log(`Exact subsequence match at position ${exactMatch.startIdx}! Matched: [${expectedWords.join(', ')}]`);
+    console.log(`Exact subsequence match at position ${exactMatch.startIdx}!`);
     captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx));
     clearMatchState(refs, exactMatch.endIdx);
     advanceToNextLine(setAudioHasEnded, setIsPlaying);
@@ -239,14 +212,9 @@ export async function processUserUtterance({
     const maxStartIndex = allSpokenWords.length - expectedWordCount;
     for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
       const window = allSpokenWords.slice(startIdx, startIdx + expectedWordCount);
-      const result = calculateHybridScore(window.join(' '), expectedText, {
-        exactWordWeight: 0.0,
-        fuzzyWeight: 0.5,
-        phoneticWeight: 0.5,
-        matchThreshold: 0.6,
-      });
-      if (result.confidence >= 0.6) {
-        hybridResult = result;
+      const confidence = calculateConfidence(window, expectedText);
+      if (confidence >= 0.6) {
+        hybridResult = { confidence };
         hybridStartIdx = startIdx;
         break;
       }
@@ -263,7 +231,7 @@ export async function processUserUtterance({
 
   // Debug log
   console.log(`--- No match for current line ---`);
-  console.log(`Expected: "${expectedText}" | All: [${allSpokenWords.join(', ')}]`);
+  console.log(`Expected: "${expectedText.join(' | ')}" | All: [${allSpokenWords.join(', ')}]`);
   console.log(`Scanned ${Math.max(0, allSpokenWords.length - expectedWordCount + 1)} window(s) of size ${expectedWordCount} — no hybrid match >= 60%`);
   console.log(`---------------------------------`);
 

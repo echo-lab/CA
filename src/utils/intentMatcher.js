@@ -35,7 +35,7 @@ export function cleanFillerWords(text) {
     return { cleaned: '', removed: [], original: text || '' };
   }
 
-  const original = text.toLowerCase().trim();
+  const original = text;
 
   // Use NLP.js tokenizer to split into tokens
   const tokens = tokenizer.tokenize(original);
@@ -78,8 +78,8 @@ const DEFAULT_CONFIG = {
 function calculatePhoneticDistance(str1, str2) {
   if (!str1 || !str2) return 1;
 
-  const s1 = str1.toLowerCase().trim();
-  const s2 = str2.toLowerCase().trim();
+  const s1 = str1;
+  const s2 = str2;
 
   if (s1 === s2) return 0;
 
@@ -118,25 +118,48 @@ function calculatePhoneticDistance(str1, str2) {
   }
 }
 
-function calculateExactWordMatch(spokenWords, expectedWords) {
-  if (expectedWords.length === 0) {
-    return { matchedWords: [], matchPercentage: 0, exactMatchScore: 1 };
+
+// Checks if expectedWords appear in order (with gaps allowed) in spokenWords.
+export function findSubsequenceMatch(expectedText, spokenWords) {
+  const options = Array.isArray(expectedText) ? expectedText : [expectedText];
+  for (const option of options) {
+    const expectedWords = option.split(/\s+/).filter(w => w.length > 0);
+    if (expectedWords.length === 0) continue;
+    let queueIdx = 0;
+    let firstMatchIdx = -1;
+    let lastMatchIdx = -1;
+
+    let matched = true;
+    for (const word of expectedWords) {
+      while (queueIdx < spokenWords.length && spokenWords[queueIdx] !== word) {
+        queueIdx++;
+      }
+      if (queueIdx >= spokenWords.length) { matched = false; break; }
+      if (firstMatchIdx === -1) firstMatchIdx = queueIdx;
+      lastMatchIdx = queueIdx;
+      queueIdx++;
+    }
+
+    if (matched) return { startIdx: firstMatchIdx, endIdx: lastMatchIdx + 1 };
   }
-
-  // Check if expected words exist in spoken words list
-  const matchedWords = expectedWords.filter(word =>
-    spokenWords.includes(word)
-  );
-
-  const matchPercentage = matchedWords.length / expectedWords.length;
-
-  // Convert to score where 0 = perfect match, 1 = no match
-  const exactMatchScore = 1 - matchPercentage;
-
-  return { matchedWords, matchPercentage, exactMatchScore };
+  return null;
 }
 
+// Calculates a hybrid score between an utterance and a target phrase, combining fuzzy text similarity and phonetic similarity.
 export function calculateHybridScore(utterance, target, options = {}) {
+  // If target is an array (from normalizeText), score against each option and return the best
+  if (Array.isArray(target)) {
+    let bestResult = null;
+    for (const option of target) {
+      const result = calculateHybridScore(utterance, option, options);
+      if (!bestResult || result.confidence > bestResult.confidence) {
+        bestResult = result;
+      }
+      if (bestResult.confidence === 1) break;
+    }
+    return bestResult;
+  }
+
   const config = { ...DEFAULT_CONFIG, ...options };
 
   // Clean filler words from both utterance and target
@@ -145,53 +168,6 @@ export function calculateHybridScore(utterance, target, options = {}) {
 
   const normalizedUtterance = cleanedUtterance.cleaned;
   const normalizedTarget = cleanedTarget.cleaned;
-
-  // Split into words for exact matching
-  const spokenWords = normalizedUtterance.split(/\s+/).filter(w => w.length > 0);
-  const expectedWords = normalizedTarget.split(/\s+/).filter(w => w.length > 0);
-
-  // Perfect match - strings are identical
-  if (normalizedUtterance === normalizedTarget) {
-    return {
-      exactMatchScore: 0,
-      fuzzyScore: 0,
-      phoneticScore: 0,
-      combinedScore: 0,
-      confidence: 1,
-      matched: true,
-      matchedWords: expectedWords,
-      matchPercentage: 1,
-      cleanedUtterance: normalizedUtterance,
-      cleanedTarget: normalizedTarget,
-      removedFillers: {
-        fromUtterance: cleanedUtterance.removed,
-        fromTarget: cleanedTarget.removed,
-      },
-    };
-  }
-
-  // Exact word match
-  const exactResult = calculateExactWordMatch(spokenWords, expectedWords);
-
-  // If all expected words are found, it's a full match regardless of other scores
-  // if (exactResult.matchPercentage === 1) {
-  //   return {
-  //     exactMatchScore: 0,
-  //     fuzzyScore: 0,
-  //     phoneticScore: 0,
-  //     combinedScore: 0,
-  //     confidence: 1,
-  //     matched: true,
-  //     matchedWords: exactResult.matchedWords,
-  //     matchPercentage: 1,
-  //     cleanedUtterance: normalizedUtterance,
-  //     cleanedTarget: normalizedTarget,
-  //     removedFillers: {
-  //       fromUtterance: cleanedUtterance.removed,
-  //       fromTarget: cleanedTarget.removed,
-  //     },
-  //   };
-  // }
 
   // Fuzzy score using Fuse.js (0 = perfect, 1 = no match)
   const fuse = new Fuse([{ phrase: normalizedTarget }], {...config.fuseOptions, keys: ['phrase'],});
@@ -209,23 +185,6 @@ export function calculateHybridScore(utterance, target, options = {}) {
   // Confidence is inverse of combined score (0 = no match, 1 = perfect)
   const confidence = 1 - combinedScore;
 
-  // return {
-  //   exactMatchScore: exactResult.exactMatchScore,
-  //   fuzzyScore,
-  //   phoneticScore,
-  //   combinedScore,
-  //   confidence,
-  //   matched: confidence >= config.matchThreshold,
-  //   matchedWords: exactResult.matchedWords,
-  //   matchPercentage: exactResult.matchPercentage,
-  //   cleanedUtterance: normalizedUtterance,
-  //   cleanedTarget: normalizedTarget,
-  //   removedFillers: {
-  //     fromUtterance: cleanedUtterance.removed,
-  //     fromTarget: cleanedTarget.removed,
-  //   },
-  // };
-
   return {
     fuzzyScore,
     phoneticScore,
@@ -234,9 +193,5 @@ export function calculateHybridScore(utterance, target, options = {}) {
     matched: confidence >= config.matchThreshold,
     cleanedUtterance: normalizedUtterance,
     cleanedTarget: normalizedTarget,
-    removedFillers: {
-      fromUtterance: cleanedUtterance.removed,
-      fromTarget: cleanedTarget.removed,
-    },
   };
 }
