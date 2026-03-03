@@ -404,11 +404,6 @@ const handleNextClick = React.useCallback(() => {
       if (state.page < state.pagesValues.length - 1) {
         userUtterancesRef.current = []; // Clear user utterances when moving to next page
         if (isPlaying) {
-         // Clear highlight on the last line before stopping
-         const lastIdx = state.pagesValues[state.page]?.text?.length - 1;
-         if (lastIdx >= 0 && state.pagesValues[state.page].text[lastIdx]) {
-           state.pagesValues[state.page].text[lastIdx].Reading = false;
-         }
          // Move to the next page
          setIsPlaying(false);
         } else {

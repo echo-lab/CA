@@ -131,6 +131,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
   return false;
 }
 
+// Main function to process user utterance, match against current line, and handle state updates
 export async function processUserUtterance({
   userUtterance,
   lastProcessedUtteranceRef,
@@ -209,6 +210,10 @@ export async function processUserUtterance({
       console.log(`Exact subsequence match at position ${exactMatch.startIdx}!`);
       captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx));
       clearMatchState(refs, exactMatch.endIdx);
+      // Clear highlight on the last line once the user has read it
+      if (currentLineIndex === totalLines - 1) {
+        currentLine.Reading = false;
+      }
       advanceToNextLine(setAudioHasEnded, setIsPlaying);
       return;
     }
@@ -234,6 +239,10 @@ export async function processUserUtterance({
       console.log(`Sliding window hybrid match at position ${hybridStartIdx}! Confidence: ${(hybridResult.confidence * 100).toFixed(1)}%`);
       captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, hybridStartIdx));
       clearMatchState(refs, hybridStartIdx + expectedWordCount);
+      // Clear highlight on the last line once the user has read it
+      if (currentLineIndex === totalLines - 1) {
+        currentLine.Reading = false;
+      }
       advanceToNextLine(setAudioHasEnded, setIsPlaying);
       return;
     }
