@@ -63,8 +63,11 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   async function speak() {
   try {
     const defaultVoice = role.Role === "Parent" ? "Kore" : (role.RoleParameter || "Puck");
+    const text = role.Role === "Child"
+      ? "If you hear my voice repeat after me."
+      : `Hello ${name}, I am ${role.Role}`;
     await say({
-      text: `Hello ${name}, I am ${role.Role}`,
+      text,
       voiceName: defaultVoice,
       emotion: role.Emotion || "neutral",
     });
@@ -93,7 +96,7 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
         >
           <img src={role.img} alt={role.Role} />
           <span>{role.Role}</span>
-          {role.Role !== "Parent" && role.Role !== "Child" && (
+          {role.Role !== "Parent" && (
             <button onClick={playSound} disabled={playDisabled}>
               <PlayArrowIcon />
             </button>

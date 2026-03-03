@@ -30,7 +30,7 @@ function normEmotion(e) {
   return (e && String(e).trim().toLowerCase()) || 'neutral';
 }
 
-function buildKey({ text, model, voiceName, emotion, format, sampleRate, speechRate, role }) {
+function buildKey({ text, model, voiceName, emotion, format, sampleRate, speechRate, pitch, role }) {
   const fields = {
     v: CFG.version,
     textNorm: normalizeText(text),
@@ -40,6 +40,7 @@ function buildKey({ text, model, voiceName, emotion, format, sampleRate, speechR
     fmt: String(format || 'wav'),
     sr: String(sampleRate || CFG.sampleRate),
     rate: speechRate == null ? '' : String(speechRate),
+    pitch: pitch == null ? '' : String(pitch),
     role: String(role || ''),
   };
   const serialized = JSON.stringify(fields);
