@@ -155,7 +155,8 @@ export async function processUserUtterance({
   const currentLine = state.pagesValues[state.page]?.text?.[currentLineIndex];
 
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
-  if (totalLines > 0 && state.index >= totalLines) {
+  // But only if the last line is no longer highlighted (i.e., already matched)
+  if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0));
     console.log(`Post-last-line utterance collected: "${userUtterance}"`);
