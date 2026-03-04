@@ -42,7 +42,7 @@ export const roles = [
   },
   {
     Role: "Child",
-    RoleParameter: "achernar",
+    RoleParameter: "laomedeia",
     img: require("../Pictures/child.png")
   }
 ];

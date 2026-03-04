@@ -64,12 +64,13 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   try {
     const defaultVoice = role.Role === "Parent" ? "Kore" : (role.RoleParameter || "Puck");
     const text = role.Role === "Child"
-      ? "If you hear my voice repeat after me."
+      ? "If you hear my voice, repeat after me."
       : `Hello ${name}, I am ${role.Role}`;
     await say({
-      text,
+      text: `Hello ${name}, I am ${role.Role}`,
       voiceName: defaultVoice,
       emotion: role.Emotion || "neutral",
+      role: role.Role === "Child" ? "Child" : null,
     });
   } catch (err) {
     console.error("TTS error:", err);

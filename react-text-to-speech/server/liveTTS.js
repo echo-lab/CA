@@ -1,4 +1,7 @@
 function buildNaturalLanguagePrompt({ text, emotion, role }) {
+  if (role === "Child") {
+    return `You are a 5-year-old child reading a children's story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Use a playful, innocent tone. Say the following: ${text}`;
+  }
   return `Say the following in a clear, natural, conversational way suitable for narrating a children's story: ${text}`;
 }
 
@@ -73,8 +76,6 @@ async function liveSayHandler(req, res) {
       String(req.headers[CFG.bypassHeader] || '').toLowerCase() === '1' ||
       req.query.nocache === '1';
 
-    const autoPitch = (voiceName || '').toLowerCase() === 'achernar' ? 5 : null;
-
     const { key, base, fields } = buildKey({
       text: ttsPrompt,
       model,
@@ -83,7 +84,6 @@ async function liveSayHandler(req, res) {
       format,
       sampleRate,
       speechRate,
-      pitch: autoPitch,
       role,
     });
 
@@ -122,10 +122,7 @@ async function liveSayHandler(req, res) {
 
       // Select voice
       const voiceToUse = voiceName || 'Kore';
-
-      // Auto-apply higher pitch for the Child voice
-      const autoPitch = voiceToUse.toLowerCase() === 'achernar' ? 5 : null;
-
+      
       const config = {
         speechConfig: {
           languageCode: "en-US",
@@ -141,12 +138,9 @@ async function liveSayHandler(req, res) {
       if (speechRate != null) {
         config.speechConfig.speakingRate = speechRate;
       }
-      if (autoPitch != null) {
-        config.speechConfig.pitch = autoPitch;
-      }
 
       console.log(`[vertex-tts] Generating with model=${model}, voice=${voiceToUse}`);
-      console.log(`[vertex-tts] Prompt: "${ttsPrompt}..."`);
+      console.log(`[vertex-tts] Prompt: "${ttsPrompt.substring(0, 100)}..."`);
 
       // Call API
       const response = await withRetries(
