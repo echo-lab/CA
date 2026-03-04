@@ -73,7 +73,7 @@ async function liveSayHandler(req, res) {
       String(req.headers[CFG.bypassHeader] || '').toLowerCase() === '1' ||
       req.query.nocache === '1';
 
-    const autoPitch = (voiceName || '').toLowerCase() === 'achernar' ? 8 : null;
+    const autoPitch = (voiceName || '').toLowerCase() === 'achernar' ? 5 : null;
 
     const { key, base, fields } = buildKey({
       text: ttsPrompt,
@@ -124,7 +124,7 @@ async function liveSayHandler(req, res) {
       const voiceToUse = voiceName || 'Kore';
 
       // Auto-apply higher pitch for the Child voice
-      const autoPitch = voiceToUse.toLowerCase() === 'achernar' ? 8 : null;
+      const autoPitch = voiceToUse.toLowerCase() === 'achernar' ? 5 : null;
 
       const config = {
         speechConfig: {
