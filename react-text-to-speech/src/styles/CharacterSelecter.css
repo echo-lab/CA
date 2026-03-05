@@ -119,7 +119,12 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   z-index: 1; /* Lower than left rail but dragged items will be higher */
-  padding-bottom: 120px;
+}
+
+.main-column::after {
+  content: "";
+  display: block;
+  height: 150px;
 }
 
 .DraggableContainer {
