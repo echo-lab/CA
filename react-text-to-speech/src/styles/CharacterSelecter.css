@@ -1,5 +1,5 @@
 :root {
-  --mate-size: 80px;
+  --mate-size: 100px;
   --deck-gap: 14px;
   --card-gap: 20px;
   --tile-gap: 8px;
@@ -119,6 +119,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   z-index: 1; /* Lower than left rail but dragged items will be higher */
+  padding-bottom: 120px;
 }
 
 .DraggableContainer {
