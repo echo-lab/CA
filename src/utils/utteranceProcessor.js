@@ -321,12 +321,14 @@ export async function processUserUtterance({
         reason: 'insufficient_words', have: maxQueueLen, need: variant.wordCount
       });
     } else {
+      const queueSnapshot = (utteranceQueuesRef.current[0] || []).join(' ');
       debugLog({
         type: 'variant_result', label: variant.label,
         reason: 'low_confidence',
         fuzzyScore: ((1 - bestDetail.fuzzyScore) * 100).toFixed(1),
         phoneticScore: ((1 - bestDetail.phoneticScore) * 100).toFixed(1),
-        confidence: (bestDetail.confidence * 100).toFixed(1)
+        confidence: (bestDetail.confidence * 100).toFixed(1),
+        queue: queueSnapshot
       });
     }
   }

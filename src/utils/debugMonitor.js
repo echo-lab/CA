@@ -287,7 +287,7 @@ function openUtteranceDebugMonitor() {
         if (ev.reason === 'insufficient_words') {
           add(time + esc(ev.label) + ' FAIL — not enough words in queue (' + ev.have + '/' + ev.need + ')', 'fail');
         } else {
-          add(time + esc(ev.label) + ' FAIL — <span class="score-label">fuzzy:</span> <span class="score-val">' + ev.fuzzyScore + '%</span>  <span class="score-label">phonetic:</span> <span class="score-val">' + ev.phoneticScore + '%</span>  <span class="score-label">confidence:</span> <span class="score-val">' + ev.confidence + '%</span>', 'fail');
+          add(time + esc(ev.label) + ' FAIL — <span class="score-label">fuzzy:</span> <span class="score-val">' + ev.fuzzyScore + '%</span>  <span class="score-label">phonetic:</span> <span class="score-val">' + ev.phoneticScore + '%</span>  <span class="score-label">confidence:</span> <span class="score-val">' + ev.confidence + '%</span><br><span class="score-label">Queue:</span> <span class="score-val">"' + esc(ev.queue) + '"</span>', 'fail');
         }
       }
       else if (ev.type === 'no_match') {
