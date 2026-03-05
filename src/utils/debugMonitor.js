@@ -52,7 +52,7 @@ function openGptDebugMonitor() {
       padding: 8px 14px; display: flex; flex-direction: column; gap: 6px;
     }
     .entry {
-      padding: 6px 8px; border-radius: 3px; line-height: 1.5;
+      padding: 8px 10px; border-radius: 3px; line-height: 1.6;
       border-left: 3px solid transparent;
     }
     .entry .time { color: #888; margin-right: 8px; }
@@ -61,7 +61,13 @@ function openGptDebugMonitor() {
     .response { border-left-color: #4caf50; background: rgba(76, 175, 80, 0.08); }
     .response .endpoint { color: #4caf50; font-weight: bold; }
     .error { border-left-color: #f44747; background: rgba(244, 71, 71, 0.08); color: #f44747; }
-    .payload { color: #9cdcfe; margin-top: 4px; white-space: pre-wrap; word-break: break-word; font-size: 11px; max-height: 200px; overflow-y: auto; }
+    .field { margin-top: 3px; padding-left: 12px; }
+    .field-label { color: #808080; }
+    .field-value { color: #ce9178; }
+    .field-value.bool-true { color: #4caf50; }
+    .field-value.bool-false { color: #f44747; }
+    .field-value.truncated { color: #888; font-style: italic; }
+    .separator { border-top: 1px solid #333; margin: 6px 0; }
     #clear-btn {
       position: fixed; bottom: 12px; right: 12px; background: #3c3c3c; color: #d4d4d4;
       border: 1px solid #555; padding: 6px 14px; cursor: pointer; border-radius: 4px; font-size: 11px;
@@ -86,6 +92,64 @@ function openGptDebugMonitor() {
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+    function truncate(s, max) {
+      if (typeof s !== 'string') s = JSON.stringify(s);
+      if (s.length <= max) return esc(s);
+      return esc(s.slice(0, max)) + '<span class="field-value truncated"> ... (' + s.length + ' chars)</span>';
+    }
+
+    function field(label, value, maxLen) {
+      if (value === undefined || value === null) return '';
+      if (typeof value === 'boolean') {
+        return '<div class="field"><span class="field-label">' + label + ': </span><span class="field-value ' + (value ? 'bool-true' : 'bool-false') + '">' + value + '</span></div>';
+      }
+      var display = maxLen ? truncate(String(value), maxLen) : esc(String(value));
+      return '<div class="field"><span class="field-label">' + label + ': </span><span class="field-value">' + display + '</span></div>';
+    }
+
+    function formatRequest(endpoint, payload) {
+      var html = '';
+      if (endpoint === '/api/categorize-utterances') {
+        html += field('Utterances', payload.formattedUtterances, 300);
+        html += field('Page Text', payload.bookPageText, 150);
+        html += field('Question', payload.currentPageQuestion, 200);
+        html += field('Page #', payload.currentPageNumber);
+        html += field('Book Text', payload.bookText, 100);
+      } else if (endpoint === '/api/check-relevancy') {
+        html += field('Utterance', payload.utterance, 300);
+        html += field('Current Line', payload.currentLine, 200);
+        html += field('Prev Utterances', payload.utterances, 200);
+        html += field('Book Content', payload.bookContent, 100);
+      } else {
+        html += field('Payload', JSON.stringify(payload, null, 2), 500);
+      }
+      return html;
+    }
+
+    function formatResponse(endpoint, data) {
+      var html = '';
+      if (!data) return field('Result', 'null');
+      if (endpoint === '/api/check-relevancy') {
+        html += field('Relevant', data.isRelevant);
+        html += field('Confidence', data.confidence);
+        html += field('Reason', data.reason, 300);
+        html += field('Suggested Response', data.suggestedResponse, 300);
+      } else if (endpoint === '/api/categorize-utterances') {
+        // Show all top-level keys nicely
+        for (var key in data) {
+          var val = data[key];
+          if (typeof val === 'object' && val !== null) {
+            html += field(key, JSON.stringify(val, null, 2), 400);
+          } else {
+            html += field(key, val, 300);
+          }
+        }
+      } else {
+        html += field('Result', JSON.stringify(data, null, 2), 500);
+      }
+      return html;
+    }
+
     function add(html, cls) {
       const div = document.createElement('div');
       div.className = 'entry ' + cls;
@@ -99,15 +163,16 @@ function openGptDebugMonitor() {
       const time = '<span class="time">' + fmt(ev.timestamp) + '</span>';
 
       if (ev.type === 'gpt_request') {
-        add(time + '<span class="endpoint">REQUEST → ' + esc(ev.endpoint) + '</span>' +
-          '<div class="payload">' + esc(JSON.stringify(ev.payload, null, 2)) + '</div>', 'request');
+        add(time + '<span class="endpoint">REQUEST \\u2192 ' + esc(ev.endpoint) + '</span>' +
+          formatRequest(ev.endpoint, ev.payload), 'request');
       }
       else if (ev.type === 'gpt_response') {
-        add(time + '<span class="endpoint">RESPONSE ← ' + esc(ev.endpoint) + '</span>' +
-          '<div class="payload">' + esc(JSON.stringify(ev.data, null, 2)) + '</div>', 'response');
+        add(time + '<span class="endpoint">RESPONSE \\u2190 ' + esc(ev.endpoint) + '</span>' +
+          formatResponse(ev.endpoint, ev.data), 'response');
       }
       else if (ev.type === 'gpt_error') {
-        add(time + 'ERROR ' + esc(ev.endpoint) + ': ' + esc(ev.error), 'error');
+        add(time + '<span class="endpoint">ERROR ' + esc(ev.endpoint) + '</span>' +
+          field('Error', ev.error, 500), 'error');
       }
     };
   </script>

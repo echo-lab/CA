@@ -236,6 +236,10 @@ export async function processUserUtterance({
     utteranceQueuesRef.current = [];
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
+    // Send sandwiched off-script words before moving to new line
+    if (offScriptLogRef?.current?.length) {
+      sendOffScriptLog(offScriptLogRef, state.page, state);
+    }
     currentLineTrackingRef.current.index = currentLineIndex;
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
