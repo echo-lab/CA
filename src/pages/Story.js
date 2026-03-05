@@ -15,6 +15,7 @@ import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useRealtimeConnection } from "../utils/RealtimeConnectionContext";
 import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
+import { openDebugMonitor } from "../utils/debugMonitor";
 
 class Book {
   constructor(data) {
@@ -823,6 +824,12 @@ function stripSSMLTags(text) {
           {deepgramConnected ? 'Connected' : 'Disconnected'}
         </span>
       </div>
+
+      <button
+        onClick={openDebugMonitor}
+        className="btn btn-outline-secondary"
+        style={{ fontSize: '12px', padding: '4px 10px' }}
+      >Debug</button>
 
       <button
         onClick={gotoPreviousPage}

@@ -1,0 +1,264 @@
+const CHANNEL_NAME = 'utterance-debug';
+const GPT_CHANNEL_NAME = 'gpt-debug';
+
+let channel = null;
+let gptChannel = null;
+
+function getChannel() {
+  if (!channel) {
+    channel = new BroadcastChannel(CHANNEL_NAME);
+  }
+  return channel;
+}
+
+function getGptChannel() {
+  if (!gptChannel) {
+    gptChannel = new BroadcastChannel(GPT_CHANNEL_NAME);
+  }
+  return gptChannel;
+}
+
+export function debugLog(event) {
+  try {
+    getChannel().postMessage({ ...event, timestamp: Date.now() });
+  } catch (e) {
+    // silently ignore if BroadcastChannel is unavailable
+  }
+}
+
+export function gptDebugLog(event) {
+  try {
+    getGptChannel().postMessage({ ...event, timestamp: Date.now() });
+  } catch (e) {
+    // silently ignore if BroadcastChannel is unavailable
+  }
+}
+
+function openGptDebugMonitor() {
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GPT-4o Debug Monitor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Menlo', 'Consolas', monospace; font-size: 12px; background: #1e1e1e; color: #d4d4d4; }
+    #header {
+      position: sticky; top: 0; background: #252526; padding: 10px 14px;
+      border-bottom: 1px solid #3c3c3c; z-index: 10;
+    }
+    #header h3 { color: #c586c0; margin-bottom: 6px; font-size: 13px; }
+    #log {
+      padding: 8px 14px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .entry {
+      padding: 6px 8px; border-radius: 3px; line-height: 1.5;
+      border-left: 3px solid transparent;
+    }
+    .entry .time { color: #888; margin-right: 8px; }
+    .request { border-left-color: #569cd6; background: rgba(86, 156, 214, 0.08); }
+    .request .endpoint { color: #569cd6; font-weight: bold; }
+    .response { border-left-color: #4caf50; background: rgba(76, 175, 80, 0.08); }
+    .response .endpoint { color: #4caf50; font-weight: bold; }
+    .error { border-left-color: #f44747; background: rgba(244, 71, 71, 0.08); color: #f44747; }
+    .payload { color: #9cdcfe; margin-top: 4px; white-space: pre-wrap; word-break: break-word; font-size: 11px; max-height: 200px; overflow-y: auto; }
+    #clear-btn {
+      position: fixed; bottom: 12px; right: 12px; background: #3c3c3c; color: #d4d4d4;
+      border: 1px solid #555; padding: 6px 14px; cursor: pointer; border-radius: 4px; font-size: 11px;
+    }
+    #clear-btn:hover { background: #505050; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h3>GPT-4o Debug Monitor</h3>
+  </div>
+  <div id="log"></div>
+  <button id="clear-btn" onclick="document.getElementById('log').innerHTML=''">Clear</button>
+  <script>
+    const ch = new BroadcastChannel('${GPT_CHANNEL_NAME}');
+    const log = document.getElementById('log');
+
+    function fmt(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    function add(html, cls) {
+      const div = document.createElement('div');
+      div.className = 'entry ' + cls;
+      div.innerHTML = html;
+      log.appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    ch.onmessage = (e) => {
+      const ev = e.data;
+      const time = '<span class="time">' + fmt(ev.timestamp) + '</span>';
+
+      if (ev.type === 'gpt_request') {
+        add(time + '<span class="endpoint">REQUEST → ' + esc(ev.endpoint) + '</span>' +
+          '<div class="payload">' + esc(JSON.stringify(ev.payload, null, 2)) + '</div>', 'request');
+      }
+      else if (ev.type === 'gpt_response') {
+        add(time + '<span class="endpoint">RESPONSE ← ' + esc(ev.endpoint) + '</span>' +
+          '<div class="payload">' + esc(JSON.stringify(ev.data, null, 2)) + '</div>', 'response');
+      }
+      else if (ev.type === 'gpt_error') {
+        add(time + 'ERROR ' + esc(ev.endpoint) + ': ' + esc(ev.error), 'error');
+      }
+    };
+  </script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, 'gpt-debug', 'width=700,height=600,scrollbars=yes');
+}
+
+export function openDebugMonitor() {
+  openUtteranceDebugMonitor();
+  // Delay second popup to avoid browser popup blocker
+  setTimeout(() => openGptDebugMonitor(), 100);
+}
+
+function openUtteranceDebugMonitor() {
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Utterance Debug Monitor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Menlo', 'Consolas', monospace; font-size: 12px; background: #1e1e1e; color: #d4d4d4; }
+    #header {
+      position: sticky; top: 0; background: #252526; padding: 10px 14px;
+      border-bottom: 1px solid #3c3c3c; z-index: 10;
+    }
+    #header h3 { color: #569cd6; margin-bottom: 6px; font-size: 13px; }
+    .header-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .header-label { color: #808080; }
+    .header-value { color: #ce9178; }
+    #queue-state { color: #9cdcfe; margin-top: 4px; }
+    #log {
+      padding: 8px 14px; display: flex; flex-direction: column; gap: 2px;
+    }
+    .entry {
+      padding: 4px 8px; border-radius: 3px; line-height: 1.5;
+      border-left: 3px solid transparent;
+    }
+    .entry .time { color: #888; margin-right: 8px; }
+    .success { border-left-color: #4caf50; color: #4caf50; background: rgba(76, 175, 80, 0.08); }
+    .fail { border-left-color: #f44747; color: #f44747; background: rgba(244, 71, 71, 0.08); }
+    .fail .score-label { color: #d4a0a0; }
+    .fail .score-val { color: #f77; }
+    .neutral { border-left-color: #555; color: #d4d4d4; }
+    #clear-btn {
+      position: fixed; bottom: 12px; right: 12px; background: #3c3c3c; color: #d4d4d4;
+      border: 1px solid #555; padding: 6px 14px; cursor: pointer; border-radius: 4px; font-size: 11px;
+    }
+    #clear-btn:hover { background: #505050; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h3>Utterance Debug Monitor</h3>
+    <div class="header-row">
+      <div><span class="header-label">Expected: </span><span id="expected-line" class="header-value">—</span></div>
+      <div><span class="header-label">Line: </span><span id="line-index" class="header-value">—</span></div>
+    </div>
+    <div id="queue-state">Queue: —</div>
+    <div id="offscript-state" style="color: #d7ba7d; margin-top: 6px; border-top: 1px solid #3c3c3c; padding-top: 6px;">
+      <span class="header-label">Off-script (for LLM): </span><span id="offscript-words" style="color: #ce9178;">—</span>
+    </div>
+  </div>
+  <div id="log"></div>
+  <button id="clear-btn" onclick="document.getElementById('log').innerHTML=''">Clear</button>
+  <script>
+    const ch = new BroadcastChannel('${CHANNEL_NAME}');
+    const log = document.getElementById('log');
+    const expectedEl = document.getElementById('expected-line');
+    const lineIndexEl = document.getElementById('line-index');
+    const queueStateEl = document.getElementById('queue-state');
+    const offscriptEl = document.getElementById('offscript-words');
+    let offscriptEntries = [];
+
+    function fmt(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    }
+
+    ch.onmessage = (e) => {
+      const ev = e.data;
+      const time = '<span class="time">' + fmt(ev.timestamp) + '</span>';
+
+      if (ev.type === 'utterance_received') {
+        expectedEl.textContent = ev.expectedLine || '—';
+        lineIndexEl.textContent = ev.lineIndex != null ? ev.lineIndex : '—';
+        add(time + 'Utterance: "' + esc(ev.utterance) + '"', 'neutral');
+      }
+      else if (ev.type === 'queue_state') {
+        queueStateEl.textContent = 'Queue [' + ev.wordCount + ' words]: ' + ev.words;
+      }
+      else if (ev.type === 'variant_attempt') {
+        add(time + 'Trying ' + esc(ev.label) + ' -> "' + esc(ev.text) + '" (' + ev.wordCount + ' words)', 'neutral');
+      }
+      else if (ev.type === 'exact_match') {
+        add(time + 'MATCH Exact (' + esc(ev.label) + ') at pos ' + ev.startIdx, 'success');
+      }
+      else if (ev.type === 'hybrid_match') {
+        add(time + 'MATCH Hybrid (' + esc(ev.label) + ') at pos ' + ev.startIdx + ' — confidence: ' + ev.confidence + '%  fuzzy: ' + ev.fuzzyScore + '%  phonetic: ' + ev.phoneticScore + '%', 'success');
+      }
+      else if (ev.type === 'forward_exact_match') {
+        add(time + 'MATCH Forward exact (' + esc(ev.label) + ') line ' + ev.lineIndex + ' at pos ' + ev.startIdx, 'success');
+      }
+      else if (ev.type === 'forward_hybrid_match') {
+        add(time + 'MATCH Forward hybrid (' + esc(ev.label) + ') line ' + ev.lineIndex + ' — confidence: ' + ev.confidence + '%  fuzzy: ' + ev.fuzzyScore + '%  phonetic: ' + ev.phoneticScore + '%', 'success');
+      }
+      else if (ev.type === 'variant_result') {
+        if (ev.reason === 'insufficient_words') {
+          add(time + esc(ev.label) + ' FAIL — not enough words in queue (' + ev.have + '/' + ev.need + ')', 'fail');
+        } else {
+          add(time + esc(ev.label) + ' FAIL — <span class="score-label">fuzzy:</span> <span class="score-val">' + ev.fuzzyScore + '%</span>  <span class="score-label">phonetic:</span> <span class="score-val">' + ev.phoneticScore + '%</span>  <span class="score-label">confidence:</span> <span class="score-val">' + ev.confidence + '%</span>', 'fail');
+        }
+      }
+      else if (ev.type === 'no_match') {
+        add(time + 'No match — tried ' + esc(ev.variantsTried), 'fail');
+      }
+      else if (ev.type === 'queue_slide') {
+        add(time + 'Queue slide: removed "' + esc(ev.removed) + '"', 'neutral');
+      }
+      else if (ev.type === 'forward_search_start') {
+        add(time + 'Forward search line ' + ev.lineIndex + ': "' + esc(ev.target) + '"', 'neutral');
+      }
+      else if (ev.type === 'offscript_update') {
+        offscriptEntries = ev.entries;
+        offscriptEl.textContent = offscriptEntries.length > 0
+          ? offscriptEntries.map(function(e) { return 'L' + e.lineIndex + ': "' + e.text + '"'; }).join(' | ')
+          : '—';
+      }
+      else if (ev.type === 'offscript_clear') {
+        offscriptEntries = [];
+        offscriptEl.textContent = '—';
+      }
+    };
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function add(html, cls) {
+      const div = document.createElement('div');
+      div.className = 'entry ' + cls;
+      div.innerHTML = html;
+      log.appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, 'utterance-debug', 'width=700,height=600,scrollbars=yes');
+}

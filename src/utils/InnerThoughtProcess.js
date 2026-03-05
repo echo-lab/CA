@@ -1,3 +1,5 @@
+import { gptDebugLog } from "./debugMonitor";
+
 /**
  * Calculates the relevancy of a user's utterance to the current reading context
  * @param {Object|Array} bookContent - The book content (pages, text, etc.)
@@ -8,18 +10,16 @@
 const calculateRelevancy = async (bookContent, currentLine, utterances, utterance) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
+    const payload = { bookContent, currentLine, utterances, utterance };
+    gptDebugLog({ type: 'gpt_request', endpoint: '/api/check-relevancy', payload });
+
     try {
         const response = await fetch(`${BASE_URL}/api/check-relevancy`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                bookContent,
-                currentLine,
-                utterances,
-                utterance
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -28,10 +28,11 @@ const calculateRelevancy = async (bookContent, currentLine, utterances, utteranc
         }
 
         const result = await response.json();
+        gptDebugLog({ type: 'gpt_response', endpoint: '/api/check-relevancy', data: result });
         return result;
     } catch (error) {
         console.error('Error calculating relevancy:', error);
-        // Return a default "not relevant" response in case of error
+        gptDebugLog({ type: 'gpt_error', endpoint: '/api/check-relevancy', error: error.message });
         return {
             isRelevant: false,
             confidence: 0,
@@ -74,13 +75,16 @@ const calculateRelevancy = async (bookContent, currentLine, utterances, utteranc
 const categorizeOffScriptUtterances = async (formattedUtterances, bookPageText, currentPageQuestion, bookText, currentPageNumber) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
+    const payload = { formattedUtterances, bookPageText, currentPageQuestion, bookText, currentPageNumber };
+    gptDebugLog({ type: 'gpt_request', endpoint: '/api/categorize-utterances', payload });
+
     try {
         const response = await fetch(`${BASE_URL}/api/categorize-utterances`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ formattedUtterances, bookPageText, currentPageQuestion, bookText, currentPageNumber })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -88,9 +92,12 @@ const categorizeOffScriptUtterances = async (formattedUtterances, bookPageText, 
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
-        return response.json();
+        const result = await response.json();
+        gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances', data: result });
+        return result;
     } catch (error) {
         console.error('Error categorizing off-script utterances:', error);
+        gptDebugLog({ type: 'gpt_error', endpoint: '/api/categorize-utterances', error: error.message });
         return null;
     }
 };
