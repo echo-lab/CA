@@ -124,7 +124,7 @@
 .main-column::after {
   content: "";
   display: block;
-  height: 150px;
+  height: 300px;
 }
 
 .DraggableContainer {
