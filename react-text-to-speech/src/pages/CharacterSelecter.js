@@ -65,7 +65,7 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
     const defaultVoice = role.Role === "Parent" ? "Kore" : (role.RoleParameter || "Puck");
     await say({
       text: role.Role === "Child"
-        ? `Hi ${name}, can you hear me? ... Great! We are going to read a book. When you hear my voice, it's your turn to say the words after me. Okay? ... Great!`
+        ? `Hi ${name}, can you hear me?... [long pause] ...Great! We are going to read a book. When you hear my voice, it's your turn to say the words after me. Okay?... [long pause] ...Great!`
         : `Hello ${name}, I am ${role.Role}`,
       voiceName: defaultVoice,
       emotion: role.Emotion || "neutral",
