@@ -388,7 +388,7 @@ export const data = [
             {
             Reading: false,
             Character: "Clara",
-            Dialogue: "“Zip, zap, zop, zip, zap, zop!”",
+            Dialogue: "“Zip, zap, zop, <break time='300ms'/> zip, zap, zop!”",
             // "“<prosody rate='1.6'>Zip, zap, zop, zip, zap, zop</prosody>!”"
             },
           ],
