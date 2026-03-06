@@ -606,7 +606,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Beep, boop, beep, boop—see?”",
+              Dialogue: "“Beep, boop, beep, boop see?”",
             },
             {
               Reading: false,

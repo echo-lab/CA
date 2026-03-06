@@ -186,8 +186,7 @@ function openGptDebugMonitor() {
 
 export function openDebugMonitor() {
   openUtteranceDebugMonitor();
-  // Delay second popup to avoid browser popup blocker
-  setTimeout(() => openGptDebugMonitor(), 100);
+  openGptDebugMonitor();
 }
 
 function openUtteranceDebugMonitor() {

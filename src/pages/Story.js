@@ -196,7 +196,10 @@ const gotoNextPage = () => {
     for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
       state.pagesValues[state.page].text[i].Reading=false;
     }
-    setState(prevState => ({ ...prevState, page: prevState.page + 1, index: 0 }));
+    setState(prevState => {
+      prevState.pagesValues[prevState.page + 1].text[0].Reading = true;
+      return { ...prevState, page: prevState.page + 1, index: 1 };
+    });
   } else {
     navigate('/Home', { state: { id: 1 } });
   }
@@ -413,8 +416,8 @@ const handleNextClick = React.useCallback(() => {
            state.pagesValues[state.page].text[i].Reading=false;
          }
          setState(prevState => {
-           const newState = {...prevState, page: prevState.page + 1, index: 0};
-           return newState;
+           prevState.pagesValues[prevState.page + 1].text[0].Reading = true;
+           return {...prevState, page: prevState.page + 1, index: 1};
          });
          setIsPlaying(false);
           if (tableContainerRef.current) {
