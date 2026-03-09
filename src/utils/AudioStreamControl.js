@@ -3,9 +3,9 @@ import { createContext, useContext, useRef, useState, useEffect } from 'react';
 
 const BASE_URL = process.env.REACT_APP_API_BASE;
 
-export const RealtimeConnectionContext = createContext(null);
+export const AudioStreamControlContext = createContext(null);
 
-export function RealtimeConnectionProvider({ children }) {
+export function AudioStreamControlProvider({ children }) {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [isAIResponding, setIsAIResponding] = useState(false);
@@ -537,16 +537,16 @@ export function RealtimeConnectionProvider({ children }) {
   };
 
   return (
-    <RealtimeConnectionContext.Provider value={value}>
+    <AudioStreamControlContext.Provider value={value}>
       {children}
-    </RealtimeConnectionContext.Provider>
+    </AudioStreamControlContext.Provider>
   );
 }
 
-export const useRealtimeConnection = () => {
-  const context = useContext(RealtimeConnectionContext);
+export const useAudioStreamControl = () => {
+  const context = useContext(AudioStreamControlContext);
   if (!context) {
-    throw new Error('useRealtimeConnection must be used within RealtimeConnectionProvider');
+    throw new Error('useAudioStreamControl must be used within AudioStreamControlProvider');
   }
   return context;
 };

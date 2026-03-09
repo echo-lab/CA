@@ -13,7 +13,7 @@ import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
-import { useRealtimeConnection } from "../utils/RealtimeConnectionContext";
+import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
 import { openDebugMonitor } from "../utils/debugMonitor";
 
@@ -55,7 +55,7 @@ function Reader() {
     deepgramTranscript,
     connectToDeepgram,
     disconnectDeepgram,
-  } = useRealtimeConnection();
+  } = useAudioStreamControl();
 
   let bookData
 

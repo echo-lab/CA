@@ -50,6 +50,11 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!(compromise|grad-school|efrt|suffix-thumb|number-to-words|talisman|@nlpjs)/)"
+    ]
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -63,6 +68,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "concurrently": "^8.2.0",
     "cross-env": "^7.0.3",
     "npm-run-all": "^4.1.5"

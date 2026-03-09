@@ -1,5 +1,5 @@
 import { categorizeOffScriptUtterances } from "./InnerThoughtProcess";
-import { calculateHybridScore, findSubsequenceMatch } from "./intentMatcher";
+import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText, splitIntoSentences, isMultiSentenceLong } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
 

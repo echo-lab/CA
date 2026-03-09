@@ -7,13 +7,14 @@ import { TokenizerEn } from '@nlpjs/lang-en';
 const FILLER_WORDS = new Set([
   // Hesitation sounds (with variations)
   'uh', 'uhh', 'uhhh', 'uhhhh',
+  'huh', 'huhh', 'huhhh',
   'um', 'umm', 'ummm', 'ummmm',
   'ah', 'ahh', 'ahhh', 'ahhhh',
   'er', 'err', 'errr',
   'eh', 'ehh', 'ehhh',
   'hm', 'hmm', 'hmmm', 'hmmmm',
   'mhm', 'mhmm',
-  'erm',
+  'erm', 'ermm', 'ermmm',
   // Common filler phrases
   'like',
   'basically',

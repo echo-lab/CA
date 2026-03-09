@@ -7,13 +7,13 @@ import ChildrenAvatarSelecter from './pages/ChildrenAvatarSelecter';
 import CharacterSelecter from './pages/CharacterSelecter';
 import AvatarSelecter from './pages/AvatarSelecter';
 import LandingPage from './pages/LandingPage';
-import { RealtimeConnectionProvider } from './utils/RealtimeConnectionContext';
+import { AudioStreamControlProvider } from './utils/AudioStreamControl';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 function App() {
   return (
     <div className="App">
-      <RealtimeConnectionProvider>
+      <AudioStreamControlProvider>
         <Router>
           <Routes>
             <Route path='/' element={<LandingPage />}/>
@@ -25,7 +25,7 @@ function App() {
             <Route path='/Character' element={<CharacterSelecter />}/>
           </Routes>
         </Router>
-      </RealtimeConnectionProvider>
+      </AudioStreamControlProvider>
     </div>
   );
 }

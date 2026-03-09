@@ -23,19 +23,20 @@ export function normalizeText(text) {
   // Convert numbers to words: "5" → "five", "1st" → "first"
   result = convertNumbersToWords(result);
 
-  // Strip punctuation (contractions already expanded, apostrophes safe to remove)
-  result = result.replace(/[*.,!?;:'"'""“”()\-—…]/g, "");
+  let expandedResult = expandContractions(result);
+  if (expandedResult !== result) {
+    expandedResult = expandedResult.replace(/-/g, ' ');
+    expandedResult = expandedResult.replace(/[*.,!?%@#;:'"'""“”()…]/g, "");
+    resultOptions.push(expandedResult);
+  }
 
   // Replace hyphens with spaces: "well-known" → "well known"
   result = result.replace(/-/g, ' ');
 
-  resultOptions.push(result);
+  // Strip punctuation (contractions already expanded, apostrophes safe to remove)
+  result = result.replace(/[*.,!?%@#;:'"'""“”()…]/g, "");
 
-  // Expand contractions: "don't" → "do not", "I'm" → "I am"
-  let expandedResult = expandContractions(result);
-  if (expandedResult !== result) {
-    resultOptions.push(expandedResult);
-  }
+  resultOptions.push(result);
 
   return resultOptions;
 }
@@ -43,16 +44,28 @@ export function normalizeText(text) {
 function expandContractions(text) {
   const doc = nlp(text);
   doc.contractions().expand();
-  return doc.text();
+  return doc.text().replace(/\bcan not\b/g, 'cannot');
 }
 
 function convertNumbersToWords(text) {
-  return text.replace(/\b(\d+)(st|nd|rd|th)?\b/g, (match, num, suffix) => {
-    const n = parseInt(num, 10);
-    if (isNaN(n) || n > 9999) return match;
-    if (suffix) {
-      try { return numberToWords.toWordsOrdinal(n); } catch { return match; }
+  // Match decimals (e.g. "32.25"), ordinals (e.g. "1st"), or plain integers (e.g. "5")
+  return text.replace(/\b(\d+)\.(\d+)\b|\b(\d+)(st|nd|rd|th)?\b/g, (match, intPart, decPart, wholeNum, suffix) => {
+    // Decimal number: convert integer part, then "point", then each digit
+    if (intPart !== undefined && decPart !== undefined) {
+      const n = parseInt(intPart, 10);
+      if (isNaN(n) || n > 9999) return match;
+      try {
+        const intWords = numberToWords.toWords(n);
+        const digitWords = decPart.split('').map(d => numberToWords.toWords(parseInt(d, 10))).join(' ');
+        return `${intWords} point ${digitWords}`;
+      } catch { return match; }
     }
-    try { return numberToWords.toWords(n); } catch { return match; }
+    // Ordinal or plain integer
+    const num = parseInt(wholeNum, 10);
+    if (isNaN(num) || num > 9999) return match;
+    if (suffix) {
+      try { return numberToWords.toWordsOrdinal(num); } catch { return match; }
+    }
+    try { return numberToWords.toWords(num); } catch { return match; }
   });
 }
