@@ -202,66 +202,6 @@ function setupDeepgramProxy(server) {
     console.log('Deepgram WebSocket proxy ready at /api/deepgram-proxy (using nova-3 with diarization)');
 }
 
-// Relevancy checking endpoint using OpenAI
-app.post('/api/check-relevancy', async (req, res) => {
-    try {
-        const { bookContent, currentLine, prevUtterances, utterance } = req.body;
-
-        if (!bookContent || !currentLine || !utterance) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['bookContent', 'currentLine', 'utterance']
-            });
-        }
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "developer",
-                    content: `You are a reading comprehension expert.
-                    Determine if the user's utterance is relevant to the book context and current line.` },
-                {
-                    role: "user",
-                    content: `Book Context: ${JSON.stringify(bookContent)}
-
-Current Line: "${currentLine}"
-
-Last Utterance: "${utterance}"
-
-Is the user's last utterance relevant to the  being read?`
-                }
-            ],
-            response_format: { type: "json_schema",
-                json_schema: {
-                name: "relevance_check",
-                strict: true,
-                schema: {
-                    type: "object",
-                    properties: {
-                        relevance: { type: "boolean" },
-                        rationale: { type: "string" }
-                    },
-                    required: ["relevance", "rationale"],
-                    additionalProperties: false
-                }
-            }
-             },
-            temperature: 0.3
-        });
-
-        const result = JSON.parse(completion.choices[0].message.content);
-        res.json(result);
-
-    } catch (error) {
-        console.error('Error checking relevancy:', error);
-        res.status(500).json({
-            error: 'Failed to check relevancy',
-            detail: error.message
-        });
-    }
-});
-
 app.post('/api/classify-utterance', async (req, res) => {
     try {
         const { bookContent, currentLine, prevUtterances, utterance } = req.body;
@@ -348,14 +288,41 @@ app.post('/api/categorize-utterances', async (req, res) => {
                     content: `You are a reading interaction analyst for a parent-child co-reading system. You classify off-script utterances — words spoken beyond the expected book text — during reading sessions.
                     
 Categories:
-- ON_TOPIC: Related to the book content or questions from the book. This includes comments about characters, plot, predictions, or connections to the child's life.
-- OFF_TOPIC: Unrelated to the book content or reading activity.
+- ON_TOPIC_ALL: Related to the book's overall content — characters, plot, themes, predictions, emotions, or connections to the child's life inspired by the story. This includes:
+  - Comments about characters' feelings, motivations, or relationships (e.g., "Zoe is Clara's best friend")
+  - Predictions about what will happen next in the story
+  - Reflections on earlier pages or events that already happened in the book
+  - Connections between the story and the child's own experiences when clearly prompted by story content (e.g., "Do you have a best friend like Zoe?")
+  - General comments about the book's theme or lesson (e.g., "This book is about patterns")
+  - References to characters or events NOT on the current page
+
+- ON_TOPIC_PAGE: Specifically about the current page's illustration, text, or embedded question — without connecting to the broader story. This includes:
+  - Answering or discussing the page's comprehension question (e.g., "What color plate is missing?")
+  - Describing what is visible in the current illustration
+  - Reading or repeating dialogue from the current page
+  - Identifying patterns, colors, shapes, or objects shown on the current page
+  - Responding to a direct prompt about the current page's content only
+
+- OFF_TOPIC: Unrelated to the book content or reading activity. This includes:
+  - Requests for snacks, bathroom breaks, or other needs
+  - Conversations about unrelated daily life (meals, weather, chores)
+  - Redirections or attention prompts (e.g., "Pay attention", "Let's focus", "Sit still")
+  - Comments about the physical book object (e.g., "This book is heavy") unless they reference story content
+  - Tangential personal stories that are NOT prompted by the book's content
+
+Key distinction — ON_TOPIC_ALL vs ON_TOPIC_PAGE:
+- ON_TOPIC_PAGE stays anchored to what is on the current page (its text, image, or question) without referencing other pages, the overall plot, or making broader story connections.
+- ON_TOPIC_ALL goes beyond the current page — it references other parts of the story, makes predictions, recalls earlier events, discusses characters across pages, or connects the story's themes to the child's life.
+- If an utterance answers the current page's question AND also connects to the broader story or another page, classify it as ON_TOPIC_ALL.
+- If an utterance ONLY addresses what is directly shown or asked on the current page, classify it as ON_TOPIC_PAGE.
 
 Classification rules:
 - Classify by the speaker's primary communicative intent.
-- Loose story connections count as book-related. Parents often link the story to the child's life — classify these as ON_TOPIC, not OFF_TOPIC.
+- Loose story connections count as book-related. Parents often link the story to the child's life — classify these as ON_TOPIC_ALL, not OFF_TOPIC.
+- Utterances that answer the current page's question without broader story connection are ON_TOPIC_PAGE.
 - Redirections or attention prompts (e.g., "Pay attention", "Let's focus") are OFF_TOPIC.
-- When uncertain, favor a ON_TOPIC over OFF_TOPIC.`
+- When uncertain between ON_TOPIC_ALL and ON_TOPIC_PAGE, consider whether the utterance could stand alone without knowing which page is open. If yes, it is likely ON_TOPIC_ALL. If it only makes sense in context of the current page, it is ON_TOPIC_PAGE.
+- When uncertain between ON_TOPIC and OFF_TOPIC, favor ON_TOPIC.`
                 },
                 {
                     role: "user",

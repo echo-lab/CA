@@ -115,11 +115,6 @@ function openGptDebugMonitor() {
         html += field('Question', payload.currentPageQuestion, 200);
         html += field('Page #', payload.currentPageNumber);
         html += field('Book Text', payload.bookText, 100);
-      } else if (endpoint === '/api/check-relevancy') {
-        html += field('Utterance', payload.utterance, 300);
-        html += field('Current Line', payload.currentLine, 200);
-        html += field('Prev Utterances', payload.utterances, 200);
-        html += field('Book Content', payload.bookContent, 100);
       } else {
         html += field('Payload', JSON.stringify(payload, null, 2), 500);
       }
@@ -129,12 +124,7 @@ function openGptDebugMonitor() {
     function formatResponse(endpoint, data) {
       var html = '';
       if (!data) return field('Result', 'null');
-      if (endpoint === '/api/check-relevancy') {
-        html += field('Relevant', data.isRelevant);
-        html += field('Confidence', data.confidence);
-        html += field('Reason', data.reason, 300);
-        html += field('Suggested Response', data.suggestedResponse, 300);
-      } else if (endpoint === '/api/categorize-utterances') {
+      if (endpoint === '/api/categorize-utterances') {
         // Show all top-level keys nicely
         for (var key in data) {
           var val = data[key];
