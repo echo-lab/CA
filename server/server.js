@@ -281,12 +281,14 @@ app.post('/api/categorize-utterances', async (req, res) => {
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-4o",
             messages: [
                 {
                     role: "developer",
-                    content: `You are a reading interaction analyst for a parent-child co-reading system. You classify off-script utterances — words spoken beyond the expected book text — during reading sessions.
-                    
+                    content: `You are a reading interaction analyst and educator for a parent-child co-reading system. You have two tasks:
+
+TASK 1 — CLASSIFY each off-script utterance (words spoken beyond the expected book text).
+
 Categories:
 - ON_TOPIC_ALL: Related to the book's overall content — characters, plot, themes, predictions, emotions, or connections to the child's life inspired by the story. This includes:
   - Comments about characters' feelings, motivations, or relationships (e.g., "Zoe is Clara's best friend")
@@ -321,7 +323,12 @@ Classification rules:
 - Utterances that answer the current page's question without broader story connection are ON_TOPIC_PAGE.
 - Redirections or attention prompts (e.g., "Pay attention", "Let's focus") are OFF_TOPIC.
 - When uncertain between ON_TOPIC_ALL and ON_TOPIC_PAGE, consider whether the utterance could stand alone without knowing which page is open. If yes, it is likely ON_TOPIC_ALL. If it only makes sense in context of the current page, it is ON_TOPIC_PAGE.
-- When uncertain between ON_TOPIC and OFF_TOPIC, favor ON_TOPIC.`
+- When uncertain between ON_TOPIC and OFF_TOPIC, favor ON_TOPIC.
+
+TASK 2 — GENERATE a follow-up question based ONLY on utterances you classified as ON_TOPIC_ALL or ON_TOPIC_PAGE.
+- Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver.
+- Base the question on the book content and the on-topic utterances.
+- If ALL utterances are OFF_TOPIC, set generatedQuestion to null.`
                 },
                 {
                     role: "user",
@@ -338,7 +345,7 @@ Question: "${currentPageQuestion}"
 ${formattedUtterances}
 </off_script_utterances>
 
-Classify each utterance.`
+Classify each utterance, then generate a follow-up question based on the on-topic ones.`
                 }
             ],
             response_format: {
@@ -364,9 +371,10 @@ Classify each utterance.`
                                     additionalProperties: false
                                 }
                             },
-                            summary: { type: "string" }
+                            summary: { type: "string" },
+                            generatedQuestion: { type: ["string", "null"] }
                         },
-                        required: ["items", "summary"],
+                        required: ["items", "summary", "generatedQuestion"],
                         additionalProperties: false
                     }
                 }
@@ -375,39 +383,7 @@ Classify each utterance.`
         });
 
         const result = JSON.parse(completion.choices[0].message.content);
-
-        // Generate a follow-up question from ON_TOPIC utterances
-        const onTopicItems = (result.items || []).filter(i => i.category === 'ON_TOPIC_ALL' || i.category === 'ON_TOPIC_PAGE');
-        let generatedQuestion = null;
-
-        if (onTopicItems.length > 0) {
-            const onTopicText = onTopicItems.map(i => i.text).join('\n');
-            const questionCompletion = await openai.chat.completions.create({
-                model: "gpt-4o",
-                messages: [
-                    {
-                        role: "developer",
-                        content: `You are an educator helping toddlers learn about patterns during a parent-child co-reading session. Generate ONE brief educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver based on the provided book content and the child's on-topic comments.`
-                    },
-                    {
-                        role: "user",
-                        content: `Book page text: "${bookPageText}"
-
-Page question: "${currentPageQuestion}"
-
-Child's on-topic comments:
-${onTopicText}
-
-Generate one short, engaging educational question based on the book content and the users' utterances.`
-                    }
-                ],
-                temperature: 0.7,
-                max_tokens: 150
-            });
-            generatedQuestion = questionCompletion.choices[0].message.content.trim();
-        }
-
-        res.json({ ...result, generatedQuestion });
+        res.json(result);
 
     } catch (error) {
         console.error('Error categorizing utterances:', error);
