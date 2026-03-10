@@ -348,17 +348,14 @@ app.post('/api/categorize-utterances', async (req, res) => {
                     content: `You are a reading interaction analyst for a parent-child co-reading system. You classify off-script utterances — words spoken beyond the expected book text — during reading sessions.
                     
 Categories:
-- COMPREHENSION: Questions or comments that check or promote story understanding (vocabulary, predictions, recall).
-- ELABORATION: Expanding on story content through real-world connections, background knowledge, or personal experiences.
-- ENGAGEMENT: Emotional reactions, praise, encouragement, or expressive performance (e.g., "Wow!", "Great reading!", dramatic voices).
-- PROMPTED_QUESTION: Asking or paraphrasing a question that is provided on the current page of the book. This includes reading the question verbatim, rephrasing it, or prompting the child to answer it (e.g., "So what color comes next?" when the page asks "What color should come next in the pattern?").
+- ON_TOPIC: Related to the book content or questions from the book. This includes comments about characters, plot, predictions, or connections to the child's life.
 - OFF_TOPIC: Unrelated to the book content or reading activity.
 
 Classification rules:
 - Classify by the speaker's primary communicative intent.
-- Loose story connections count as book-related. Parents often link the story to the child's life — classify these as ELABORATION, not OFF_TOPIC.
-- Redirections or attention prompts (e.g., "Pay attention", "Let's focus") are READING_MANAGEMENT, not OFF_TOPIC.
-- When uncertain, favor a book-related category over OFF_TOPIC.`
+- Loose story connections count as book-related. Parents often link the story to the child's life — classify these as ON_TOPIC, not OFF_TOPIC.
+- Redirections or attention prompts (e.g., "Pay attention", "Let's focus") are OFF_TOPIC.
+- When uncertain, favor a ON_TOPIC over OFF_TOPIC.`
                 },
                 {
                     role: "user",
@@ -393,7 +390,7 @@ Classify each utterance.`
                                     properties: {
                                         line: { type: "string" },
                                         text: { type: "string" },
-                                        category: { type: "string", enum: ["COMPREHENSION", "ELABORATION", "ENGAGEMENT", "PROMPTED_QUESTION", "OFF_TOPIC"] },
+                                        category: { type: "string", enum: ["ON_TOPIC", "OFF_TOPIC"] },
                                         confidence: { type: "number", minimum: 0, maximum: 1 },
                                         rationale: { type: "string" }
                                     },
@@ -412,7 +409,39 @@ Classify each utterance.`
         });
 
         const result = JSON.parse(completion.choices[0].message.content);
-        res.json(result);
+
+        // Generate a follow-up question from ON_TOPIC utterances
+        const onTopicItems = (result.items || []).filter(i => i.category === 'ON_TOPIC');
+        let generatedQuestion = null;
+
+        if (onTopicItems.length > 0) {
+            const onTopicText = onTopicItems.map(i => i.text).join('\n');
+            const questionCompletion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    {
+                        role: "developer",
+                        content: `You are an educator helping toddlers learn about patterns during a parent-child co-reading session. Generate ONE brief educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver based on the provided book content and the child's on-topic comments.`
+                    },
+                    {
+                        role: "user",
+                        content: `Book page text: "${bookPageText}"
+
+Page question: "${currentPageQuestion}"
+
+Child's on-topic comments:
+${onTopicText}
+
+Generate one short, engaging educational question about patterns based on the book content and the child's comments.`
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 150
+            });
+            generatedQuestion = questionCompletion.choices[0].message.content.trim();
+        }
+
+        res.json({ ...result, generatedQuestion });
 
     } catch (error) {
         console.error('Error categorizing utterances:', error);
@@ -421,6 +450,116 @@ Classify each utterance.`
             detail: error.message
         });
     }
+});
+
+// Test page: type a transcript and send it to /api/categorize-utterances
+app.get('/test-categorize', (req, res) => {
+    res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test Categorize Utterances</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Menlo', 'Consolas', monospace; font-size: 13px; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
+    h2 { color: #c586c0; margin-bottom: 16px; }
+    label { display: block; color: #9cdcfe; margin: 10px 0 4px; }
+    textarea, input {
+      width: 100%; background: #2d2d2d; color: #d4d4d4; border: 1px solid #3c3c3c;
+      padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;
+    }
+    textarea { height: 100px; resize: vertical; }
+    textarea.tall { height: 180px; }
+    button {
+      margin-top: 14px; padding: 10px 24px; background: #569cd6; color: #fff;
+      border: none; border-radius: 4px; cursor: pointer; font-size: 13px;
+    }
+    button:hover { background: #4a8abf; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    #result {
+      margin-top: 20px; padding: 12px; background: #252526; border: 1px solid #3c3c3c;
+      border-radius: 4px; white-space: pre-wrap; display: none; max-height: 500px; overflow-y: auto;
+    }
+    .q-label { color: #4caf50; font-weight: bold; }
+    .cat-label { color: #569cd6; font-weight: bold; }
+    .error { color: #f44747; }
+  </style>
+</head>
+<body>
+  <h2>Test: Categorize Utterances + Question Generation</h2>
+
+  <label>Off-script transcript (one per line, e.g. "line1: I see a red flower")</label>
+  <textarea id="utterances" placeholder="line1: Look at the pretty flowers!&#10;line2: I like the blue one&#10;line3: Can we have lunch?"></textarea>
+
+  <label>Book page text</label>
+  <textarea id="pageText" placeholder="The garden had rows of red, blue, red, blue flowers..."></textarea>
+
+  <label>Current page question</label>
+  <input id="pageQuestion" placeholder="What color comes next in the pattern?" />
+
+  <label>Full book text (optional)</label>
+  <textarea id="bookText" class="tall" placeholder="Page 1: ...&#10;Page 2: ..."></textarea>
+
+  <label>Page number</label>
+  <input id="pageNumber" type="number" value="1" style="width: 80px;" />
+
+  <button id="sendBtn" onclick="send()">Send</button>
+  <div id="result"></div>
+
+  <script>
+    async function send() {
+      const btn = document.getElementById('sendBtn');
+      const resultDiv = document.getElementById('result');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances...</span>';
+
+      const body = {
+        formattedUtterances: document.getElementById('utterances').value,
+        bookPageText: document.getElementById('pageText').value,
+        currentPageQuestion: document.getElementById('pageQuestion').value,
+        bookText: document.getElementById('bookText').value,
+        currentPageNumber: parseInt(document.getElementById('pageNumber').value) || 1
+      };
+
+      try {
+        const res = await fetch('/api/categorize-utterances', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+
+        let html = '<div><span class="cat-label">Categorization:</span></div>';
+        if (data.items) {
+          data.items.forEach(item => {
+            const color = item.category === 'ON_TOPIC' ? '#4caf50' : '#f44747';
+            html += '<div style="margin:4px 0 4px 12px;">'
+              + '<span style="color:' + color + '">[' + item.category + ']</span> '
+              + item.text
+              + '<span style="color:#888"> — ' + item.rationale + '</span>'
+              + '</div>';
+          });
+        }
+        if (data.summary) {
+          html += '<div style="margin:8px 0 4px 12px;color:#888">Summary: ' + data.summary + '</div>';
+        }
+        html += '<div style="margin-top:14px;border-top:1px solid #3c3c3c;padding-top:10px;">'
+          + '<span class="q-label">Generated Question:</span> '
+          + (data.generatedQuestion || '<span style="color:#888">None (no ON_TOPIC utterances)</span>')
+          + '</div>';
+        resultDiv.innerHTML = html;
+      } catch (err) {
+        resultDiv.innerHTML = '<span class="error">Error: ' + err.message + '</span>';
+      }
+      btn.disabled = false;
+      btn.textContent = 'Send';
+    }
+  </script>
+</body>
+</html>`);
 });
 
 app.post('/synthesize', async (req, res) => {

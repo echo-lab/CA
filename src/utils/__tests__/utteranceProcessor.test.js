@@ -111,7 +111,7 @@ describe('utteranceProcessor', () => {
 
       it('matches "lets choose a cake"', async () => {
         const refs = createMockRefs();
-        const state = createMockState(['\u201CLet\u2019s choose a cake!\u201D'], 0, 0);
+        const state = createMockState(['"Let\'s choose a cake!"'], 0, 0);
         const setAudioHasEnded = jest.fn();
 
         await processUserUtterance(buildCallArgs(refs, state, {

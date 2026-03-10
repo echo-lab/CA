@@ -18,6 +18,9 @@ export function normalizeText(text) {
 
   let result = text.toLowerCase().trim();
 
+  // Normalize curly/smart quotes to straight equivalents
+  result = result.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+
   let resultOptions = [];
 
   // Convert numbers to words: "5" → "five", "1st" → "first"
