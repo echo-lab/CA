@@ -452,7 +452,46 @@ Generate one short, engaging educational question about patterns based on the bo
     }
 });
 
-// Test page: type a transcript and send it to /api/categorize-utterances
+// --- Book data loader for test page ---
+function loadBookData(bookId) {
+    const bookFiles = {
+        1: path.join(__dirname, '..', 'src', 'Book', 'Book1.js'),
+        2: path.join(__dirname, '..', 'src', 'Book', 'Book2.js'),
+        3: path.join(__dirname, '..', 'src', 'Book', 'Book3.js'),
+    };
+    const filePath = bookFiles[bookId];
+    if (!filePath) return null;
+    let src = fs.readFileSync(filePath, 'utf-8');
+    // Strip require() calls (images) and export keyword
+    src = src.replace(/require\([^)]+\)/g, 'null');
+    src = src.replace(/^export\s+const\s+data\s*=/, 'var __data =');
+    // Evaluate and extract
+    const vm = require('vm');
+    const ctx = {};
+    vm.runInNewContext(src, ctx);
+    return ctx.__data && ctx.__data[0] ? ctx.__data[0].Book : null;
+}
+
+function stripSSML(text) {
+    return text.replace(/<\/?[^>]+(>|$)/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// API: get book metadata (page names, text, questions)
+app.get('/api/book-data/:bookId', (req, res) => {
+    const book = loadBookData(parseInt(req.params.bookId));
+    if (!book) return res.status(404).json({ error: 'Book not found' });
+
+    const pageEntries = Object.entries(book.Pages).map(([key, page], i) => ({
+        key,
+        index: i,
+        question: page.question || '',
+        text: (page.text || []).map(l => ({ Character: l.Character, Dialogue: stripSSML(l.Dialogue) })),
+    }));
+
+    res.json({ name: book.Name, pages: pageEntries });
+});
+
+// Test page: select book + page, type utterances, send to /api/categorize-utterances
 app.get('/test-categorize', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html>
@@ -461,15 +500,22 @@ app.get('/test-categorize', (req, res) => {
   <title>Test Categorize Utterances</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Menlo', 'Consolas', monospace; font-size: 13px; background: #1e1e1e; color: #d4d4d4; padding: 20px; }
+    body { font-family: 'Menlo', 'Consolas', monospace; font-size: 13px; background: #1e1e1e; color: #d4d4d4; padding: 20px; max-width: 800px; }
     h2 { color: #c586c0; margin-bottom: 16px; }
     label { display: block; color: #9cdcfe; margin: 10px 0 4px; }
-    textarea, input {
+    select, textarea, input {
       width: 100%; background: #2d2d2d; color: #d4d4d4; border: 1px solid #3c3c3c;
       padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;
     }
-    textarea { height: 100px; resize: vertical; }
-    textarea.tall { height: 180px; }
+    select { cursor: pointer; }
+    textarea { height: 120px; resize: vertical; }
+    .context-box {
+      margin-top: 8px; padding: 10px; background: #252526; border: 1px solid #3c3c3c;
+      border-radius: 4px; font-size: 11px; line-height: 1.6; max-height: 200px; overflow-y: auto;
+    }
+    .context-box .page-q { color: #c586c0; margin-bottom: 4px; }
+    .context-box .line { color: #808080; }
+    .context-box .char { color: #569cd6; }
     button {
       margin-top: 14px; padding: 10px 24px; background: #569cd6; color: #fff;
       border: none; border-radius: 4px; cursor: pointer; font-size: 13px;
@@ -483,33 +529,108 @@ app.get('/test-categorize', (req, res) => {
     .q-label { color: #4caf50; font-weight: bold; }
     .cat-label { color: #569cd6; font-weight: bold; }
     .error { color: #f44747; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
   </style>
 </head>
 <body>
   <h2>Test: Categorize Utterances + Question Generation</h2>
 
-  <label>Off-script transcript (one per line, e.g. "line1: I see a red flower")</label>
+  <div class="row">
+    <div>
+      <label>Book</label>
+      <select id="bookSelect" onchange="loadBook()">
+        <option value="">-- Select a book --</option>
+        <option value="1">Book 1: Birthday Beeps and Boops</option>
+        <option value="2">Book 2: Sleepover Similarities</option>
+        <option value="3">Book 3: Levels in the Library</option>
+      </select>
+    </div>
+    <div>
+      <label>Page</label>
+      <select id="pageSelect" onchange="selectPage()" disabled>
+        <option value="">-- Select book first --</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="pageContext" class="context-box" style="display:none">
+    <div class="page-q" id="ctxQuestion"></div>
+    <div id="ctxLines"></div>
+  </div>
+
+  <label>Off-script utterances (one per line)</label>
   <textarea id="utterances" placeholder="line1: Look at the pretty flowers!&#10;line2: I like the blue one&#10;line3: Can we have lunch?"></textarea>
 
-  <label>Book page text</label>
-  <textarea id="pageText" placeholder="The garden had rows of red, blue, red, blue flowers..."></textarea>
-
-  <label>Current page question</label>
-  <input id="pageQuestion" placeholder="What color comes next in the pattern?" />
-
-  <label>Full book text (optional)</label>
-  <textarea id="bookText" class="tall" placeholder="Page 1: ...&#10;Page 2: ..."></textarea>
-
-  <label>Page number</label>
-  <input id="pageNumber" type="number" value="1" style="width: 80px;" />
-
-  <button id="sendBtn" onclick="send()">Send</button>
+  <button id="sendBtn" onclick="send()" disabled>Send</button>
   <div id="result"></div>
 
   <script>
+    let bookData = null;
+
+    async function loadBook() {
+      const bookId = document.getElementById('bookSelect').value;
+      const pageSel = document.getElementById('pageSelect');
+      const ctx = document.getElementById('pageContext');
+      bookData = null;
+      pageSel.disabled = true;
+      pageSel.innerHTML = '<option value="">Loading...</option>';
+      ctx.style.display = 'none';
+      document.getElementById('sendBtn').disabled = true;
+
+      if (!bookId) { pageSel.innerHTML = '<option value="">-- Select book first --</option>'; return; }
+
+      try {
+        const res = await fetch('/api/book-data/' + bookId);
+        bookData = await res.json();
+        pageSel.innerHTML = bookData.pages.map((p, i) =>
+          '<option value="' + i + '">' + p.key + '</option>'
+        ).join('');
+        pageSel.disabled = false;
+        selectPage();
+      } catch (err) {
+        pageSel.innerHTML = '<option value="">Error loading book</option>';
+      }
+    }
+
+    function selectPage() {
+      const idx = parseInt(document.getElementById('pageSelect').value);
+      const ctx = document.getElementById('pageContext');
+      const btn = document.getElementById('sendBtn');
+      if (!bookData || isNaN(idx)) { ctx.style.display = 'none'; btn.disabled = true; return; }
+
+      const page = bookData.pages[idx];
+      document.getElementById('ctxQuestion').textContent = 'Question: ' + (page.question || '(none)');
+      document.getElementById('ctxLines').innerHTML = page.text.map(l =>
+        '<div class="line"><span class="char">' + l.Character + ':</span> ' + l.Dialogue + '</div>'
+      ).join('');
+      ctx.style.display = 'block';
+      btn.disabled = false;
+    }
+
+    function getFullBookText() {
+      if (!bookData) return '';
+      return bookData.pages.map((p, i) =>
+        'Page ' + (i + 1) + ':\\n' + p.text.map(l => l.Character + ': ' + l.Dialogue).join('\\n')
+      ).join('\\n\\n');
+    }
+
+    function getCurrentPageText() {
+      const idx = parseInt(document.getElementById('pageSelect').value);
+      if (!bookData || isNaN(idx)) return '';
+      return bookData.pages[idx].text.map(l => l.Dialogue).join(' ');
+    }
+
+    function getCurrentPageQuestion() {
+      const idx = parseInt(document.getElementById('pageSelect').value);
+      if (!bookData || isNaN(idx)) return '';
+      return bookData.pages[idx].question;
+    }
+
     async function send() {
       const btn = document.getElementById('sendBtn');
       const resultDiv = document.getElementById('result');
+      const pageIdx = parseInt(document.getElementById('pageSelect').value);
       btn.disabled = true;
       btn.textContent = 'Processing...';
       resultDiv.style.display = 'block';
@@ -517,10 +638,10 @@ app.get('/test-categorize', (req, res) => {
 
       const body = {
         formattedUtterances: document.getElementById('utterances').value,
-        bookPageText: document.getElementById('pageText').value,
-        currentPageQuestion: document.getElementById('pageQuestion').value,
-        bookText: document.getElementById('bookText').value,
-        currentPageNumber: parseInt(document.getElementById('pageNumber').value) || 1
+        bookPageText: getCurrentPageText(),
+        currentPageQuestion: getCurrentPageQuestion(),
+        bookText: getFullBookText(),
+        currentPageNumber: pageIdx + 1
       };
 
       try {
@@ -539,7 +660,7 @@ app.get('/test-categorize', (req, res) => {
             html += '<div style="margin:4px 0 4px 12px;">'
               + '<span style="color:' + color + '">[' + item.category + ']</span> '
               + item.text
-              + '<span style="color:#888"> — ' + item.rationale + '</span>'
+              + '<span style="color:#888"> &mdash; ' + item.rationale + '</span>'
               + '</div>';
           });
         }
