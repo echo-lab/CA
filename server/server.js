@@ -357,7 +357,7 @@ Classify each utterance.`
                                     properties: {
                                         line: { type: "string" },
                                         text: { type: "string" },
-                                        category: { type: "string", enum: ["ON_TOPIC", "OFF_TOPIC"] },
+                                        category: { type: "string", enum: ["ON_TOPIC_ALL", "ON_TOPIC_PAGE", "OFF_TOPIC"] },
                                         confidence: { type: "number", minimum: 0, maximum: 1 },
                                         rationale: { type: "string" }
                                     },
