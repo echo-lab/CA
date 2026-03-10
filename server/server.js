@@ -281,7 +281,7 @@ app.post('/api/categorize-utterances', async (req, res) => {
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-4o-mini",
             messages: [
                 {
                     role: "developer",
@@ -304,8 +304,7 @@ Categories:
   - Responding to a direct prompt about the current page's content only
 
 - OFF_TOPIC: Unrelated to the book content or reading activity. This includes:
-  - Requests for snacks, bathroom breaks, or other needs
-  - Conversations about unrelated daily life (meals, weather, chores)
+  - Conversations about unrelated daily life topics (e.g., "What's for dinner?")
   - Redirections or attention prompts (e.g., "Pay attention", "Let's focus", "Sit still")
   - Comments about the physical book object (e.g., "This book is heavy") unless they reference story content
   - Tangential personal stories that are NOT prompted by the book's content
@@ -378,7 +377,7 @@ Classify each utterance.`
         const result = JSON.parse(completion.choices[0].message.content);
 
         // Generate a follow-up question from ON_TOPIC utterances
-        const onTopicItems = (result.items || []).filter(i => i.category === 'ON_TOPIC');
+        const onTopicItems = (result.items || []).filter(i => i.category === 'ON_TOPIC_ALL' || i.category === 'ON_TOPIC_PAGE');
         let generatedQuestion = null;
 
         if (onTopicItems.length > 0) {
@@ -399,7 +398,7 @@ Page question: "${currentPageQuestion}"
 Child's on-topic comments:
 ${onTopicText}
 
-Generate one short, engaging educational question about patterns based on the book content and the child's comments.`
+Generate one short, engaging educational question based on the book content and the users' utterances.`
                     }
                 ],
                 temperature: 0.7,
