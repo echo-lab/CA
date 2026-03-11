@@ -281,7 +281,7 @@ app.post('/api/categorize-utterances', async (req, res) => {
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-4o-mini",
             messages: [
                 {
                     role: "developer",
@@ -389,6 +389,75 @@ Classify each utterance, then generate a follow-up question based on the on-topi
         console.error('Error categorizing utterances:', error);
         res.status(500).json({
             error: 'Failed to categorize utterances',
+            detail: error.message
+        });
+    }
+});
+
+app.post('/api/categorize-realtime', async (req, res) => {
+    try {
+        const { formattedUtterances, bookPageText, currentPageQuestion, bookText } = req.body;
+
+        if (!formattedUtterances) {
+            return res.status(400).json({
+                error: 'Missing required fields',
+                required: ['formattedUtterances']
+            });
+        }
+
+        const fetch = (await import('node-fetch')).default;
+
+        const instructions = `You are a reading interaction analyst and educator for a parent-child co-reading session about patterns.
+
+You will receive off-script utterances from a reading session along with the book context. You must do two things:
+
+1. CLASSIFY each utterance as ON_TOPIC_ALL, ON_TOPIC_PAGE, or OFF_TOPIC:
+   - ON_TOPIC_ALL: Related to the book's overall content — characters, plot, themes, predictions, or connections to the child's life inspired by the story.
+   - ON_TOPIC_PAGE: Specifically about the current page's illustration, text, or question — without connecting to the broader story.
+   - OFF_TOPIC: Unrelated to the book or reading activity (e.g., "What's for dinner?", attention prompts like "Pay attention").
+
+2. Based ONLY on utterances that are ON_TOPIC, immediately ask ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, say nothing.
+
+Book context:
+${bookText ? 'Full book text:\n' + bookText + '\n\n' : ''}Current page (Page ${req.body.currentPageNumber || ''}):
+Text: "${bookPageText}"
+Question: "${currentPageQuestion}"
+
+Off-script utterances:
+${formattedUtterances}
+
+When you respond, first briefly state your classifications (e.g., "line1 is on-topic, line3 is off-topic"), then immediately ask your follow-up question. Keep it conversational and warm — you are speaking to a toddler and their caregiver.`;
+
+        const tokenResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-realtime-preview-2024-12-17",
+                voice: "alloy",
+                instructions,
+            })
+        });
+
+        if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text();
+            console.error(`Realtime session error (${tokenResponse.status}):`, errorText);
+            throw new Error(`Failed to create realtime session: ${errorText}`);
+        }
+
+        const { client_secret } = await tokenResponse.json();
+
+        res.json({
+            success: true,
+            client_secret,
+        });
+
+    } catch (error) {
+        console.error('Error creating realtime categorization session:', error);
+        res.status(500).json({
+            error: 'Failed to create realtime session',
             detail: error.message
         });
     }
@@ -504,11 +573,17 @@ app.get('/test-categorize', (req, res) => {
   <label>Off-script utterances (one per line)</label>
   <textarea id="utterances" placeholder="line1: Look at the pretty flowers!&#10;line2: I like the blue one&#10;line3: Can we have lunch?"></textarea>
 
-  <button id="sendBtn" onclick="send()" disabled>Send</button>
+  <div class="row" style="margin-top:14px;">
+    <div><button id="sendBtn" onclick="send()" disabled>Send (Text)</button></div>
+    <div><button id="realtimeBtn" onclick="sendRealtime()" disabled style="background:#4caf50;">Send (Realtime Audio)</button></div>
+    <div><button id="stopBtn" onclick="stopRealtime()" style="background:#f44747;display:none;">Stop Audio</button></div>
+  </div>
   <div id="result"></div>
+  <audio id="remoteAudio" autoplay></audio>
 
   <script>
     let bookData = null;
+    let rtcPc = null;
 
     async function loadBook() {
       const bookId = document.getElementById('bookSelect').value;
@@ -519,6 +594,7 @@ app.get('/test-categorize', (req, res) => {
       pageSel.innerHTML = '<option value="">Loading...</option>';
       ctx.style.display = 'none';
       document.getElementById('sendBtn').disabled = true;
+      document.getElementById('realtimeBtn').disabled = true;
 
       if (!bookId) { pageSel.innerHTML = '<option value="">-- Select book first --</option>'; return; }
 
@@ -538,8 +614,7 @@ app.get('/test-categorize', (req, res) => {
     function selectPage() {
       const idx = parseInt(document.getElementById('pageSelect').value);
       const ctx = document.getElementById('pageContext');
-      const btn = document.getElementById('sendBtn');
-      if (!bookData || isNaN(idx)) { ctx.style.display = 'none'; btn.disabled = true; return; }
+      if (!bookData || isNaN(idx)) { ctx.style.display = 'none'; setBtns(false); return; }
 
       const page = bookData.pages[idx];
       document.getElementById('ctxQuestion').textContent = 'Question: ' + (page.question || '(none)');
@@ -547,7 +622,12 @@ app.get('/test-categorize', (req, res) => {
         '<div class="line"><span class="char">' + l.Character + ':</span> ' + l.Dialogue + '</div>'
       ).join('');
       ctx.style.display = 'block';
-      btn.disabled = false;
+      setBtns(true);
+    }
+
+    function setBtns(enabled) {
+      document.getElementById('sendBtn').disabled = !enabled;
+      document.getElementById('realtimeBtn').disabled = !enabled;
     }
 
     function getFullBookText() {
@@ -569,28 +649,31 @@ app.get('/test-categorize', (req, res) => {
       return bookData.pages[idx].question;
     }
 
-    async function send() {
-      const btn = document.getElementById('sendBtn');
-      const resultDiv = document.getElementById('result');
+    function getRequestBody() {
       const pageIdx = parseInt(document.getElementById('pageSelect').value);
-      btn.disabled = true;
-      btn.textContent = 'Processing...';
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances...</span>';
-
-      const body = {
+      return {
         formattedUtterances: document.getElementById('utterances').value,
         bookPageText: getCurrentPageText(),
         currentPageQuestion: getCurrentPageQuestion(),
         bookText: getFullBookText(),
         currentPageNumber: pageIdx + 1
       };
+    }
+
+    // --- Text mode (gpt-4o-mini) ---
+    async function send() {
+      const btn = document.getElementById('sendBtn');
+      const resultDiv = document.getElementById('result');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances...</span>';
 
       try {
         const res = await fetch('/api/categorize-utterances', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(getRequestBody())
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Request failed');
@@ -598,7 +681,7 @@ app.get('/test-categorize', (req, res) => {
         let html = '<div><span class="cat-label">Categorization:</span></div>';
         if (data.items) {
           data.items.forEach(item => {
-            const color = item.category === 'ON_TOPIC' ? '#4caf50' : '#f44747';
+            const color = item.category.startsWith('ON_TOPIC') ? '#4caf50' : '#f44747';
             html += '<div style="margin:4px 0 4px 12px;">'
               + '<span style="color:' + color + '">[' + item.category + ']</span> '
               + item.text
@@ -618,7 +701,107 @@ app.get('/test-categorize', (req, res) => {
         resultDiv.innerHTML = '<span class="error">Error: ' + err.message + '</span>';
       }
       btn.disabled = false;
-      btn.textContent = 'Send';
+      btn.textContent = 'Send (Text)';
+    }
+
+    // --- Realtime Audio mode (WebRTC) ---
+    async function sendRealtime() {
+      const btn = document.getElementById('realtimeBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const resultDiv = document.getElementById('result');
+      btn.disabled = true;
+      btn.textContent = 'Connecting...';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span style="color:#888">Creating Realtime session...</span>';
+
+      try {
+        // 1. Get session token from server
+        const tokenRes = await fetch('/api/categorize-realtime', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(getRequestBody())
+        });
+        const tokenData = await tokenRes.json();
+        if (!tokenRes.ok) throw new Error(tokenData.error || 'Failed to get session');
+
+        resultDiv.innerHTML = '<span style="color:#888">Establishing WebRTC connection...</span>';
+
+        // 2. Create WebRTC peer connection
+        const pc = new RTCPeerConnection();
+        rtcPc = pc;
+        const audioEl = document.getElementById('remoteAudio');
+
+        pc.ontrack = (e) => {
+          audioEl.srcObject = e.streams[0];
+        };
+
+        // Add silent audio track (required by Realtime API)
+        const silentCtx = new AudioContext();
+        const dest = silentCtx.createMediaStreamDestination();
+        const osc = silentCtx.createOscillator();
+        osc.frequency.value = 0;
+        const gain = silentCtx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain);
+        gain.connect(dest);
+        osc.start();
+        dest.stream.getTracks().forEach(track => pc.addTrack(track, dest.stream));
+
+        // Data channel for events
+        const dc = pc.createDataChannel('oai-events');
+        let transcript = '';
+
+        dc.onmessage = (e) => {
+          const ev = JSON.parse(e.data);
+          if (ev.type === 'response.audio_transcript.delta') {
+            transcript += ev.delta;
+            resultDiv.innerHTML = '<div><span class="q-label">AI (audio):</span></div>'
+              + '<div style="margin:8px 0 4px 12px;">' + transcript + '</div>';
+          } else if (ev.type === 'response.audio_transcript.done') {
+            transcript = ev.transcript || transcript;
+            resultDiv.innerHTML = '<div><span class="q-label">AI Response:</span></div>'
+              + '<div style="margin:8px 0 4px 12px;">' + transcript + '</div>';
+          } else if (ev.type === 'session.created') {
+            resultDiv.innerHTML = '<span style="color:#888">Session ready, waiting for response...</span>';
+            // Trigger immediate response
+            dc.send(JSON.stringify({ type: 'response.create' }));
+          }
+        };
+
+        // 3. Create offer and connect
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        const sdpRes = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + tokenData.client_secret.value,
+            'Content-Type': 'application/sdp',
+          },
+          body: offer.sdp,
+        });
+
+        const answerSdp = await sdpRes.text();
+        await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+        stopBtn.style.display = '';
+        btn.textContent = 'Send (Realtime Audio)';
+        btn.disabled = false;
+
+      } catch (err) {
+        resultDiv.innerHTML = '<span class="error">Error: ' + err.message + '</span>';
+        btn.textContent = 'Send (Realtime Audio)';
+        btn.disabled = false;
+      }
+    }
+
+    function stopRealtime() {
+      if (rtcPc) {
+        rtcPc.close();
+        rtcPc = null;
+      }
+      document.getElementById('remoteAudio').srcObject = null;
+      document.getElementById('stopBtn').style.display = 'none';
     }
   </script>
 </body>
