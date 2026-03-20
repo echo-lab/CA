@@ -323,6 +323,7 @@ export async function processUserUtterance({
       if (variant.wordCount <= 2 && allSpokenWords.length > 0) {
         for (let i = 0; i < allSpokenWords.length; i++) {
           const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
+          debugLog({ type: 'merged_check', label: variant.label, spokenWord: allSpokenWords[i], target: variant.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
           if (detail.confidence >= 0.6) {
             console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
             debugLog({ type: 'merged_match', label: variant.label, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
