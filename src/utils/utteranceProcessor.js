@@ -320,6 +320,7 @@ export async function processUserUtterance({
       }
 
       // Merged-string fallback for short lines (e.g., "Clara said" transcribed as "Claraiset")
+      console.log(`[Merged fallback] wordCount=${variant.wordCount}, spokenWords=${allSpokenWords.length}, words=[${allSpokenWords.join(', ')}]`);
       if (variant.wordCount <= 2 && allSpokenWords.length > 0) {
         for (let i = 0; i < allSpokenWords.length; i++) {
           const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
