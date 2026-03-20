@@ -318,6 +318,24 @@ export async function processUserUtterance({
           if (detail.confidence > bestDetail.confidence) bestDetail = detail;
         }
       }
+
+      // Merged-string fallback for short lines (e.g., "Clara said" transcribed as "Claraiset")
+      if (variant.wordCount <= 2 && allSpokenWords.length > 0) {
+        for (let i = 0; i < allSpokenWords.length; i++) {
+          const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
+          if (detail.confidence >= 0.6) {
+            console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
+            debugLog({ type: 'merged_match', label: variant.label, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
+            captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, i));
+            clearMatchState(refs, i + 1);
+            if (currentLineIndex === totalLines - 1) {
+              currentLine.Reading = false;
+            }
+            advanceToNextLine(setAudioHasEnded, setIsPlaying);
+            return;
+          }
+        }
+      }
     }
 
     // Variant failed — report reason
