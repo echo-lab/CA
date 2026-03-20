@@ -15,6 +15,8 @@ import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
+import { say } from "../utils/ttsClient";
+
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
 const TTSurl = url + (port ? `:${port}` : "");
@@ -26,20 +28,20 @@ const DIFFICULTY_MAP = {
   // 1 = Birthday
   1: {
     Narrator: "",      
-    Clara: "Easier",
-    Zoe: "Harder",       
+    Clara: "Child",
+    Zoe: "Parent",       
   },
   // 2 = Sleepover
   2: {
     Narrator: "",        
-    Clara: "Easier",
-    Zoe: "Harder",
+    Clara: "Child",
+    Zoe: "Parent",
   },
   // 3 = Levels
   3: {
     Narrator: "",        
-    Clara: "Harder",
-    Zoe: "Easier",
+    Clara: "Parent",
+    Zoe: "Child",
   },
 };
 
@@ -59,20 +61,19 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   };
 
   async function speak() {
-    try {
-      const voice =
-        role.Role === "Parent" ? "en-US-Wavenet-F" : role.RoleParameter;
-      const request = { text: `Hello ${name}, I am ${role.Role}`, voice };
-      const res = await fetch(`${TTSurl}/synthesize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
-      const data = await res.json();
-      new Audio(`data:audio/mp3;base64,${data.audioContent}`).play();
-    } catch (err) {
-      console.error("TTS error:", err);
-    }
+  try {
+    const defaultVoice = role.Role === "Parent" ? "Kore" : (role.RoleParameter || "Puck");
+    await say({
+      text: role.Role === "Child"
+        ? `Hi ${name}, can you hear me?... [long pause] ... [long pause] ...Great! We are going to read a book. When you hear my voice, it's your turn to say the words after me. Okay?... [long pause] ... [long pause] ...Great!`
+        : `Hello ${name}, I am ${role.Role}`,
+      voiceName: defaultVoice,
+      emotion: role.Emotion || "neutral",
+      role: role.Role === "Child" ? "Child" : null,
+    });
+  } catch (err) {
+    console.error("TTS error:", err);
+  }
   }
 
   return (
@@ -95,7 +96,7 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
         >
           <img src={role.img} alt={role.Role} />
           <span>{role.Role}</span>
-          {role.Role !== "Parent" && role.Role !== "Child" && (
+          {role.Role !== "Parent" && (
             <button onClick={playSound} disabled={playDisabled}>
               <PlayArrowIcon />
             </button>

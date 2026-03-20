@@ -3,13 +3,18 @@ const fs = require('fs');
 const cors = require('cors');
 const https = require('https');
 require('dotenv').config({ path: '.env.local' });
+const { registerLiveTtsRoutes } = require('./liveTTS'); 
+
+const { startPruner } = require('./cache/prune');
+startPruner();
+
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const keyPath = process.env.KEYPATH;
 const certPath = process.env.CERTPATH;
 console.log(keyPath);
 console.log(certPath);
 const corsOptions = {
-    origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','http://localhost:3000', 'https://talemate.cs.vt.edu:3001', 'https://talemate.cs.vt.edu:5001'],
+	origin: ['https://talemate.cs.vt.edu', 'https://128.173.237.12','https://localhost:3000', 'https://talemate.cs.vt.edu:3001', 'https://talemate.cs.vt.edu:5001', 'https://talemate.cs.vt.edu:3002'],
     methods: 'POST',
     credentials: true
   };
@@ -17,8 +22,7 @@ const corsOptions = {
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
-
-
+registerLiveTtsRoutes(app);
 
 
 app.post('/synthesize', async (req, res) => {

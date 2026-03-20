@@ -121,6 +121,12 @@
   z-index: 1; /* Lower than left rail but dragged items will be higher */
 }
 
+.main-column::after {
+  content: "";
+  display: block;
+  height: 300px;
+}
+
 .DraggableContainer {
   display: grid;
   grid-template-columns: repeat(2, var(--mate-size));
@@ -181,7 +187,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--card-gap);
   width: 90%;
-  margin: 16px auto 24px;
+  margin: 16px auto 150px;
 }
 
 .character-cards-container > div { box-sizing: border-box; }

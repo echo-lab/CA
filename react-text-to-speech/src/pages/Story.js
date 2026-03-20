@@ -1,7 +1,8 @@
-import React,  { useState, useRef } from "react";
+import React,  { useState, useRef, useEffect} from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import TouchAppIcon from '@mui/icons-material/TouchApp';
 import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
@@ -10,13 +11,8 @@ import { data as data3 } from "../Book/Book3";
 import parentImage from "../Pictures/virtual.webp"
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-
-const url = process.env.REACT_APP_TTSURL;
-const port = process.env.REACT_APP_PORT;
-const TTSurl = url + (port?":"+port:"");
-
-
-
+import { say } from "../utils/ttsClient";
+import { warmSay } from "../utils/warmSay";
 
 class Book {
   constructor(data) {
@@ -33,11 +29,16 @@ function Reader() {
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
   const location = useLocation();
   const navigate = useNavigate();
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [childHasPlayed, setChildHasPlayed] = useState(false);
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  // How many warm requests to run in parallell
+  const PRELOAD_CONCURRENCY = 1;
+  const inflightRequests = useRef(new Map());
 
 
   let bookData
@@ -98,6 +99,70 @@ function Reader() {
     }, 100);
   };
 
+  function canon(text) {
+  return stripSSMLTags(String(text || ""))
+    .trim()
+    .replace(/\s+/g, " ");
+  }
+
+  useEffect(() => {
+    const current = state.pagesValues[state.page];
+    const next = state.pagesValues[state.page + 1];
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    if (!current?.text?.length) return;
+
+    // Build Character → voiceName map (skip muted roles: Parent/Child)
+    const voiceByChar = new Map();
+    for (const opt of state.CharacterRoles || []) {
+      if (opt.role === "Parent") continue;
+      if (opt.VA) voiceByChar.set(opt.Character, { voiceName: opt.VA, role: opt.role });
+    }
+
+    // Collect pages to warm: current + look-ahead (next)
+    const pagesToWarm = [current];
+    if (next?.text?.length) pagesToWarm.push(next);
+
+    // Build a flat list of warm tasks for ALL lines from valid speakers
+    const tasks = [];
+    for (const page of pagesToWarm) {
+      for (const line of page.text) {
+        const charInfo = voiceByChar.get(line.Character);
+        if (!charInfo) continue; // ignore Parent/Child/unassigned
+        const text = canon(line.Dialogue);
+        if (!text) continue;
+        tasks.push({ 
+          text, 
+          voiceName: charInfo.voiceName,
+          role: charInfo.role 
+        });
+      }
+    }
+    if (!tasks.length) return;
+
+    // Tiny concurrency pump (best-effort warming)
+    let i = 0;
+    let running = 0;
+    let stopped = false;
+
+    const pump = () => {
+      if (stopped) return;
+      while (running < PRELOAD_CONCURRENCY && i < tasks.length) {
+        const t = tasks[i++];
+        running++;
+        warmSay(t)
+          .catch(() => {}) // warming is best-effort
+          .finally(async () => {
+            running--;
+            await sleep(400);
+            queueMicrotask(pump);
+          });
+      }
+    };
+
+    pump();
+    return () => { stopped = true; };
+  }, [state.page, state.pagesValues, state.CharacterRoles]);
+
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
@@ -134,41 +199,71 @@ const gotoPreviousPage = () => {
 };
 
 const playSound = () => {
-      
-  speak(state.pagesValues[state.page].question)
+  // Try narrator voice if assigned; fallback to “kore”
+  const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
+  const voiceName = narratorRole?.VA || "kore";
+  const role = narratorRole?.role || null;
+  speak(state.pagesValues[state.page].question, voiceName, "neutral", role);
 };
 
 
 
 
 
-  async function speak(text){
-    try {
-        const request = {
-          text: text,
-          voice: {languageCode: 'en-US', name :'en-US-Wavenet-B' }
-        };
+  async function speak(text, voiceName = "kore", emotion = "neutral", role = null) {
   
-        const response = await fetch(TTSurl+'/synthesize', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(request),
-        });
-  
-        const data = await response.json();
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        audio.play()
-      } catch (error) {
-        console.error('Error in Google Text-to-Speech:', error);
-      }
+  // prevent multiple audio calls
+  if (isAudioPlaying) {
+    return;
   }
+  
+  try {
+    const clean = stripSSMLTags(String(text || "").trim());
+    if (!clean) return;
+
+    setIsAudioPlaying(true);
+
+    const { audio } = await say({
+      text: clean,
+      voiceName,
+      emotion,
+      role,
+    });
+
+    setAudio(audio);
+    audio.addEventListener("ended", audioEnded);
+  } catch (err) {
+    console.error("TTS error:", err);
+    setIsAudioPlaying(false);
+    setTimeout(() => {
+      setAudioHasEnded(true);
+    }, 100);
+  }
+}
+
 
 
   useHotkeys("space", (event) => {
     event.preventDefault();
-    handlePlayClick();
+    
+    // Only play audio if it's the child's turn (yellow highlighted line)
+    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
+    if (!currentLine || !currentLine.Reading) return;
+    
+    const currentRole = state.CharacterRoles.find(
+      (option) => option.Character === currentLine.Character
+    );
+    
+    if (currentRole?.role === "Child") {
+      const voiceName = currentRole?.VA || "kore";
+      speak(currentLine.Dialogue, voiceName, "neutral", currentRole.role);
+      setChildHasPlayed(true);
+    }
+  });
+
+  useHotkeys("enter", (event) => {
+    event.preventDefault();
+    handlePlayClick(); // Acts as "Next" button
   });
 
  
@@ -180,68 +275,68 @@ const playSound = () => {
         audio.removeEventListener("ended", audioEnded);
     }
     
+    setIsAudioPlaying(false);
     setAudioHasEnded(true);
     setIsButtonDisabled(false);
 }, [audio, isPlaying]);
 
 
-  const continueReading = React.useCallback( async (page, index, roles) => {
-    console.log("continueReading triggered for page:", state.page, "and index:", index, "current lenght", page.text.length);
-    if (!page || !page.text || index < 0 || index > page.text.length) {
-      console.error(`Invalid arguments to continueReading: page=${page}, index=${index}`);
-      return;
-    }
-    var currentCharacter = roles.filter(obj => obj.Character === page.text[index].Character);
-    var currentVoice;
-    if (currentCharacter.length > 0) {
-      currentVoice = currentCharacter[0].VA;
-    } else {
-      currentVoice = null;
-    }
-    console.log("currentChar",currentCharacter[0].VA.name);
-    
-    if (index > 0) {
-      page.text[index - 1].Reading = false;
-    }
+const continueReading = React.useCallback(async (page, index, roles) => {
+  if (!page || !page.text || index < 0 || index > page.text.length) {
+    console.error(`Invalid args to continueReading: index=${index}`);
+    return;
+  }
+
+  const line = page.text[index];
+  const currentCharacter = roles.find(obj => obj.Character === line.Character);
+  const currentVoiceName = currentCharacter?.VA || ""; // string voiceName or ""
+  const currentRole = currentCharacter?.role || null;
+
+  // Reset childHasPlayed flag for new line
+  setChildHasPlayed(false);
+
+  // Never speak for Parent or Child (they're meant to read themselves)
+  if (currentRole === "Parent" || currentRole === "Child") {
+    // keep highlighting behavior but do not play audio
+    if (index > 0) page.text[index - 1].Reading = false;
     page.text[index].Reading = true;
-    if ( currentCharacter.length > 0 
-    &&  currentCharacter[0].VA.name!== "") {
-      console.log("STT",page.text[index].Dialogue )
-      var dialogue = page.text[index].Dialogue.replace(/(?<=\s|^)[.,!?;:"'“”‘’\-—]*(?=\s|$)/g, '').trim();
-      console.log("Dialogue", dialogue)
+    setIsPlaying(false);
+    return;
+  }
 
+  // turn on “Reading” highlight
+  if (index > 0) page.text[index - 1].Reading = false;
+  page.text[index].Reading = true;
 
-      try {
-        const request = {
-            text: dialogue,
-            voice: currentVoice,
-        };
+  // if no voice assigned, just stop/skip
+  if (!currentVoiceName) {
+    setIsPlaying(false);
+    return;
+  }
 
-        const response = await fetch(TTSurl+'/synthesize', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-        });
+  // Strip SSML then TTS
+  const dialogue = stripSSMLTags(String(line.Dialogue || ""));
+  if (!dialogue.trim()) {
+    setIsPlaying(false);
+    return;
+  }
 
-        const data = await response.json();
-        try {
-          const newAudio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-          setAudio(newAudio);
-          newAudio.addEventListener("ended", audioEnded);
-          await newAudio.play();
-        } catch (error) {
-          console.error('Error playing audio:', error);
-        }
-    } catch (error) {
-        console.error('Error in Google Text-to-Speech:', error);
-    }
-    }else if(currentCharacter[0].VA.name === ""){
-      setIsPlaying(false);
-      
-    }
-  }, [state.page, audioEnded ]);
+  try {
+    const { audio } = await say({
+      text: dialogue,
+      voiceName: currentVoiceName,
+      emotion: "neutral", // or decide by character/line later
+      role: currentRole,
+    });
+
+    setAudio(audio);
+    audio.addEventListener("ended", audioEnded);
+    await audio.play?.(); // say() already calls play(), but this is harmless
+  } catch (error) {
+    console.error("TTS error:", error);
+  }
+}, [audioEnded]);
+
 
 /**
  * Handle the "Next" button click.
@@ -367,10 +462,8 @@ function stripSSMLTags(text) {
   
   
  function renderPageRows() {
-  
-    
-    return (
-      <ReactScrollableFeed>
+  return (
+    <ReactScrollableFeed>
       <div className="table-column" ref={tableContainerRef}>
         {state.pagesValues[state.page]?.text?.map((val, key) => {
           let isActiveRowParent = false;
@@ -389,7 +482,7 @@ function stripSSMLTags(text) {
           }
           
           const roleImage = currentRole ? currentRole.img : "";
-          const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
+          const roleName = currentRole ? currentRole.Role : "Role image";
           const character = CurrentBook.characters.find(c => c.Name === val.Character);
           const characterImage = character ? character.img : "";
           const isChild = currentRole?.role === "Child";
@@ -397,41 +490,71 @@ function stripSSMLTags(text) {
           return (
             <div
               ref={(el) => dialogueRefs.current[key] = el}
-              className={`row gx-3${isActiveRowParent && isActiveRow ? "active active-parent" : ""}${isActiveRowChild && isActiveRow ? "active active-child" : ""}`}
+              className={`row gx-3${isActiveRowParent && isActiveRow ? " active active-parent" : ""}${isActiveRowChild && isActiveRow ? " active active-child" : ""}`}
               key={key}
               onClick={() => {
                 const selectedText = window.getSelection().toString().trim();
                 if (isChild && val.Reading && selectedText === "") {
-                  speak(val.Dialogue);
+                  const currentRole = selectedOptions.find(
+                    (option) => option.Character === val.Character
+                  );
+                  const voiceName = currentRole?.VA || "kore";
+                  const role = currentRole?.role || null;
+                  speak(val.Dialogue, voiceName, "neutral", role);
+                  setChildHasPlayed(true);
                 }
               }}
             >
+              {/* Animated hand pointer for child lines */}
+              {isChild && isActiveRow && !childHasPlayed && (
+                <TouchAppIcon 
+                  className="child-tap-icon" 
+                  sx={{ fontSize: 48 }}
+                />
+              )}
        
               <div className="col-3">
-              <div className="role-image-container-text d-flex justify-content-around">  {/* Use flexbox to display images side by side */}
-              {currentRole && roleImage && <img src={roleImage} alt={roleName} style={{width: "20%"}}  className="overlay-image"/>}
-            
-                {/* Add character image */}
-                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}  {/* Adjust width as per requirement */}
+                <div className="role-image-container-text d-flex justify-content-around">
+                  {currentRole && roleImage && (
+                    <img 
+                      src={roleImage} 
+                      alt={roleName} 
+                      style={{width: "20%"}} 
+                      className="overlay-image"
+                    />
+                  )}
+                  {characterImage && (
+                    <img 
+                      src={characterImage} 
+                      alt={val.Character} 
+                      style={{width: "45%"}} 
+                      className={`${isActiveRow ? "active-roleImage" : ""}`} 
+                    />
+                  )}
+                </div>
               </div>
-              </div>
+              
               <div className="col-8">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
-                  {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) : 
-                  <>
-                    {parseText(str)}
-                     <br />
-                  </>
-              )}
+                <div 
+                  className={`p-3 borderless text-size ${isActiveRow ? "active-dialogue" : ""}`} 
+                  onMouseUp={handleTextSelection}
+                >
+                  {val.Dialogue.split('\n').map((str, index, array) => 
+                    index === array.length - 1 ? parseText(str) : 
+                    <>
+                      {parseText(str)}
+                      <br />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           );
         })}
       </div>
-      </ReactScrollableFeed>
-    );
-  }
+    </ReactScrollableFeed>
+  );
+}
   
   
 
@@ -471,6 +594,16 @@ function stripSSMLTags(text) {
   function renderNavigationButtons() {
     const isLastIndex = state.pagesValues[state.page].text.length === state.index;
     const isLastPage = state.page === state.pagesValues.length - 1;
+
+    // Check if current line is child's turn
+    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
+    const currentRole = currentLine ? state.CharacterRoles.find(
+      (option) => option.Character === currentLine.Character
+    ) : null;
+    const isChildTurn = currentRole?.role === "Child" && currentLine?.Reading;
+    
+    // Disable button if it's child's turn and they haven't played yet
+    const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
   
     let buttonText;
     let buttonClass = "";
@@ -482,8 +615,8 @@ function stripSSMLTags(text) {
       buttonText = isLastPage ? 'End' : 'Next Page';
       buttonClass = "highlight-button";
     } else {
-      buttonText = (isPlaying && !audioHasEnded) ? "Pause" : "Play";
-      if (!isPlaying) {
+      buttonText = "Next";
+      if (!isPlaying && !shouldDisableButton) {
         buttonClass = "highlight-button";
       }
     }
@@ -493,9 +626,9 @@ function stripSSMLTags(text) {
         <div className="btn-group" role="group">
           <button
             type="button"
-            className={`btn btn-secondary ${isButtonDisabled ? 'disabled' : ''} ${buttonClass}`} // Apply the buttonClass here
+            className={`btn btn-secondary ${shouldDisableButton ? 'disabled' : ''} ${buttonClass}`} // Apply the buttonClass here
             onClick={handlePlayClick}
-            disabled={isButtonDisabled}
+            disabled={shouldDisableButton}
           >
             {buttonText}
           </button>
@@ -508,22 +641,31 @@ function stripSSMLTags(text) {
 
   function handlePlayClick() {
     console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
-  
-    // // Disable the button
-    // setIsButtonDisabled(true);
-  
-    // // Re-enable the button after 5 seconds
-    // setTimeout(() => {
-    //   setIsButtonDisabled(false);
-    // }, 2000);
-  
+
+    if (isAudioPlaying) {
+      return;
+    }
+
+    // Check if it's child's turn and they haven't played yet
+    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
+    const currentRole = currentLine ? state.CharacterRoles.find(
+      (option) => option.Character === currentLine.Character
+    ) : null;
+    const isChildTurn = currentRole?.role === "Child" && currentLine?.Reading;
+    
+    // If it's child's turn and they haven't played, don't allow advancement
+    if (isChildTurn && !childHasPlayed) {
+      console.log("Child must play their line first!");
+      return;
+    }
+
     // If we have reached the end, navigate to another page
     if (state.hasReachedEnd) {
       navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
       return;
     }
-  
-    // if this happesn to be last line, no option to pause it, just wait until the playing is done. 
+
+    // if this happens to be last line, no option to pause it, just wait until the playing is done. 
     if(state.pagesValues[state.page].text.length === state.index && isPlaying){
       console.log("Too late pause the audio cuz it's the last line. ")
       return;
@@ -536,7 +678,7 @@ function stripSSMLTags(text) {
         return true;
       }
     });
-  
+
     if (!isPlaying) {
       console.log("page size ", state.pagesValues[state.page]?.text?.length);
       console.log("current index", state.index);
@@ -547,7 +689,9 @@ function stripSSMLTags(text) {
         console.log("resume reading");
         var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index - 1].Character);
         console.log(currentCharacter);
-        if (currentCharacter[0].VA.name === "") {
+        if (!currentCharacter[0].VA ||
+            currentCharacter[0].role === "Parent" ||
+            currentCharacter[0].role === "Child") {
           handleNextClick();
         }
       }
