@@ -7,13 +7,14 @@ function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
 }
 
-function calculateConfidenceDetail(spokenWords, expectedText) {
+function calculateConfidenceDetail(spokenWords, expectedText, options = {}) {
   const mergedUtterance = spokenWords.filter(w => w.length > 0).join(' ');
   const result = calculateHybridScore(mergedUtterance, expectedText, {
     exactWordWeight: 0.0,
     fuzzyWeight: 0.5,
     phoneticWeight: 0.5,
     matchThreshold: 0.6,
+    ...options,
   });
   return { confidence: result.confidence, fuzzyScore: result.fuzzyScore, phoneticScore: result.phoneticScore };
 }
@@ -323,7 +324,7 @@ export async function processUserUtterance({
       console.log(`[Merged fallback] wordCount=${variant.wordCount}, spokenWords=${allSpokenWords.length}, words=[${allSpokenWords.join(', ')}]`);
       if (variant.wordCount <= 2 && allSpokenWords.length > 0) {
         for (let i = 0; i < allSpokenWords.length; i++) {
-          const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
+          const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text, { fuzzyWeight: 0.3, phoneticWeight: 0.7 });
           debugLog({ type: 'merged_check', label: variant.label, spokenWord: allSpokenWords[i], target: variant.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
           if (detail.confidence >= 0.6) {
             console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
