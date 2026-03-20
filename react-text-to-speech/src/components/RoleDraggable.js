@@ -1,11 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Draggable } from "react-beautiful-dnd";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import "../styles/RoleDraggable.css";
-
-const url = process.env.REACT_APP_TTSURL;
-const port = process.env.REACT_APP_PORT;
-const TTSurl = url + (port ? `:${port}` : "");
+import { say } from "../utils/ttsClient";
 
 function RoleDraggable({ role, index, name, isDragDisabled, style }) {
   const [isPlayButtonDisabled, setIsPlayButtonDisabled] = useState(false);
@@ -18,17 +15,7 @@ function RoleDraggable({ role, index, name, isDragDisabled, style }) {
 
   async function speak() {
     try {
-      const request = {
-        text: "Hello " + name + ", I am " + role.Role,
-        voice: role.Role === "Parent" ? "en-US-Wavenet-F" : role.RoleParameter,
-      };
-      const res = await fetch(`${TTSurl}/synthesize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
-      const data = await res.json();
-      new Audio(`data:audio/mp3;base64,${data.audioContent}`).play();
+      await say({ text: "Hello " + name + ", I am " + role.Role, role: role.Role });
     } catch (err) {
       console.error("TTS error:", err);
     }

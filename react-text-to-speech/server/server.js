@@ -8,7 +8,6 @@ const { registerLiveTtsRoutes } = require('./liveTTS');
 const { startPruner } = require('./cache/prune');
 startPruner();
 
-const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const keyPath = process.env.KEYPATH;
 const certPath = process.env.CERTPATH;
 console.log(keyPath);
@@ -25,56 +24,6 @@ app.use(express.json());
 registerLiveTtsRoutes(app);
 
 
-app.post('/synthesize', async (req, res) => {
-    try {
-        // Log the incoming request body
-        console.log('/synthesize request body:', JSON.stringify(req.body, null, 2));
-        
-        const fetch = (await import('node-fetch')).default;
-        let sanitizedText = req.body.text.replace(/(\*)+/g, '');
-        sanitizedText = sanitizedText.replace(/'/g, '"');
-        //console.log(sanitizedText)
-        const ssmlText = `<speak>${sanitizedText}</speak>`;
-        const request = {
-            input: { ssml: ssmlText },
-            voice: req.body.voice,
-            audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
-            
-        };
-
-        // Log the exact payload sent to Google
-        console.log('TTS API request payload:', JSON.stringify(request, null, 2));
-
-        const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-        });
-
-        const raw = await response.text();
-        if (!response.ok) {
-            console.error('TTS API responded with status', response.status);
-            console.error('TTS API error body:', raw);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        let data;
-        try {
-            data = JSON.parse(raw);
-        } catch (parseErr) {
-            console.error('Failed to parse TTS API JSON:', raw);
-            return res.status(500).json({ message: 'Invalid JSON from TTS API' });
-        }
-
-        console.log('TTS API success payload (truncated):', raw.slice(0, 100));
-        return res.json(data);
-    } catch (error) {
-        console.error('Error in Google Text-to-Speech:', error);
-        res.status(500).json({ message: error.toString() });
-    }
-});
 
 if(process.env.DEVMODE){
     const port = process.env.REACT_APP_PORT || 5001;

@@ -17,9 +17,6 @@ import { data as data3 } from "../Book/Book3";
 
 import { say } from "../utils/ttsClient";
 
-const url = process.env.REACT_APP_TTSURL;
-const port = process.env.REACT_APP_PORT;
-const TTSurl = url + (port ? `:${port}` : "");
 const ROLE_PRIORITY = { Parent: 0, Child: 1 };
 
 Modal.setAppElement("#root");

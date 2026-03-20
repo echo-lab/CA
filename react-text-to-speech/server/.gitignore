@@ -1,4 +1,4 @@
-react-text-to-speech/server/key/
+key/
 node_modules
 .env.local
 .env
