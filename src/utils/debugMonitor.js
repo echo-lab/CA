@@ -272,6 +272,12 @@ function openUtteranceDebugMonitor() {
       else if (ev.type === 'forward_hybrid_match') {
         add(time + 'MATCH Forward hybrid (' + esc(ev.label) + ') line ' + ev.lineIndex + ' — confidence: ' + ev.confidence + '%  fuzzy: ' + ev.fuzzyScore + '%  phonetic: ' + ev.phoneticScore + '%', 'success');
       }
+      else if (ev.type === 'merged_check') {
+        add(time + 'Merged check (' + esc(ev.label) + ') — "' + esc(ev.spokenWord) + '" vs "' + esc(ev.target) + '" — <span class="score-label">confidence:</span> <span class="score-val">' + ev.confidence + '%</span>  <span class="score-label">fuzzy:</span> <span class="score-val">' + ev.fuzzyScore + '%</span>  <span class="score-label">phonetic:</span> <span class="score-val">' + ev.phoneticScore + '%</span>', 'neutral');
+      }
+      else if (ev.type === 'merged_match') {
+        add(time + 'MATCH Merged (' + esc(ev.label) + ') — "' + esc(ev.spokenWord) + '" confidence: ' + ev.confidence + '%', 'success');
+      }
       else if (ev.type === 'variant_result') {
         if (ev.reason === 'insufficient_words') {
           add(time + esc(ev.label) + ' FAIL — not enough words in queue (' + ev.have + '/' + ev.need + ')', 'fail');
