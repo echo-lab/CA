@@ -71,7 +71,7 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords) {
   debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
 }
 
-export function sendOffScriptLog(offScriptLogRef, oldPage, state) {
+export function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult) {
   if (!offScriptLogRef?.current?.length) return;
 
   const currentPageText = state.pagesValues[oldPage]?.text
@@ -101,8 +101,14 @@ export function sendOffScriptLog(offScriptLogRef, oldPage, state) {
   console.log(`Sending off-script log for page ${oldPage + 1}:\n${formattedLog}`);
 
   categorizeOffScriptUtterances(formattedLog, currentPageText, currentPageQuestion, bookText, oldPage + 1)
-    .then(r => console.log('Off-script categorization:', r))
-    .catch(err => console.error('Categorization error:', err));
+    .then(r => {
+      console.log('Off-script categorization:', r);
+      if (onResult) onResult(r);
+    })
+    .catch(err => {
+      console.error('Categorization error:', err);
+      if (onResult) onResult(null);
+    });
 
   offScriptLogRef.current = [];
   debugLog({ type: 'offscript_clear' });
@@ -204,7 +210,8 @@ export async function processUserUtterance({
   sendContentMessage,
   jumpToLine,
   setAudioHasEnded,
-  setIsPlaying
+  setIsPlaying,
+  onCategorizationResult
 }) {
   if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
 
@@ -231,14 +238,14 @@ export async function processUserUtterance({
   // Reset state on page/line change
   if (currentLineTrackingRef.current.page !== state.page) {
     // Send off-script log before clearing
-    sendOffScriptLog(offScriptLogRef, currentLineTrackingRef.current.page, state);
+    sendOffScriptLog(offScriptLogRef, currentLineTrackingRef.current.page, state, onCategorizationResult);
     accumulatedUtterancesRef.current = [];
     utteranceQueuesRef.current = [];
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
     // Send sandwiched off-script words before moving to new line
     if (offScriptLogRef?.current?.length) {
-      sendOffScriptLog(offScriptLogRef, state.page, state);
+      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult);
     }
     currentLineTrackingRef.current.index = currentLineIndex;
     if (silenceTimeoutRef.current) {

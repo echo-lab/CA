@@ -93,6 +93,9 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
+  const [generatedQuestion, setGeneratedQuestion] = useState(null);
+  const [isCategorizationPending, setIsCategorizationPending] = useState(false);
+  const generatedQuestionAudioRef = useRef(null);
 
 
 
@@ -189,7 +192,17 @@ const gotoNextPage = () => {
       return false;
   });
 
-  sendOffScriptLog(offScriptLogRef, state.page, state);
+  const hasOffScript = offScriptLogRef?.current?.length > 0;
+  if (hasOffScript) {
+    setIsCategorizationPending(true);
+    setGeneratedQuestion(null);
+  }
+  sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
+    setIsCategorizationPending(false);
+    if (result?.generatedQuestion) {
+      setGeneratedQuestion(result.generatedQuestion);
+    }
+  } : undefined);
 
   if (state.page < state.pagesValues.length - 1) {
 
@@ -208,6 +221,8 @@ const gotoNextPage = () => {
 
 const gotoPreviousPage = () => {
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
+  setGeneratedQuestion(null);
+  setIsCategorizationPending(false);
 
   setIsPlaying(prevIsPlaying => {
     return false;
@@ -228,6 +243,33 @@ const playSound = () => {
   const voiceName = narratorRole?.VA || "kore";
   const role = narratorRole?.role || null;
   speak(state.pagesValues[state.page].question, voiceName, "neutral", role);
+};
+
+// Pre-fetch TTS audio when a generated question arrives
+useEffect(() => {
+  if (!generatedQuestion) {
+    generatedQuestionAudioRef.current = null;
+    return;
+  }
+  const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
+  const voiceName = narratorRole?.VA || "kore";
+  const role = narratorRole?.role || null;
+
+  say({ text: generatedQuestion, voiceName, emotion: "neutral", role })
+    .then(({ audio }) => { generatedQuestionAudioRef.current = audio; })
+    .catch(err => console.error('TTS pre-fetch error:', err));
+}, [generatedQuestion]);
+
+const speakGenerated = () => {
+  if (generatedQuestionAudioRef.current) {
+    generatedQuestionAudioRef.current.currentTime = 0;
+    generatedQuestionAudioRef.current.play();
+  } else if (generatedQuestion) {
+    const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
+    const voiceName = narratorRole?.VA || "kore";
+    const role = narratorRole?.role || null;
+    speak(generatedQuestion, voiceName, "neutral", role);
+  }
 };
 
 async function speak(text, voiceName = "kore", emotion = "neutral", role = null) {
@@ -522,7 +564,13 @@ React.useEffect(() => {
     gotoNextPage,
     jumpToLine,
     setAudioHasEnded,
-    setIsPlaying
+    setIsPlaying,
+    onCategorizationResult: (result) => {
+      setIsCategorizationPending(false);
+      if (result?.generatedQuestion) {
+        setGeneratedQuestion(result.generatedQuestion);
+      }
+    }
   });
 }, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine]);
 
@@ -649,6 +697,27 @@ function stripSSMLTags(text) {
                 </div>
 
                 </div>
+
+                {isCategorizationPending && (
+                  <div className="wrapper" style={{ marginTop: '8px', opacity: 0.6 }}>
+                    <div className="question-dialogue">Thinking of a follow-up question...</div>
+                  </div>
+                )}
+                {generatedQuestion && !isCategorizationPending && (
+                  <div className="wrapper" style={{ marginTop: '8px' }}>
+                    <div className="role-image-container">
+                      <img src={parentImage} alt="Parent" />
+                      <button onClick={speakGenerated} className="play-sound-button">
+                        <PlayArrowIcon />
+                      </button>
+                    </div>
+                    <div className="question-dialogue d-flex justify-content-between align-items-center"
+                         style={{ borderLeft: '3px solid #4CAF50' }}>
+                      <div className="storyTitle m-0"></div>
+                      {generatedQuestion}
+                    </div>
+                  </div>
+                )}
            </div>
      );
   };
