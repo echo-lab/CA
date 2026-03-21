@@ -94,6 +94,7 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
+  const [questionSource, setQuestionSource] = useState(null);
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
 
@@ -196,11 +197,14 @@ const gotoNextPage = () => {
   if (hasOffScript) {
     setIsCategorizationPending(true);
     setGeneratedQuestion(null);
+    setQuestionSource(null);
   }
+  const nextPage = state.page + 1;
   sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
     setIsCategorizationPending(false);
     if (result?.generatedQuestion) {
       setGeneratedQuestion(result.generatedQuestion);
+      setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
     }
   } : undefined);
 
@@ -222,6 +226,7 @@ const gotoNextPage = () => {
 const gotoPreviousPage = () => {
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
   setGeneratedQuestion(null);
+  setQuestionSource(null);
   setIsCategorizationPending(false);
 
   setIsPlaying(prevIsPlaying => {
@@ -569,6 +574,7 @@ React.useEffect(() => {
       setIsCategorizationPending(false);
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
+        setQuestionSource(result.sourcePage !== state.page ? 'previous-page' : 'current-page');
       }
     }
   });
@@ -703,21 +709,6 @@ function stripSSMLTags(text) {
                     <div className="question-dialogue">Thinking of a follow-up question...</div>
                   </div>
                 )}
-                {generatedQuestion && !isCategorizationPending && (
-                  <div className="wrapper" style={{ marginTop: '8px' }}>
-                    <div className="role-image-container">
-                      <img src={parentImage} alt="Parent" />
-                      <button onClick={speakGenerated} className="play-sound-button">
-                        <PlayArrowIcon />
-                      </button>
-                    </div>
-                    <div className="question-dialogue d-flex justify-content-between align-items-center"
-                         style={{ borderLeft: '3px solid #4CAF50' }}>
-                      <div className="storyTitle m-0"></div>
-                      {generatedQuestion}
-                    </div>
-                  </div>
-                )}
            </div>
      );
   };
@@ -837,6 +828,17 @@ function stripSSMLTags(text) {
     <div className="story container-fluid reader-container">
       {/* Hidden audio element for remote audio stream */}
       <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
+
+      {/* Floating speech bubble for generated question */}
+      {generatedQuestion && !isCategorizationPending && (
+        <div
+          className={`speech-bubble-overlay ${questionSource === 'previous-page' ? 'from-left' : 'from-bottom'}`}
+          onClick={speakGenerated}
+          title={generatedQuestion}
+        >
+          <div className="speech-bubble-icon">?</div>
+        </div>
+      )}
 
       <div className="navbar navbar-light bg-light row1">
         <div className="home btn col-1">
