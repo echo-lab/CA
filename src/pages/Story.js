@@ -96,6 +96,7 @@ function Reader() {
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
   const [questionSource, setQuestionSource] = useState(null);
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
+  const [isDismissingBubble, setIsDismissingBubble] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
 
 
@@ -250,7 +251,7 @@ const playSound = () => {
   speak(state.pagesValues[state.page].question, voiceName, "neutral", role);
 };
 
-// Pre-fetch TTS audio when a generated question arrives
+// Pre-fetch TTS audio when a generated question arrives (without auto-playing)
 useEffect(() => {
   if (!generatedQuestion) {
     generatedQuestionAudioRef.current = null;
@@ -259,22 +260,58 @@ useEffect(() => {
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
   const voiceName = narratorRole?.VA || "kore";
   const role = narratorRole?.role || null;
+  const BASE_URL = process.env.REACT_APP_API_BASE;
 
-  say({ text: generatedQuestion, voiceName, emotion: "neutral", role })
-    .then(({ audio }) => { generatedQuestionAudioRef.current = audio; })
+  fetch(`${BASE_URL}/live/say`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: generatedQuestion, voiceName, emotion: "neutral", role }),
+  })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.addEventListener("ended", () => URL.revokeObjectURL(url));
+      audio.addEventListener("error", () => URL.revokeObjectURL(url));
+      generatedQuestionAudioRef.current = audio;
+    })
     .catch(err => console.error('TTS pre-fetch error:', err));
 }, [generatedQuestion]);
 
 const speakGenerated = () => {
+  // Start dismiss animation immediately
+  setIsDismissingBubble(true);
+
+  // Mute realtime audio while TTS plays to prevent overlap
+  if (remoteAudioRef.current) {
+    remoteAudioRef.current.muted = true;
+  }
+  const unmute = () => {
+    if (remoteAudioRef.current && !isMuted) {
+      remoteAudioRef.current.muted = false;
+    }
+  };
+
   if (generatedQuestionAudioRef.current) {
-    generatedQuestionAudioRef.current.currentTime = 0;
-    generatedQuestionAudioRef.current.play();
+    const audio = generatedQuestionAudioRef.current;
+    audio.addEventListener("ended", unmute, { once: true });
+    audio.currentTime = 0;
+    audio.play();
   } else if (generatedQuestion) {
     const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
     const voiceName = narratorRole?.VA || "kore";
     const role = narratorRole?.role || null;
-    speak(generatedQuestion, voiceName, "neutral", role);
+    speak(generatedQuestion, voiceName, "neutral", role).then(unmute).catch(unmute);
   }
+
+  // Remove bubble after exit animation completes (600ms matches CSS)
+  setTimeout(() => {
+    setGeneratedQuestion(null);
+    setIsDismissingBubble(false);
+  }, 600);
 };
 
 async function speak(text, voiceName = "kore", emotion = "neutral", role = null) {
@@ -833,7 +870,7 @@ function stripSSMLTags(text) {
       {/* Floating speech bubble for generated question */}
       {generatedQuestion && !isCategorizationPending && (
         <div
-          className={`speech-bubble-overlay ${questionSource === 'previous-page' ? 'from-left' : 'from-bottom'}`}
+          className={`speech-bubble-overlay ${questionSource === 'previous-page' ? 'from-left' : 'from-bottom'}${isDismissingBubble ? ' dismissing' : ''}`}
           onClick={speakGenerated}
           title={generatedQuestion}
         >
