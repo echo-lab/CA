@@ -3,9 +3,8 @@ import doubleMetaphone from 'talisman/phonetics/double-metaphone';
 import levenshtein from 'talisman/metrics/levenshtein';
 import { TokenizerEn } from '@nlpjs/lang-en';
 
-// Common speech disfluencies and filler words
-const FILLER_WORDS = new Set([
-  // Hesitation sounds (with variations)
+// Hesitation sounds that are never transcribed by speech recognition
+export const HESITATION_WORDS = new Set([
   'uh', 'uhh', 'uhhh', 'uhhhh',
   'huh', 'huhh', 'huhhh',
   'um', 'umm', 'ummm', 'ummmm',
@@ -15,17 +14,6 @@ const FILLER_WORDS = new Set([
   'hm', 'hmm', 'hmmm', 'hmmmm',
   'mhm', 'mhmm',
   'erm', 'ermm', 'ermmm',
-  // Common filler phrases
-  'like',
-  'basically',
-  'actually',
-  'literally',
-  'honestly',
-  'obviously',
-  'well',
-  'anyway',
-  'anyways',
-  // You can add more as needed
 ]);
 
 // Initialize NLP.js English tokenizer
@@ -45,7 +33,7 @@ export function cleanFillerWords(text) {
   const removed = [];
   const cleanedTokens = tokens.filter(token => {
     const lowerToken = token.toLowerCase();
-    if (FILLER_WORDS.has(lowerToken)) {
+    if (HESITATION_WORDS.has(lowerToken)) {
       removed.push(token);
       return false;
     }

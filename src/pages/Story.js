@@ -463,11 +463,15 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
       role: currentRole,
     });
     console.log("TTS audio ready, starting playback...");
+    setIsAudioPlaying(true);
     setAudio(audio);
     audio.addEventListener("ended", audioEnded);
-    await audio.play?.(); // say() already calls play(), but this is harmless
   } catch (error) {
     console.error("TTS error:", error);
+    setIsAudioPlaying(false);
+    setTimeout(() => {
+      setAudioHasEnded(true);
+    }, 100);
   }
 }, [audioEnded]);
 
