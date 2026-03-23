@@ -81,11 +81,9 @@ export function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, book
 
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
 
-  const bookText = state.pagesValues
-    .map((page, i) =>
-      `Page ${i + 1}:\n` +
-      (page.text || []).map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n')
-    ).join('\n\n');
+  const page = state.pagesValues[oldPage];
+  const bookText = `Page ${oldPage + 1}:\n` +
+    (page?.text || []).map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n');
 
   // Merge all entries by line index, then format as "line2: text"
   const lineMap = new Map();

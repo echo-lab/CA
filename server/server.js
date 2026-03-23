@@ -384,13 +384,12 @@ TASK 2 — GENERATE a follow-up question based ONLY on utterances you classified
                 },
                 {
                     role: "user",
-                    content: `Full book text:
-${bookText}
-
-<current_page>
+                    content: `<current_page>
 Page: ${req.body.currentPageNumber || ''}
 Text: "${bookPageText}"
 Question: "${currentPageQuestion}"
+Dialogue:
+${bookText}
 </current_page>
 ${imageDescription ? `
 <image_description>
