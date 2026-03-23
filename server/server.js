@@ -202,71 +202,123 @@ function setupDeepgramProxy(server) {
     console.log('Deepgram WebSocket proxy ready at /api/deepgram-proxy (using nova-3 with diarization)');
 }
 
-app.post('/api/classify-utterance', async (req, res) => {
-    try {
-        const { bookContent, currentLine, prevUtterances, utterance } = req.body;
+// app.post('/api/classify-utterance', async (req, res) => {
+//     try {
+//         const { bookContent, currentLine, prevUtterances, utterance } = req.body;
 
-        if (!bookContent || !currentLine || !utterance) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['bookContent', 'currentLine', 'utterance']
-            });
-        }
+//         if (!bookContent || !currentLine || !utterance) {
+//             return res.status(400).json({
+//                 error: 'Missing required fields',
+//                 required: ['bookContent', 'currentLine', 'utterance']
+//             });
+//         }
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-                {
-                    role: "developer",
-                    content: `You are an expert Linguist. Identify which phase the speaker is in for the "Last Utterance" based on its relationship to the "Previous Utterances" using these four labels:
-**PROPOSAL** - Initiates a new topic or asks a question when no active topic exists.
-**RATIFICATION** - Accepts the proposed topic. The speaker answers the question, expresses interest, or adds a relevant comment.
-**EXPANSION** - Builds deeper into an already ratified topic.
-**REJECTION** - The speaker refuses to take up the proposed topic (non-sequiturs, dismissal, or ignoring the cue).`
-                },
-                {
-                    role: "user",
-                    content: `Book Context: ${JSON.stringify(bookContent)}
+//         const completion = await openai.chat.completions.create({
+//             model: "gpt-4o",
+//             messages: [
+//                 {
+//                     role: "developer",
+//                     content: `You are an expert Linguist. Identify which phase the speaker is in for the "Last Utterance" based on its relationship to the "Previous Utterances" using these four labels:
+// **PROPOSAL** - Initiates a new topic or asks a question when no active topic exists.
+// **RATIFICATION** - Accepts the proposed topic. The speaker answers the question, expresses interest, or adds a relevant comment.
+// **EXPANSION** - Builds deeper into an already ratified topic.
+// **REJECTION** - The speaker refuses to take up the proposed topic (non-sequiturs, dismissal, or ignoring the cue).`
+//                 },
+//                 {
+//                     role: "user",
+//                     content: `Book Context: ${JSON.stringify(bookContent)}
 
-Previous Utterances: "${prevUtterances}"
+// Previous Utterances: "${prevUtterances}"
 
-Last Utterance: "${utterance}"
+// Last Utterance: "${utterance}"
 
-Which phase is the speaker in?`
-                }
-            ],
-            response_format: {
-                type: "json_schema",
-                json_schema: {
-                    name: "phase_classification",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            classification: {
-                                type: "string",
-                                enum: ["PROPOSAL", "RATIFICATION", "EXPANSION", "REJECTION"]
-                            },
-                            rationale: { type: "string" }
-                        },
-                        required: ["classification", "rationale"],
-                        additionalProperties: false
-                    }
-                }
-            },
-            temperature: 0.3
-        });
+// Which phase is the speaker in?`
+//                 }
+//             ],
+//             response_format: {
+//                 type: "json_schema",
+//                 json_schema: {
+//                     name: "phase_classification",
+//                     strict: true,
+//                     schema: {
+//                         type: "object",
+//                         properties: {
+//                             classification: {
+//                                 type: "string",
+//                                 enum: ["PROPOSAL", "RATIFICATION", "EXPANSION", "REJECTION"]
+//                             },
+//                             rationale: { type: "string" }
+//                         },
+//                         required: ["classification", "rationale"],
+//                         additionalProperties: false
+//                     }
+//                 }
+//             },
+//             temperature: 0.3
+//         });
 
-        const result = JSON.parse(completion.choices[0].message.content);
-        res.json(result);
+//         const result = JSON.parse(completion.choices[0].message.content);
+//         res.json(result);
 
-    } catch (error) {
-        console.error('Error checking relevancy:', error);
-        res.status(500).json({
-            error: 'Failed to check relevancy',
-            detail: error.message
-        });
+//     } catch (error) {
+//         console.error('Error checking relevancy:', error);
+//         res.status(500).json({
+//             error: 'Failed to check relevancy',
+//             detail: error.message
+//         });
+//     }
+// });
+
+app.post('/analyze-image', async (req, res) => {
+  try {
+    const { book, page, question, pageText } = req.body;
+    if (!book || !page || !question) {
+      return res.status(400).json({ message: 'Provide book, page, and question' });
     }
+
+    const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+    const LOCATION = process.env.VERTEX_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+    if (!PROJECT_ID) {
+      return res.status(500).json({ message: 'VERTEX_PROJECT_ID not set' });
+    }
+
+    const fileName = String(book) === '3'
+      ? `${page} Library.jpg`
+      : `Page_${page}.jpg`;
+    const imgPath = path.join(__dirname, '../src/Pictures', `book${book}`, fileName);
+
+    if (!fs.existsSync(imgPath)) {
+      return res.status(404).json({ message: `Image not found: ${fileName}` });
+    }
+
+    const imageData = fs.readFileSync(imgPath).toString('base64');
+
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [{
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType: 'image/jpeg', data: imageData } },
+          { text: question },
+        ],
+      }],
+      config: {
+        systemInstruction: `You are a narrator for a children's picture book.
+The two characters in every image are:
+- Zoe: the bird (any bird you see is always Zoe)
+- Clara: the chameleon (any chameleon or lizard you see is always Clara)
+Always call them by name — never say "the bird" or "the chameleon".
+Give a SHORT answer of 1-2 sentences. Be similar to a parent answering a question to their kid. ${pageText ? `\n\nThe text on this page reads:\n${pageText}` : ''}`,
+      },
+    });
+
+    res.json({ answer: response.text ?? '' });
+  } catch (error) {
+    console.error('Error in /analyze-image:', error);
+    res.status(500).json({ message: error.toString() });
+  }
 });
 
 app.post('/api/categorize-utterances', async (req, res) => {
