@@ -513,8 +513,10 @@ const handleNextClick = React.useCallback(() => {
            state.pagesValues[state.page].text[i].Reading=false;
          }
          setState(prevState => {
-           prevState.pagesValues[prevState.page + 1].text[0].Reading = true;
-           return {...prevState, page: prevState.page + 1, index: 0};
+           const nextPage = prevState.pagesValues[prevState.page + 1];
+           const isLastLine = nextPage.text.length === 1;
+           continueReading(nextPage, 0, state.CharacterRoles, isLastLine);
+           return {...prevState, page: prevState.page + 1, index: 1};
          });
           if (tableContainerRef.current) {
             tableContainerRef.current.scrollIntoView({
