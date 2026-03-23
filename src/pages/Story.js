@@ -514,7 +514,7 @@ const handleNextClick = React.useCallback(() => {
          }
          setState(prevState => {
            prevState.pagesValues[prevState.page + 1].text[0].Reading = true;
-           return {...prevState, page: prevState.page + 1, index: 1};
+           return {...prevState, page: prevState.page + 1, index: 0};
          });
          setIsPlaying(false);
           if (tableContainerRef.current) {
