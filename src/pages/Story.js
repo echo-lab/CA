@@ -516,7 +516,6 @@ const handleNextClick = React.useCallback(() => {
            prevState.pagesValues[prevState.page + 1].text[0].Reading = true;
            return {...prevState, page: prevState.page + 1, index: 0};
          });
-         setIsPlaying(false);
           if (tableContainerRef.current) {
             tableContainerRef.current.scrollIntoView({
               behavior: "smooth",
