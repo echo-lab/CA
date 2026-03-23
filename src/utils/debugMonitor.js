@@ -67,6 +67,14 @@ function openGptDebugMonitor() {
     .field-value.bool-true { color: #4caf50; }
     .field-value.bool-false { color: #f44747; }
     .field-value.truncated { color: #888; font-style: italic; }
+    .fold-toggle { cursor: pointer; user-select: none; }
+    .fold-toggle:hover { color: #569cd6; }
+    .fold-toggle span { font-size: 10px; margin-left: 2px; }
+    .fold-content {
+      margin: 4px 0 2px 12px; padding: 8px; background: #2d2d2d; border: 1px solid #3c3c3c;
+      border-radius: 3px; white-space: pre-wrap; word-break: break-word; color: #ce9178;
+      max-height: 300px; overflow-y: auto; font-size: 11px;
+    }
     .separator { border-top: 1px solid #333; margin: 6px 0; }
     #clear-btn {
       position: fixed; bottom: 12px; right: 12px; background: #3c3c3c; color: #d4d4d4;
@@ -92,19 +100,20 @@ function openGptDebugMonitor() {
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-    function truncate(s, max) {
-      if (typeof s !== 'string') s = JSON.stringify(s);
-      if (s.length <= max) return esc(s);
-      return esc(s.slice(0, max)) + '<span class="field-value truncated"> ... (' + s.length + ' chars)</span>';
-    }
+    var foldId = 0;
 
     function field(label, value, maxLen) {
       if (value === undefined || value === null) return '';
       if (typeof value === 'boolean') {
         return '<div class="field"><span class="field-label">' + label + ': </span><span class="field-value ' + (value ? 'bool-true' : 'bool-false') + '">' + value + '</span></div>';
       }
-      var display = maxLen ? truncate(String(value), maxLen) : esc(String(value));
-      return '<div class="field"><span class="field-label">' + label + ': </span><span class="field-value">' + display + '</span></div>';
+      var s = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+      if (!maxLen || s.length <= maxLen) {
+        return '<div class="field"><span class="field-label">' + label + ': </span><span class="field-value">' + esc(s) + '</span></div>';
+      }
+      var id = 'fold-' + (foldId++);
+      return '<div class="field"><span class="field-label fold-toggle" onclick="var el=document.getElementById(\\'' + id + '\\');var btn=this.querySelector(\\'span\\');if(el.style.display===\\'none\\'){el.style.display=\\'block\\';btn.textContent=\\'\\u25BC\\';}else{el.style.display=\\'none\\';btn.textContent=\\'\\u25B6\\';}">' + label + ' <span>\\u25B6</span> </span><span class="field-value truncated">' + esc(s.slice(0, maxLen)) + ' ...(' + s.length + ' chars)</span>' +
+        '<pre id="' + id + '" class="fold-content" style="display:none">' + esc(s) + '</pre></div>';
     }
 
     function formatRequest(endpoint, payload) {
@@ -115,6 +124,7 @@ function openGptDebugMonitor() {
         html += field('Question', payload.currentPageQuestion, 200);
         html += field('Page #', payload.currentPageNumber);
         html += field('Book Text', payload.bookText, 100);
+        html += field('Image Analysis', payload.imageDescription, 120);
       } else {
         html += field('Payload', JSON.stringify(payload, null, 2), 500);
       }
