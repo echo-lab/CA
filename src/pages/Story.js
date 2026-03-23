@@ -15,6 +15,7 @@ import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
+import { ImageAnalysis } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
 
 class Book {
@@ -98,6 +99,7 @@ function Reader() {
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const [isDismissingBubble, setIsDismissingBubble] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
+  const imageDescriptionRef = useRef(null);
 
 
 
@@ -126,6 +128,13 @@ function Reader() {
       .trim()
       .replace(/\s+/g, " ");
   }
+
+  // Pre-fetch image analysis on page change so it's ready for off-script categorization
+  useEffect(() => {
+    const pageText = state.pagesValues[state.page]?.text
+      ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
+    imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page + 1, pageText });
+  }, [state.page, id]);
 
   // Warm/preload TTS for current + next page
   useEffect(() => {
@@ -207,7 +216,7 @@ const gotoNextPage = () => {
       setGeneratedQuestion(result.generatedQuestion);
       setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
     }
-  } : undefined, id);
+  } : undefined, imageDescriptionRef);
 
   if (state.page < state.pagesValues.length - 1) {
 
@@ -614,9 +623,9 @@ React.useEffect(() => {
         setQuestionSource(result.sourcePage !== state.page ? 'previous-page' : 'current-page');
       }
     },
-    bookId: id
+    imageDescriptionRef
   });
-}, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine, id]);
+}, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine]);
 
 
 function stripSSMLTags(text) {
