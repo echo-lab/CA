@@ -24,24 +24,24 @@ export function normalizeText(text) {
 
   let resultOptions = [];
 
-  // Convert numbers to words: "5" → "five", "1st" → "first"
+  // Convert numbers to words: "5" -> "five", "1st" -> "first"
   result = convertNumbersToWords(result);
 
   let expandedResult = expandContractions(result);
   if (expandedResult !== result) {
     expandedResult = expandedResult.replace(/-/g, ' ');
-    expandedResult = expandedResult.replace(/[*.,!?%@#;:'”'””””()…]/g, "");
+    expandedResult = expandedResult.replace(/[*.,!?%@#;:'"()\u2026]/g, "");
     expandedResult = removeFillersFromText(expandedResult);
     resultOptions.push(expandedResult);
   }
 
-  // Replace hyphens with spaces: “well-known” → “well known”
+  // Replace hyphens with spaces: "well-known" -> "well known"
   result = result.replace(/-/g, ' ');
 
   // Strip punctuation (contractions already expanded, apostrophes safe to remove)
-  result = result.replace(/[*.,!?%@#;:'”'””””()…]/g, "");
+  result = result.replace(/[*.,!?%@#;:'"()\u2026]/g, "");
 
-  // Remove filler words (uhh, umm, etc.) that are never transcribed by speech recognition
+  // Remove hesitation sounds (uhh, umm, etc.) that are never transcribed by speech recognition
   result = removeFillersFromText(result);
 
   resultOptions.push(result);
