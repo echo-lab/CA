@@ -7,6 +7,7 @@ import ChildrenAvatarSelecter from './pages/ChildrenAvatarSelecter';
 import CharacterSelecter from './pages/CharacterSelecter';
 import AvatarSelecter from './pages/AvatarSelecter';
 import LandingPage from './pages/LandingPage';
+import ImageAnalysis from './pages/ImageAnalysis';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path='/Home' element={<Home />}/>
           <Route path='/Story' element={<Story />}/>
           <Route path='/Character' element={<CharacterSelecter />}/>
+          <Route path='/ImageAnalysis' element={<ImageAnalysis />}/>
         </Routes>
      </Router>
     </div>
