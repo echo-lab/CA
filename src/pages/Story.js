@@ -206,7 +206,7 @@ const gotoNextPage = () => {
       setGeneratedQuestion(result.generatedQuestion);
       setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
     }
-  } : undefined);
+  } : undefined, id);
 
   if (state.page < state.pagesValues.length - 1) {
 
@@ -576,9 +576,10 @@ React.useEffect(() => {
         setGeneratedQuestion(result.generatedQuestion);
         setQuestionSource(result.sourcePage !== state.page ? 'previous-page' : 'current-page');
       }
-    }
+    },
+    bookId: id
   });
-}, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine]);
+}, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine, id]);
 
 
 function stripSSMLTags(text) {

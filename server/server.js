@@ -323,7 +323,7 @@ Give a SHORT answer of 1-2 sentences. Be similar to a parent answering a questio
 
 app.post('/api/categorize-utterances', async (req, res) => {
     try {
-        const { formattedUtterances, bookPageText, currentPageQuestion, bookText } = req.body;
+        const { formattedUtterances, bookPageText, currentPageQuestion, bookText, imageDescription } = req.body;
 
         if (!formattedUtterances) {
             return res.status(400).json({
@@ -392,12 +392,16 @@ Page: ${req.body.currentPageNumber || ''}
 Text: "${bookPageText}"
 Question: "${currentPageQuestion}"
 </current_page>
-
+${imageDescription ? `
+<image_description>
+${imageDescription}
+</image_description>
+` : ''}
 <off_script_utterances>
 ${formattedUtterances}
 </off_script_utterances>
 
-Classify each utterance, then generate a follow-up question based on the on-topic ones.`
+Classify each utterance, then generate a follow-up question based on the on-topic ones.${imageDescription ? ' Use the image description to inform your question — reference visual details the child can see.' : ''}`
                 }
             ],
             response_format: {

@@ -1,4 +1,5 @@
 import { categorizeOffScriptUtterances } from "./InnerThoughtProcess";
+import { ImageAnalysis } from "./imageAnalysis";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText, splitIntoSentences, isMultiSentenceLong } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
@@ -72,7 +73,7 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords) {
   debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
 }
 
-export function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult) {
+export function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, bookId) {
   if (!offScriptLogRef?.current?.length) return;
 
   const currentPageText = state.pagesValues[oldPage]?.text
@@ -101,7 +102,16 @@ export function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult) {
 
   console.log(`Sending off-script log for page ${oldPage + 1}:\n${formattedLog}`);
 
-  categorizeOffScriptUtterances(formattedLog, currentPageText, currentPageQuestion, bookText, oldPage + 1)
+  // Fetch image description in parallel, then pass to categorization
+  const imagePromise = bookId
+    ? ImageAnalysis({ book: bookId, page: oldPage + 1, pageText: currentPageText })
+    : Promise.resolve(null);
+
+  imagePromise
+    .then(imageDescription => {
+      if (imageDescription) console.log(`Image analysis for page ${oldPage + 1}:`, imageDescription);
+      return categorizeOffScriptUtterances(formattedLog, currentPageText, currentPageQuestion, bookText, oldPage + 1, imageDescription);
+    })
     .then(r => {
       console.log('Off-script categorization:', r);
       if (onResult) onResult({ ...r, sourcePage: oldPage });
@@ -212,7 +222,8 @@ export async function processUserUtterance({
   jumpToLine,
   setAudioHasEnded,
   setIsPlaying,
-  onCategorizationResult
+  onCategorizationResult,
+  bookId
 }) {
   if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
 
@@ -239,14 +250,14 @@ export async function processUserUtterance({
   // Reset state on page/line change
   if (currentLineTrackingRef.current.page !== state.page) {
     // Send off-script log before clearing
-    sendOffScriptLog(offScriptLogRef, currentLineTrackingRef.current.page, state, onCategorizationResult);
+    sendOffScriptLog(offScriptLogRef, currentLineTrackingRef.current.page, state, onCategorizationResult, bookId);
     accumulatedUtterancesRef.current = [];
     utteranceQueuesRef.current = [];
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
     // Send sandwiched off-script words before moving to new line
     if (offScriptLogRef?.current?.length) {
-      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult);
+      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, bookId);
     }
     currentLineTrackingRef.current.index = currentLineIndex;
     if (silenceTimeoutRef.current) {
