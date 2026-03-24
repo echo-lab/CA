@@ -235,6 +235,7 @@ export async function processUserUtterance({
   } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
     // Send sandwiched off-script words before moving to new line
     if (offScriptLogRef?.current?.length) {
+      console.log("sendOffScriptLog called on line change, page:", state.page, "new line index:", currentLineIndex);
       sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef);
     }
     currentLineTrackingRef.current.index = currentLineIndex;

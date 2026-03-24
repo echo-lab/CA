@@ -197,11 +197,6 @@ function Reader() {
 
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
-  if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
-
-  setIsPlaying(prevIsPlaying => {
-      return false;
-  });
 
   const hasOffScript = offScriptLogRef?.current?.length > 0;
   if (hasOffScript) {
@@ -210,13 +205,20 @@ const gotoNextPage = () => {
     setQuestionSource(null);
   }
   const nextPage = state.page + 1;
-  sendOffScriptLog(offScriptLogRef, state.page - 1, state, hasOffScript ? (result) => {
+  console.log("sendOffScriptLog called, page:", state.page);
+  sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
     setIsCategorizationPending(false);
     if (result?.generatedQuestion) {
       setGeneratedQuestion(result.generatedQuestion);
       setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
     }
   } : undefined, imageDescriptionRef);
+
+  if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
+
+  setIsPlaying(prevIsPlaying => {
+      return false;
+  });
 
   if (state.page < state.pagesValues.length - 1) {
 
