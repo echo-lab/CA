@@ -210,7 +210,7 @@ const gotoNextPage = () => {
     setQuestionSource(null);
   }
   const nextPage = state.page + 1;
-  sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
+  sendOffScriptLog(offScriptLogRef, state.page - 1, state, hasOffScript ? (result) => {
     setIsCategorizationPending(false);
     if (result?.generatedQuestion) {
       setGeneratedQuestion(result.generatedQuestion);

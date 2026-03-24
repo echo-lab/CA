@@ -355,8 +355,8 @@ TASK 2 — GENERATE a ONE short, engaging educational question that teaches todd
                     role: "user",
                     content: `<current_page>
 Page: ${req.body.currentPageNumber || ''}
+Book Text: ${bookText}
 Question: "${currentPageQuestion}"
-${bookText}
 </current_page>
 ${imageDescription ? `
 <image_description>
