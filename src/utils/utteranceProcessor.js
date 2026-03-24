@@ -72,54 +72,37 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords) {
   debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
 }
 
-export function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef) {
+export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef) {
   if (!offScriptLogRef?.current?.length) return;
 
-  const currentPageText = state.pagesValues[oldPage]?.text
-    ?.map(l => stripSSMLTags(l.Dialogue)).join(' ') || '';
-
+  const lines = state.pagesValues[oldPage]?.text || [];
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
-
-  const page = state.pagesValues[oldPage];
   const bookText = `Page ${oldPage + 1}:\n` +
-    (page?.text || []).map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n');
+    lines.map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n');
 
-  // Merge all entries by line index, then format as "line2: text"
   const lineMap = new Map();
-  for (const e of offScriptLogRef.current) {
-    lineMap.set(e.lineIndex, lineMap.has(e.lineIndex)
-      ? lineMap.get(e.lineIndex) + ' ' + e.text
-      : e.text);
+  for (const { lineIndex, text } of offScriptLogRef.current) {
+    const prev = lineMap.get(lineIndex);
+    lineMap.set(lineIndex, prev ? prev + ' ' + text : text);
   }
 
   const formattedLog = [...lineMap.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([idx, text]) => `line${idx + 1}: ${text}`)
+    .map(([idx, text]) => `[Line ${idx + 1}] "${text}"`)
     .join('\n');
 
-  console.log(`Sending off-script log for page ${oldPage + 1}:\n${formattedLog}`);
-
-  // Use pre-fetched image description (already started on page load)
-  const imagePromise = imageDescriptionRef?.current
-    ? imageDescriptionRef.current
-    : Promise.resolve(null);
-
-  imagePromise
-    .then(imageDescription => {
-      if (imageDescription) console.log(`Image analysis for page ${oldPage + 1}:`, imageDescription);
-      return categorizeOffScriptUtterances(formattedLog, currentPageText, currentPageQuestion, bookText, oldPage + 1, imageDescription);
-    })
-    .then(r => {
-      console.log('Off-script categorization:', r);
-      if (onResult) onResult({ ...r, sourcePage: oldPage });
-    })
-    .catch(err => {
-      console.error('Categorization error:', err);
-      if (onResult) onResult({ sourcePage: oldPage });
-    });
-
+  // Clear ref before awaiting so subsequent calls don't re-send
   offScriptLogRef.current = [];
   debugLog({ type: 'offscript_clear' });
+
+  try {
+    const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
+    const r = await categorizeOffScriptUtterances(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription);
+    onResult?.({ ...r, sourcePage: oldPage });
+  } catch (err) {
+    console.error('Categorization error:', err);
+    onResult?.({ sourcePage: oldPage });
+  }
 }
 
 function advanceToNextLine(setAudioHasEnded, setIsPlaying) {
@@ -246,8 +229,6 @@ export async function processUserUtterance({
 
   // Reset state on page/line change
   if (currentLineTrackingRef.current.page !== state.page) {
-    // Send off-script log before clearing
-    sendOffScriptLog(offScriptLogRef, currentLineTrackingRef.current.page, state, onCategorizationResult, imageDescriptionRef);
     accumulatedUtterancesRef.current = [];
     utteranceQueuesRef.current = [];
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };

@@ -323,7 +323,7 @@ Give a SHORT answer of 1-2 sentences. Be similar to a parent answering a questio
 
 app.post('/api/categorize-utterances', async (req, res) => {
     try {
-        const { formattedUtterances, bookPageText, currentPageQuestion, bookText, imageDescription } = req.body;
+        const { formattedUtterances, currentPageQuestion, bookText, imageDescription } = req.body;
 
         if (!formattedUtterances) {
             return res.status(400).json({
@@ -333,7 +333,7 @@ app.post('/api/categorize-utterances', async (req, res) => {
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-5",
             messages: [
                 {
                     role: "developer",
@@ -342,53 +342,20 @@ app.post('/api/categorize-utterances', async (req, res) => {
 TASK 1 — CLASSIFY each off-script utterance (words spoken beyond the expected book text).
 
 Categories:
-- ON_TOPIC_ALL: Related to the book's overall content — characters, plot, themes, predictions, emotions, or connections to the child's life inspired by the story. This includes:
-  - Comments about characters' feelings, motivations, or relationships (e.g., "Zoe is Clara's best friend")
-  - Predictions about what will happen next in the story
-  - Reflections on earlier pages or events that already happened in the book
-  - Connections between the story and the child's own experiences when clearly prompted by story content (e.g., "Do you have a best friend like Zoe?")
-  - General comments about the book's theme or lesson (e.g., "This book is about patterns")
-  - References to characters or events NOT on the current page
-
-- ON_TOPIC_PAGE: Specifically about the current page's illustration, text, or embedded question — without connecting to the broader story. This includes:
-  - Answering or discussing the page's comprehension question (e.g., "What color plate is missing?")
-  - Describing what is visible in the current illustration
-  - Reading or repeating dialogue from the current page
-  - Identifying patterns, colors, shapes, or objects shown on the current page
-  - Responding to a direct prompt about the current page's content only
-
-- OFF_TOPIC: Unrelated to the book content or reading activity. This includes:
-  - Conversations about unrelated daily life topics (e.g., "What's for dinner?")
-  - Redirections or attention prompts (e.g., "Pay attention", "Let's focus", "Sit still")
-  - Comments about the physical book object (e.g., "This book is heavy") unless they reference story content
-  - Tangential personal stories that are NOT prompted by the book's content
-
-Key distinction — ON_TOPIC_ALL vs ON_TOPIC_PAGE:
-- ON_TOPIC_PAGE stays anchored to what is on the current page (its text, image, or question) without referencing other pages, the overall plot, or making broader story connections.
-- ON_TOPIC_ALL goes beyond the current page — it references other parts of the story, makes predictions, recalls earlier events, discusses characters across pages, or connects the story's themes to the child's life.
-- If an utterance answers the current page's question AND also connects to the broader story or another page, classify it as ON_TOPIC_ALL.
-- If an utterance ONLY addresses what is directly shown or asked on the current page, classify it as ON_TOPIC_PAGE.
+- ON_TOPIC: Related to the book's content, characters, story, illustrations, or the current page's question. Includes answering comprehension questions, describing illustrations, discussing characters, referencing earlier events, or making story-prompted personal connections.
+- OFF_TOPIC: Unrelated to the book. Includes daily life chat, attention redirections ("sit still", "pay attention"), comments about the physical book, or unprompted tangential stories.
 
 Classification rules:
-- Classify by the speaker's primary communicative intent.
-- Loose story connections count as book-related. Parents often link the story to the child's life — classify these as ON_TOPIC_ALL, not OFF_TOPIC.
-- Utterances that answer the current page's question without broader story connection are ON_TOPIC_PAGE.
-- Redirections or attention prompts (e.g., "Pay attention", "Let's focus") are OFF_TOPIC.
-- When uncertain between ON_TOPIC_ALL and ON_TOPIC_PAGE, consider whether the utterance could stand alone without knowing which page is open. If yes, it is likely ON_TOPIC_ALL. If it only makes sense in context of the current page, it is ON_TOPIC_PAGE.
+- Keep each rationale to ONE short sentence.
 - When uncertain between ON_TOPIC and OFF_TOPIC, favor ON_TOPIC.
 
-TASK 2 — GENERATE a follow-up question based ONLY on utterances you classified as ON_TOPIC_ALL or ON_TOPIC_PAGE.
-- Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver.
-- Base the question on the book content and the on-topic utterances.
-- If ALL utterances are OFF_TOPIC, set generatedQuestion to null.`
+TASK 2 — GENERATE a ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver classified as ON_TOPIC.`
                 },
                 {
                     role: "user",
                     content: `<current_page>
 Page: ${req.body.currentPageNumber || ''}
-Text: "${bookPageText}"
 Question: "${currentPageQuestion}"
-Dialogue:
 ${bookText}
 </current_page>
 ${imageDescription ? `
@@ -399,8 +366,7 @@ ${imageDescription}
 <off_script_utterances>
 ${formattedUtterances}
 </off_script_utterances>
-
-Classify each utterance, then generate a follow-up question based on the on-topic ones.${imageDescription ? ' Use the image description to inform your question — reference visual details the child can see.' : ''}`
+Classify each utterance, then generate one follow-up question from on-topic ones.${imageDescription ? ' Reference visible details from the image.' : ''}`
                 }
             ],
             response_format: {
@@ -417,19 +383,16 @@ Classify each utterance, then generate a follow-up question based on the on-topi
                                     type: "object",
                                     properties: {
                                         line: { type: "string" },
-                                        text: { type: "string" },
-                                        category: { type: "string", enum: ["ON_TOPIC_ALL", "ON_TOPIC_PAGE", "OFF_TOPIC"] },
-                                        confidence: { type: "number", minimum: 0, maximum: 1 },
+                                        category: { type: "string", enum: ["ON_TOPIC", "OFF_TOPIC"] },
                                         rationale: { type: "string" }
                                     },
-                                    required: ["line", "text", "category", "confidence", "rationale"],
+                                    required: ["line", "category", "rationale"],
                                     additionalProperties: false
                                 }
                             },
-                            summary: { type: "string" },
                             generatedQuestion: { type: ["string", "null"] }
                         },
-                        required: ["items", "summary", "generatedQuestion"],
+                        required: ["items", "generatedQuestion"],
                         additionalProperties: false
                     }
                 }
@@ -466,9 +429,8 @@ app.post('/api/categorize-realtime', async (req, res) => {
 
 You will receive off-script utterances from a reading session along with the book context. You must do two things:
 
-1. CLASSIFY each utterance as ON_TOPIC_ALL, ON_TOPIC_PAGE, or OFF_TOPIC:
-   - ON_TOPIC_ALL: Related to the book's overall content — characters, plot, themes, predictions, or connections to the child's life inspired by the story.
-   - ON_TOPIC_PAGE: Specifically about the current page's illustration, text, or question — without connecting to the broader story.
+1. CLASSIFY each utterance as ON_TOPIC or OFF_TOPIC:
+   - ON_TOPIC: Related to the book's overall content — characters, plot, themes, predictions, or connections to the child's life inspired by the story.
    - OFF_TOPIC: Unrelated to the book or reading activity (e.g., "What's for dinner?", attention prompts like "Pay attention").
 
 2. Based ONLY on utterances that are ON_TOPIC, immediately ask ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, say nothing.
@@ -715,7 +677,7 @@ app.get('/test-categorize', (req, res) => {
       };
     }
 
-    // --- Text mode (gpt-4o-mini) ---
+    // --- Text mode (gpt-5) ---
     async function send() {
       const btn = document.getElementById('sendBtn');
       const resultDiv = document.getElementById('result');

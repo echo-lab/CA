@@ -12,7 +12,7 @@ const generateQuestion = async (transcript) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                model: "gpt-4o-realtime-preview-2024-12-17",
+                model: "o-realtime-preview-2024-12-17",
                 voice: "alloy",
                 instructions: `You are an educator helping children learn about patterns. There are people having a conversation about a book to learn about patterns.
 
