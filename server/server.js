@@ -333,7 +333,7 @@ app.post('/api/categorize-utterances', async (req, res) => {
         }
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-5",
+            model: "gpt-5-mini",
             messages: [
                 {
                     role: "developer",
@@ -347,7 +347,6 @@ Categories:
 
 Classification rules:
 - Keep each rationale to ONE short sentence.
-- When uncertain between ON_TOPIC and OFF_TOPIC, favor ON_TOPIC.
 
 TASK 2 — GENERATE a ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver classified as ON_TOPIC.`
                 },
