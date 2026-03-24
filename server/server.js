@@ -396,8 +396,7 @@ Classify each utterance, then generate one follow-up question from on-topic ones
                         additionalProperties: false
                     }
                 }
-            },
-            temperature: 0.3
+            }
         });
 
         const result = JSON.parse(completion.choices[0].message.content);
