@@ -228,7 +228,10 @@ export async function processUserUtterance({
   const currentCharacter = state.CharacterRoles.find(obj => obj.Character === currentLine.Character);
   const isUserReadingRole = currentCharacter?.role === "Parent" || currentCharacter?.role === "Child" || currentCharacter?.role === "Dummy";
 
-  if (!isUserReadingRole) return;
+  if (!isUserReadingRole) {
+    lastProcessedUtteranceRef.current = userUtterance;
+    return;
+  }
 
   // Reset state on page/line change
   if (currentLineTrackingRef.current.page !== state.page) {
