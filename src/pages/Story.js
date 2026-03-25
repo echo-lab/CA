@@ -511,6 +511,21 @@ const handleNextClick = React.useCallback(() => {
          setIsPlaying(false);
         } else {
          console.log("new page")
+         const hasOffScript = offScriptLogRef?.current?.length > 0;
+         if (hasOffScript) {
+           setIsCategorizationPending(true);
+           setGeneratedQuestion(null);
+           setQuestionSource(null);
+         }
+         const nextPageNum = state.page + 1;
+         console.log("sendOffScriptLog called from handleNextClick, page:", state.page);
+         sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
+           setIsCategorizationPending(false);
+           if (result?.generatedQuestion) {
+             setGeneratedQuestion(result.generatedQuestion);
+             setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
+           }
+         } : undefined, imageDescriptionRef);
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
            state.pagesValues[state.page].text[i].Reading=false;
          }
