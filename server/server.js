@@ -343,12 +343,12 @@ TASK 1 — CLASSIFY each off-script utterance (words spoken beyond the expected 
 
 Categories:
 - ON_TOPIC: Related to the book's content, characters, story, illustrations, or the current page's question. Includes answering comprehension questions, describing illustrations, discussing characters, referencing earlier events, or making story-prompted personal connections.
-- OFF_TOPIC: Unrelated to the book. Includes daily life chat, attention redirections ("sit still", "pay attention"), comments about the physical book, or unprompted tangential stories.
+- OFF_TOPIC: Unrelated to the book. Includes daily life chat, attention redirections (example: "sit still", "pay attention"), comments about the physical book, or unprompted tangential stories.
 
 Classification rules:
 - Keep each rationale to ONE short sentence.
 
-TASK 2 — GENERATE a ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver classified as ON_TOPIC.`
+TASK 2 — ONLY if there is at least one ON_TOPIC utterance, GENERATE ONE short, engaging educational question based on the user's ON_TOPIC utterance(s), the book content, and the image description (if provided). The question should teach toddlers about patterns and provoke further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, do NOT generate a question.`
                 },
                 {
                     role: "user",
