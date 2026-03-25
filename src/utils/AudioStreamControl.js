@@ -124,6 +124,7 @@ export function AudioStreamControlProvider({ children }) {
 
               // Only update userUtterance if we have a final transcript
               if (isFinal) {
+                console.log(`Final transcript received: "${transcript}"`);
                 setUserUtterance(transcript);
               }
             }

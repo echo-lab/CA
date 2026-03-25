@@ -199,7 +199,6 @@ export async function processUserUtterance({
   offScriptLogRef,
   state,
   speakerLabels,
-  sendContentMessage,
   jumpToLine,
   setAudioHasEnded,
   setIsPlaying,
@@ -214,8 +213,10 @@ export async function processUserUtterance({
 
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
+  console.log(`Processing utterance: "${userUtterance}"`);
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
+    console.log(`All lines read. Capturing post-last-line utterance for off-script analysis: "${userUtterance}"`);
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
     captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0));
     console.log(`Post-last-line utterance collected: "${userUtterance}"`);
