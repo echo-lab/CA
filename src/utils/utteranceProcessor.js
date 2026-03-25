@@ -216,6 +216,7 @@ export async function processUserUtterance({
   // But only if the last line is no longer highlighted (i.e., already matched)
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
+    debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
     captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0));
     console.log(`Post-last-line utterance collected: "${userUtterance}"`);
     return;
