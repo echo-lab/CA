@@ -410,6 +410,131 @@ Classify each utterance, then generate one follow-up question from on-topic ones
     }
 });
 
+app.post('/api/categorize-utterances-stream', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription } = req.body;
+
+    if (!formattedUtterances) {
+        res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
+        return res.end();
+    }
+
+    try {
+        // Step 1: Stream categorization
+        const categorizationStream = await openai.chat.completions.create({
+            model: "gpt-5-mini",
+            stream: true,
+            messages: [
+                {
+                    role: "developer",
+                    content: `You are a reading interaction analyst for a parent-child co-reading system.
+
+CLASSIFY each off-script utterance. Output one JSON object per line (NDJSON), no extra text.
+
+Categories:
+- ON_TOPIC: Related to the book content, characters, story, illustrations, or current page question.
+- OFF_TOPIC: Unrelated to the book. Daily chat, attention redirections, comments about the physical book.
+
+Each line must be exactly: {"line":"<utterance>","category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
+Output ONLY the NDJSON lines, nothing else.`
+                },
+                {
+                    role: "user",
+                    content: `<current_page>
+Page: ${currentPageNumber || ''}
+Book Text: ${bookText}
+Question: "${currentPageQuestion}"
+</current_page>
+${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<off_script_utterances>
+${formattedUtterances}
+</off_script_utterances>`
+                }
+            ]
+        });
+
+        const items = [];
+        let buffer = '';
+        let questionTriggered = false;
+        let questionPromise = null;
+
+        for await (const chunk of categorizationStream) {
+            const token = chunk.choices[0]?.delta?.content || '';
+            buffer += token;
+
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep incomplete last line
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                try {
+                    const item = JSON.parse(trimmed);
+                    items.push(item);
+                    res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
+
+                    // Fire question generation as soon as first ON_TOPIC is found
+                    if (!questionTriggered && item.category === 'ON_TOPIC') {
+                        questionTriggered = true;
+                        const onTopicUtterances = items
+                            .filter(i => i.category === 'ON_TOPIC')
+                            .map(i => i.line)
+                            .join('\n');
+                        questionPromise = openai.chat.completions.create({
+                            model: "gpt-5-mini",
+                            messages: [
+                                {
+                                    role: "developer",
+                                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. Base it on the ON_TOPIC utterances, book content, and image description if provided. Reply with only the question, no extra text.`
+                                },
+                                {
+                                    role: "user",
+                                    content: `<current_page>
+Page: ${currentPageNumber || ''}
+Book Text: ${bookText}
+Question: "${currentPageQuestion}"
+</current_page>
+${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<on_topic_utterances>
+${onTopicUtterances}
+</on_topic_utterances>`
+                                }
+                            ]
+                        });
+                    }
+                } catch (e) {
+                    // incomplete JSON line, skip
+                }
+            }
+        }
+
+        // Flush remaining buffer
+        if (buffer.trim()) {
+            try {
+                const item = JSON.parse(buffer.trim());
+                items.push(item);
+                res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
+            } catch (e) {}
+        }
+
+        // Wait for question if triggered
+        let generatedQuestion = null;
+        if (questionPromise) {
+            const qResult = await questionPromise;
+            generatedQuestion = qResult.choices[0]?.message?.content?.trim() || null;
+        }
+
+        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
+        res.end();
+
+    } catch (error) {
+        console.error('Error in streaming categorization:', error);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
+        res.end();
+    }
+});
+
 app.post('/api/categorize-realtime', async (req, res) => {
     try {
         const { formattedUtterances, bookPageText, currentPageQuestion, bookText } = req.body;

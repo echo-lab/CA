@@ -1,7 +1,12 @@
 import { categorizeOffScriptUtterances } from "./InnerThoughtProcess";
+import { categorizeOffScriptUtterancesStreaming } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText, splitIntoSentences, isMultiSentenceLong } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
+
+// Toggle: set to true to use streaming implementation
+const USE_STREAMING = true;
+const categorize = USE_STREAMING ? categorizeOffScriptUtterancesStreaming : categorizeOffScriptUtterances;
 
 function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
@@ -98,7 +103,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   try {
     // const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
     const imageDescription = null; // Paused image analysis to avoid quota
-    const r = await categorizeOffScriptUtterances(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription);
+    const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription);
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
     console.error('Categorization error:', err);
