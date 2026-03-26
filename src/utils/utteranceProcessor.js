@@ -374,6 +374,9 @@ export async function processUserUtterance({
       const removed = utteranceQueuesRef.current.map(q => q.shift());
       console.log(`No match found. Sliding queue: removed "${removed[0]}"`);
       debugLog({ type: 'queue_slide', removed: removed[0] });
+      if (removed[0]) {
+        captureOffScriptWords(offScriptLogRef, currentLineIndex, [removed[0]]);
+      }
       emitQueueState(utteranceQueuesRef);
     } else {
       console.log(`Waiting for more words: ${primaryQueue.length}/${expectedWordCount} words in queue`);
