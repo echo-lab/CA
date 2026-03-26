@@ -515,6 +515,34 @@ ${onTopicUtterances}
                 const item = JSON.parse(buffer.trim());
                 items.push(item);
                 res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
+
+                if (!questionTriggered && item.category === 'ON_TOPIC') {
+                    questionTriggered = true;
+                    const onTopicUtterances = items
+                        .filter(i => i.category === 'ON_TOPIC')
+                        .map(i => i.line)
+                        .join('\n');
+                    questionPromise = openai.chat.completions.create({
+                        model: "gpt-5-mini",
+                        messages: [
+                            {
+                                role: "developer",
+                                content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. Base it on the ON_TOPIC utterances, book content, and image description if provided. Reply with only the question, no extra text.`
+                            },
+                            {
+                                role: "user",
+                                content: `<current_page>
+Page: ${currentPageNumber || ''}
+Book Text: ${bookText}
+Question: "${currentPageQuestion}"
+</current_page>
+${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<on_topic_utterances>
+${onTopicUtterances}
+</on_topic_utterances>`
+                            }
+                        ]
+                    });
+                }
             } catch (e) {}
         }
 

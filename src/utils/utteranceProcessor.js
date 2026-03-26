@@ -211,11 +211,30 @@ export async function processUserUtterance({
   onCategorizationResult,
   imageDescriptionRef
 }) {
-  if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
-
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
   const currentLine = state.pagesValues[state.page]?.text?.[currentLineIndex];
+
+  // Always check for line/page change regardless of utterance dedup
+  if (currentLineTrackingRef.current.page !== state.page) {
+    accumulatedUtterancesRef.current = [];
+    utteranceQueuesRef.current = [];
+    currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
+  } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
+    // Send sandwiched off-script words before moving to new line
+    if (offScriptLogRef?.current?.length) {
+      console.log("sendOffScriptLog called on line change, page:", state.page, "new line index:", currentLineIndex);
+      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef);
+    }
+    currentLineTrackingRef.current.index = currentLineIndex;
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+      silenceTimeoutRef.current = null;
+    }
+    pendingUtteranceRef.current = "";
+  }
+
+  if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
 
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
@@ -237,25 +256,6 @@ export async function processUserUtterance({
   if (!isUserReadingRole) {
     lastProcessedUtteranceRef.current = userUtterance;
     return;
-  }
-
-  // Reset state on page/line change
-  if (currentLineTrackingRef.current.page !== state.page) {
-    accumulatedUtterancesRef.current = [];
-    utteranceQueuesRef.current = [];
-    currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
-  } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
-    // Send sandwiched off-script words before moving to new line
-    if (offScriptLogRef?.current?.length) {
-      console.log("sendOffScriptLog called on line change, page:", state.page, "new line index:", currentLineIndex);
-      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef);
-    }
-    currentLineTrackingRef.current.index = currentLineIndex;
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-      silenceTimeoutRef.current = null;
-    }
-    pendingUtteranceRef.current = "";
   }
 
   // Accumulate utterance and words — build parallel queues for each normalized variant
