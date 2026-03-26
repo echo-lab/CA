@@ -264,10 +264,15 @@ const playSound = () => {
 
 // Pre-fetch TTS audio when a generated question arrives (without auto-playing)
 useEffect(() => {
-  if (!generatedQuestion) {
+  // Clean up old audio before fetching new one
+  if (generatedQuestionAudioRef.current) {
+    generatedQuestionAudioRef.current.pause();
     generatedQuestionAudioRef.current = null;
-    return;
   }
+
+  if (!generatedQuestion) return;
+
+  let cancelled = false;
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
   const voiceName = narratorRole?.VA || "kore";
   const role = narratorRole?.role || null;
@@ -283,6 +288,7 @@ useEffect(() => {
       return res.blob();
     })
     .then(blob => {
+      if (cancelled) { URL.revokeObjectURL(URL.createObjectURL(blob)); return; }
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audio.addEventListener("ended", () => URL.revokeObjectURL(url));
@@ -290,6 +296,8 @@ useEffect(() => {
       generatedQuestionAudioRef.current = audio;
     })
     .catch(err => console.error('TTS pre-fetch error:', err));
+
+  return () => { cancelled = true; };
 }, [generatedQuestion]);
 
 const speakGenerated = () => {
@@ -598,6 +606,8 @@ const currentLineTrackingRef = useRef({ page: -1, index: -1 }); // Track which l
 const silenceTimeoutRef = useRef(null); // Track timeout for silence detection
 const pendingUtteranceRef = useRef(""); // Store utterance waiting to be sent after silence
 const offScriptLogRef = useRef([]); // Log of off-script words by line, sent to LLM on page change
+const currentPageRef = useRef(state.page); // Always holds latest page for async callbacks
+React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
 // Jump to a specific line index
 const jumpToLine = useCallback((lineIndex) => {
@@ -648,7 +658,7 @@ React.useEffect(() => {
       setIsCategorizationPending(false);
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
-        setQuestionSource(result.sourcePage !== state.page ? 'previous-page' : 'current-page');
+        setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');
       }
     },
     imageDescriptionRef
