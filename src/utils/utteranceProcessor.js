@@ -101,8 +101,8 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   debugLog({ type: 'offscript_clear' });
 
   try {
-    // const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const imageDescription = null; // Paused image analysis to avoid quota
+    const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
+    // const imageDescription = null; // Paused image analysis to avoid quota
     console.log('Sending off-script log for categorization:', { formattedLog, currentPageQuestion, bookText, imageDescription });
     const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription);
     onResult?.({ ...r, sourcePage: oldPage });
