@@ -423,8 +423,10 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
     }
 
     try {
-        // Step 1: Stream categorization
-        const categorizationStream = await openai.chat.completions.create({
+        const questionAbortController = new AbortController();
+
+        // Start categorization and question generation simultaneously
+        const categorizationStreamPromise = openai.chat.completions.create({
             model: "gpt-5-mini",
             stream: true,
             messages: [
@@ -438,7 +440,7 @@ Categories:
 - ON_TOPIC: Related to the book content, characters, story, illustrations, or current page question.
 - OFF_TOPIC: Unrelated to the book. Daily chat, attention redirections, comments about the physical book.
 
-Each line must be exactly: {"line":"<utterance>","category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
+The off-script utterances must be classified: {"line":"<utterance>","category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
 Output ONLY the NDJSON lines, nothing else.`
                 },
                 {
@@ -455,17 +457,41 @@ ${formattedUtterances}
             ]
         });
 
+        const questionPromise = openai.chat.completions.create({
+            model: "gpt-5-mini",
+            messages: [
+                {
+                    role: "developer",
+                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. Base it on the utterances, book content, and image description if provided. Reply with only the question, no extra text.`
+                },
+                {
+                    role: "user",
+                    content: `<current_page>
+Page: ${currentPageNumber || ''}
+Book Text: ${bookText}
+Question: "${currentPageQuestion}"
+</current_page>
+${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<utterances>
+${formattedUtterances}
+</utterances>`
+                }
+            ]
+        }, { signal: questionAbortController.signal }).catch(err => {
+            if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') return null;
+            throw err;
+        });
+
+        // Stream categorization items
+        const categorizationStream = await categorizationStreamPromise;
         const items = [];
         let buffer = '';
-        let questionTriggered = false;
-        let questionPromise = null;
 
         for await (const chunk of categorizationStream) {
             const token = chunk.choices[0]?.delta?.content || '';
             buffer += token;
 
             const lines = buffer.split('\n');
-            buffer = lines.pop(); // keep incomplete last line
+            buffer = lines.pop();
 
             for (const line of lines) {
                 const trimmed = line.trim();
@@ -474,38 +500,7 @@ ${formattedUtterances}
                     const item = JSON.parse(trimmed);
                     items.push(item);
                     res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
-
-                    // Fire question generation as soon as first ON_TOPIC is found
-                    if (!questionTriggered && item.category === 'ON_TOPIC') {
-                        questionTriggered = true;
-                        const onTopicUtterances = items
-                            .filter(i => i.category === 'ON_TOPIC')
-                            .map(i => i.line)
-                            .join('\n');
-                        questionPromise = openai.chat.completions.create({
-                            model: "gpt-5-mini",
-                            messages: [
-                                {
-                                    role: "developer",
-                                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. Base it on the ON_TOPIC utterances, book content, and image description if provided. Reply with only the question, no extra text.`
-                                },
-                                {
-                                    role: "user",
-                                    content: `<current_page>
-Page: ${currentPageNumber || ''}
-Book Text: ${bookText}
-Question: "${currentPageQuestion}"
-</current_page>
-${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<on_topic_utterances>
-${onTopicUtterances}
-</on_topic_utterances>`
-                                }
-                            ]
-                        });
-                    }
-                } catch (e) {
-                    // incomplete JSON line, skip
-                }
+                } catch (e) {}
             }
         }
 
@@ -515,42 +510,18 @@ ${onTopicUtterances}
                 const item = JSON.parse(buffer.trim());
                 items.push(item);
                 res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
-
-                if (!questionTriggered && item.category === 'ON_TOPIC') {
-                    questionTriggered = true;
-                    const onTopicUtterances = items
-                        .filter(i => i.category === 'ON_TOPIC')
-                        .map(i => i.line)
-                        .join('\n');
-                    questionPromise = openai.chat.completions.create({
-                        model: "gpt-5-mini",
-                        messages: [
-                            {
-                                role: "developer",
-                                content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. Base it on the ON_TOPIC utterances, book content, and image description if provided. Reply with only the question, no extra text.`
-                            },
-                            {
-                                role: "user",
-                                content: `<current_page>
-Page: ${currentPageNumber || ''}
-Book Text: ${bookText}
-Question: "${currentPageQuestion}"
-</current_page>
-${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<on_topic_utterances>
-${onTopicUtterances}
-</on_topic_utterances>`
-                            }
-                        ]
-                    });
-                }
             } catch (e) {}
         }
 
-        // Wait for question if triggered
+        // Categorization done — decide whether to use or cancel question generation
+        const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
         let generatedQuestion = null;
-        if (questionPromise) {
+
+        if (hasOnTopic) {
             const qResult = await questionPromise;
-            generatedQuestion = qResult.choices[0]?.message?.content?.trim() || null;
+            generatedQuestion = qResult?.choices[0]?.message?.content?.trim() || null;
+        } else {
+            questionAbortController.abort();
         }
 
         res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
