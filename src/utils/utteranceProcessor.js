@@ -77,7 +77,7 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords) {
   debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
 }
 
-export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttentionRef) {
+export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef) {
   if (!offScriptLogRef?.current?.length) return;
 
   const lines = state.pagesValues[oldPage]?.text || [];
@@ -102,9 +102,9 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
 
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const userAttention = userAttentionRef?.current ?? null;
-    console.log('Sending off-script log for categorization:', { formattedLog, currentPageQuestion, bookText, imageDescription, userAttention });
-    const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention);
+    // const imageDescription = null; // Paused image analysis to avoid quota
+    console.log('Sending off-script log for categorization:', { formattedLog, currentPageQuestion, bookText, imageDescription });
+    const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription);
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
     console.error('Categorization error:', err);
@@ -209,8 +209,7 @@ export async function processUserUtterance({
   setAudioHasEnded,
   setIsPlaying,
   onCategorizationResult,
-  imageDescriptionRef,
-  userAttentionRef
+  imageDescriptionRef
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
@@ -225,7 +224,7 @@ export async function processUserUtterance({
     // Send sandwiched off-script words before moving to new line
     if (offScriptLogRef?.current?.length) {
       console.log("sendOffScriptLog called on line change, page:", state.page, "new line index:", currentLineIndex);
-      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef, userAttentionRef);
+      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef);
     }
     currentLineTrackingRef.current.index = currentLineIndex;
     if (silenceTimeoutRef.current) {

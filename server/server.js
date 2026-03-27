@@ -321,72 +321,9 @@ Give a SHORT answer of 1-2 sentences. Be similar to a parent answering a questio
   }
 });
 
-app.post('/tag-image', async (req, res) => {
-  try {
-    const { book, page } = req.body;
-    if (!book || !page) {
-      return res.status(400).json({ message: 'Provide book and page' });
-    }
-
-    const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
-    const LOCATION = process.env.VERTEX_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
-    if (!PROJECT_ID) {
-      return res.status(500).json({ message: 'VERTEX_PROJECT_ID not set' });
-    }
-
-    const fileName = String(book) === '3'
-      ? `${page} Library.jpg`
-      : `Page_${page}.jpg`;
-    const imgPath = path.join(__dirname, '../src/Pictures', `book${book}`, fileName);
-
-    if (!fs.existsSync(imgPath)) {
-      return res.status(404).json({ message: `Image not found: ${fileName}` });
-    }
-
-    const imageData = fs.readFileSync(imgPath).toString('base64');
-
-    const { GoogleGenAI } = await import('@google/genai');
-    const ai = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: imageData } },
-          { text: 'Identify all distinct objects, characters, and scene elements in this image. For each, provide a short label and its bounding box.' },
-        ],
-      }],
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              label: { type: 'string' },
-              box_2d: {
-                type: 'array',
-                items: { type: 'integer' },
-                description: '[y_min, x_min, y_max, x_max] normalized 0-1000',
-              },
-            },
-            required: ['label', 'box_2d'],
-          },
-        },
-      },
-    });
-
-    const tags = JSON.parse(response.text ?? '[]');
-    res.json({ tags });
-  } catch (error) {
-    console.error('Error in /tag-image:', error);
-    res.status(500).json({ message: error.toString() });
-  }
-});
-
 app.post('/api/categorize-utterances', async (req, res) => {
     try {
-        const { formattedUtterances, currentPageQuestion, bookText, imageDescription, userAttention } = req.body;
+        const { formattedUtterances, currentPageQuestion, bookText, imageDescription } = req.body;
 
         if (!formattedUtterances) {
             return res.status(400).json({
@@ -420,10 +357,10 @@ Page: ${req.body.currentPageNumber || ''}
 Book Text: ${bookText}
 Question: "${currentPageQuestion}"
 </current_page>
-${(imageDescription || userAttention) ? `
-<image_context>
-${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User's Attention: "${userAttention}"` : ''}
-</image_context>
+${imageDescription ? `
+<image_description>
+${imageDescription}
+</image_description>
 ` : ''}
 <off_script_utterances>
 ${formattedUtterances}
@@ -478,7 +415,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -513,7 +450,7 @@ Page: ${currentPageNumber || ''}
 Book Text: ${bookText}
 Question: "${currentPageQuestion}"
 </current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User's Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<off_script_utterances>
+${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<off_script_utterances>
 ${formattedUtterances}
 </off_script_utterances>`
                 }
@@ -534,7 +471,7 @@ Page: ${currentPageNumber || ''}
 Book Text: ${bookText}
 Question: "${currentPageQuestion}"
 </current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User's Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<utterances>
+${imageDescription ? `<image_description>\n${imageDescription}\n</image_description>\n` : ''}<utterances>
 ${formattedUtterances}
 </utterances>`
                 }
