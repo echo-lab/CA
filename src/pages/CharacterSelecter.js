@@ -17,6 +17,7 @@ import { data as data3 } from "../Book/Book3";
 
 import { say } from "../utils/ttsClient";
 import { prefetchImageAnalysis } from "../utils/imageAnalysis";
+import { openDebugMonitor } from "../utils/debugMonitor";
 
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
@@ -306,6 +307,7 @@ export default function CharaterSelecter() {
               <h1>Select a Role</h1>
               <p>Drag any role onto each character.</p>
             </div>
+            <button className="btn btn-outline-secondary" onClick={openDebugMonitor} style={{ fontSize: '12px', padding: '4px 10px' }}>Debug</button>
             <button className="btn btn-primary" onClick={() => { navigateToStory(); } }>
               <KeyboardDoubleArrowRightIcon fontSize="large" />
             </button>
