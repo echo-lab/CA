@@ -186,6 +186,9 @@ function openGptDebugMonitor() {
   window.open(url, 'gpt-debug', 'width=700,height=600,scrollbars=yes');
 }
 
+// Module-level cache so the monitor can replay state when opened late
+const imageState = { totalPages: 0, pages: {} };
+
 function getImageChannel() {
   if (!imageChannel) {
     imageChannel = new BroadcastChannel(IMAGE_CHANNEL_NAME);
@@ -194,6 +197,24 @@ function getImageChannel() {
 }
 
 export function imageDebugLog(event) {
+  // Update cached state
+  if (event.type === 'book_info') {
+    imageState.totalPages = event.totalPages;
+    imageState.pages = {};
+  } else if (event.type === 'analysis_response') {
+    if (!imageState.pages[event.page]) imageState.pages[event.page] = {};
+    imageState.pages[event.page].analysis = event.description;
+  } else if (event.type === 'tagging_response') {
+    if (!imageState.pages[event.page]) imageState.pages[event.page] = {};
+    imageState.pages[event.page].tags = event.tags;
+  } else if (event.type === 'analysis_error') {
+    if (!imageState.pages[event.page]) imageState.pages[event.page] = {};
+    imageState.pages[event.page].analysisError = event.error;
+  } else if (event.type === 'tagging_error') {
+    if (!imageState.pages[event.page]) imageState.pages[event.page] = {};
+    imageState.pages[event.page].taggingError = event.error;
+  }
+
   try {
     getImageChannel().postMessage({ ...event, timestamp: Date.now() });
   } catch (e) {}
@@ -385,6 +406,26 @@ function openImageDebugMonitor() {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   window.open(url, 'image-debug', 'width=700,height=600,scrollbars=yes');
+
+  // Replay cached state after the window has time to set up its BroadcastChannel listener
+  if (imageState.totalPages > 0) {
+    setTimeout(() => {
+      const ch = getImageChannel();
+      const ts = Date.now();
+      ch.postMessage({ type: 'book_info', totalPages: imageState.totalPages, timestamp: ts });
+      Object.entries(imageState.pages).forEach(([page, data]) => {
+        const p = Number(page);
+        if (data.analysis !== undefined)
+          ch.postMessage({ type: 'analysis_response', page: p, description: data.analysis, timestamp: ts });
+        if (data.tags !== undefined)
+          ch.postMessage({ type: 'tagging_response', page: p, tags: data.tags, timestamp: ts });
+        if (data.analysisError !== undefined)
+          ch.postMessage({ type: 'analysis_error', page: p, error: data.analysisError, timestamp: ts });
+        if (data.taggingError !== undefined)
+          ch.postMessage({ type: 'tagging_error', page: p, error: data.taggingError, timestamp: ts });
+      });
+    }, 300);
+  }
 }
 
 function openUtteranceDebugMonitor() {
