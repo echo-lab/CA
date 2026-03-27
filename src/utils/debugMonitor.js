@@ -1,8 +1,10 @@
 const CHANNEL_NAME = 'utterance-debug';
 const GPT_CHANNEL_NAME = 'gpt-debug';
+const IMAGE_CHANNEL_NAME = 'image-debug';
 
 let channel = null;
 let gptChannel = null;
+let imageChannel = null;
 
 function getChannel() {
   if (!channel) {
@@ -184,9 +186,143 @@ function openGptDebugMonitor() {
   window.open(url, 'gpt-debug', 'width=700,height=600,scrollbars=yes');
 }
 
+function getImageChannel() {
+  if (!imageChannel) {
+    imageChannel = new BroadcastChannel(IMAGE_CHANNEL_NAME);
+  }
+  return imageChannel;
+}
+
+export function imageDebugLog(event) {
+  try {
+    getImageChannel().postMessage({ ...event, timestamp: Date.now() });
+  } catch (e) {}
+}
+
 export function openDebugMonitor() {
   openUtteranceDebugMonitor();
   openGptDebugMonitor();
+  openImageDebugMonitor();
+}
+
+function openImageDebugMonitor() {
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Image Analysis Debug Monitor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Menlo', 'Consolas', monospace; font-size: 12px; background: #1e1e1e; color: #d4d4d4; }
+    #header {
+      position: sticky; top: 0; background: #252526; padding: 10px 14px;
+      border-bottom: 1px solid #3c3c3c; z-index: 10;
+    }
+    #header h3 { color: #dcdcaa; margin-bottom: 6px; font-size: 13px; }
+    #log { padding: 8px 14px; display: flex; flex-direction: column; gap: 6px; }
+    .entry {
+      padding: 8px 10px; border-radius: 3px; line-height: 1.6;
+      border-left: 3px solid transparent;
+    }
+    .entry .time { color: #888; margin-right: 8px; }
+    .request { border-left-color: #569cd6; background: rgba(86,156,214,0.08); }
+    .request .label { color: #569cd6; font-weight: bold; }
+    .response { border-left-color: #4caf50; background: rgba(76,175,80,0.08); }
+    .response .label { color: #4caf50; font-weight: bold; }
+    .error { border-left-color: #f44747; background: rgba(244,71,71,0.08); color: #f44747; }
+    .field { margin-top: 3px; padding-left: 12px; }
+    .field-label { color: #808080; }
+    .field-value { color: #ce9178; word-break: break-word; }
+    .tags-grid { margin-top: 4px; padding-left: 12px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag-chip {
+      background: #2d2d2d; border: 1px solid #3c3c3c; border-radius: 3px;
+      padding: 2px 6px; font-size: 11px; color: #9cdcfe;
+    }
+    .fold-toggle { cursor: pointer; user-select: none; }
+    .fold-toggle:hover { color: #569cd6; }
+    .fold-content {
+      margin: 4px 0 2px 12px; padding: 8px; background: #2d2d2d;
+      border: 1px solid #3c3c3c; border-radius: 3px; white-space: pre-wrap;
+      word-break: break-word; color: #ce9178; max-height: 200px; overflow-y: auto; font-size: 11px;
+    }
+    #clear-btn {
+      position: fixed; bottom: 12px; right: 12px; background: #3c3c3c; color: #d4d4d4;
+      border: 1px solid #555; padding: 6px 14px; cursor: pointer; border-radius: 4px; font-size: 11px;
+    }
+    #clear-btn:hover { background: #505050; }
+  </style>
+</head>
+<body>
+  <div id="header"><h3>Image Analysis Debug Monitor</h3></div>
+  <div id="log"></div>
+  <button id="clear-btn" onclick="document.getElementById('log').innerHTML=''">Clear</button>
+  <script>
+    const ch = new BroadcastChannel('${IMAGE_CHANNEL_NAME}');
+    const log = document.getElementById('log');
+    var foldId = 0;
+
+    function fmt(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+
+    function field(label, value) {
+      if (value === undefined || value === null) return '';
+      var s = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+      if (s.length <= 300) {
+        return '<div class="field"><span class="field-label">' + label + ': </span><span class="field-value">' + esc(s) + '</span></div>';
+      }
+      var id = 'fold-' + (foldId++);
+      return '<div class="field"><span class="field-label fold-toggle" onclick="var el=document.getElementById(\\'' + id + '\\');el.style.display=el.style.display===\\'none\\'?\\'block\\':\\'none\\'">' + label + ' ▶</span><span class="field-value"> ' + esc(s.slice(0, 120)) + '...</span><pre id="' + id + '" class="fold-content" style="display:none">' + esc(s) + '</pre></div>';
+    }
+
+    function add(html, cls) {
+      const div = document.createElement('div');
+      div.className = 'entry ' + cls;
+      div.innerHTML = html;
+      log.appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    ch.onmessage = (e) => {
+      const ev = e.data;
+      const time = '<span class="time">' + fmt(ev.timestamp) + '</span>';
+
+      if (ev.type === 'analysis_request') {
+        add(time + '<span class="label">ANALYSIS REQUEST</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page) +
+          field('Page Text', ev.pageText), 'request');
+      }
+      else if (ev.type === 'analysis_response') {
+        add(time + '<span class="label">ANALYSIS RESPONSE</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page) +
+          field('Description', ev.description), 'response');
+      }
+      else if (ev.type === 'tagging_request') {
+        add(time + '<span class="label">TAGGING REQUEST</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page), 'request');
+      }
+      else if (ev.type === 'tagging_response') {
+        var tagsHtml = '';
+        if (ev.tags && ev.tags.length > 0) {
+          tagsHtml = '<div class="tags-grid">' + ev.tags.map(function(t) {
+            return '<span class="tag-chip">' + esc(t.label) + '</span>';
+          }).join('') + '</div>';
+        } else {
+          tagsHtml = field('Tags', 'none');
+        }
+        add(time + '<span class="label">TAGGING RESPONSE</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page) + '  (' + (ev.tags ? ev.tags.length : 0) + ' tags)' + tagsHtml, 'response');
+      }
+      else if (ev.type === 'analysis_error' || ev.type === 'tagging_error') {
+        add(time + '<span>ERROR — ' + esc(ev.type) + '</span>' + field('Error', ev.error), 'error');
+      }
+    };
+  </script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, 'image-debug', 'width=700,height=600,scrollbars=yes');
 }
 
 function openUtteranceDebugMonitor() {

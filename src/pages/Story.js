@@ -15,7 +15,7 @@ import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
-import { ImageAnalysis } from "../utils/imageAnalysis";
+import { ImageAnalysis, ImageTagging } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
 
 class Book {
@@ -100,6 +100,8 @@ function Reader() {
   const [isDismissingBubble, setIsDismissingBubble] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
   const imageDescriptionRef = useRef(null);
+  const [imageTags, setImageTags] = useState([]);
+  const userAttentionRef = useRef(null);
 
 
 
@@ -134,6 +136,9 @@ function Reader() {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
     imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page + 1, pageText });
+    userAttentionRef.current = null;
+    setImageTags([]);
+    ImageTagging({ book: id, page: state.page + 1 }).then(tags => setImageTags(tags));
   }, [state.page, id]);
 
   // Warm/preload TTS for current + next page
@@ -212,7 +217,7 @@ const gotoNextPage = () => {
       setGeneratedQuestion(result.generatedQuestion);
       setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
     }
-  } : undefined, imageDescriptionRef);
+  } : undefined, imageDescriptionRef, userAttentionRef);
 
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
 
@@ -539,7 +544,7 @@ const handleNextClick = React.useCallback(() => {
              setGeneratedQuestion(result.generatedQuestion);
              setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
            }
-         } : undefined, imageDescriptionRef);
+         } : undefined, imageDescriptionRef, userAttentionRef);
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
            state.pagesValues[state.page].text[i].Reading=false;
          }
@@ -661,7 +666,8 @@ React.useEffect(() => {
         setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');
       }
     },
-    imageDescriptionRef
+    imageDescriptionRef,
+    userAttentionRef
   });
 }, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine]);
 
@@ -1033,7 +1039,25 @@ function stripSSMLTags(text) {
 
     <div className="row">
       <div className="col-md-5">
-          <img src={state.pagesValues[state.page].img} alt="current page" />
+          <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+            <img src={state.pagesValues[state.page].img} alt="current page" style={{ width: '100%', display: 'block' }} />
+            {imageTags.map((tag, i) => {
+              const [y0, x0, y1, x1] = tag.box_2d;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    top: `${y0 / 10}%`, left: `${x0 / 10}%`,
+                    height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
+                    cursor: 'crosshair',
+                  }}
+                  onMouseEnter={() => { userAttentionRef.current = tag.label; }}
+                  onMouseLeave={() => { userAttentionRef.current = null; }}
+                />
+              );
+            })}
+          </div>
         {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}
         </div>
       <div className="col-md-7 table-container">

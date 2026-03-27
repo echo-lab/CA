@@ -16,6 +16,7 @@ import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
 import { say } from "../utils/ttsClient";
+import { prefetchImageAnalysis } from "../utils/imageAnalysis";
 
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
@@ -183,6 +184,11 @@ export default function CharaterSelecter() {
   // select book JSON
   const bookData = id === 1 ? data1 : id === 2 ? data2 : data3;
   const book = React.useMemo(() => new Book(bookData), [bookData]);
+
+  // Kick off image analysis pre-fetching as soon as the book is known
+  useEffect(() => {
+    if (id && book.pages) prefetchImageAnalysis(id, Object.values(book.pages));
+  }, [id, book.pages]);
 
   // initialize defaults
   useEffect(() => {
