@@ -218,102 +218,164 @@ function openImageDebugMonitor() {
       position: sticky; top: 0; background: #252526; padding: 10px 14px;
       border-bottom: 1px solid #3c3c3c; z-index: 10;
     }
-    #header h3 { color: #dcdcaa; margin-bottom: 6px; font-size: 13px; }
-    #log { padding: 8px 14px; display: flex; flex-direction: column; gap: 6px; }
-    .entry {
-      padding: 8px 10px; border-radius: 3px; line-height: 1.6;
-      border-left: 3px solid transparent;
+    #header h3 { color: #dcdcaa; font-size: 13px; }
+    #pages { padding: 8px 14px; display: flex; flex-direction: column; gap: 4px; }
+    .page-row {
+      border: 1px solid #3c3c3c; border-radius: 4px; overflow: hidden;
     }
-    .entry .time { color: #888; margin-right: 8px; }
-    .request { border-left-color: #569cd6; background: rgba(86,156,214,0.08); }
-    .request .label { color: #569cd6; font-weight: bold; }
-    .response { border-left-color: #4caf50; background: rgba(76,175,80,0.08); }
-    .response .label { color: #4caf50; font-weight: bold; }
-    .error { border-left-color: #f44747; background: rgba(244,71,71,0.08); color: #f44747; }
-    .field { margin-top: 3px; padding-left: 12px; }
+    .page-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; cursor: pointer; user-select: none;
+      background: #252526;
+    }
+    .page-header:hover { background: #2d2d2d; }
+    .page-arrow { font-size: 10px; color: #808080; width: 10px; }
+    .page-title { flex: 1; font-weight: bold; }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%; background: #444;
+      flex-shrink: 0;
+    }
+    .status-dot.both { background: #4caf50; }
+    .status-dot.one  { background: #dcdcaa; }
+    .page-row.both > .page-header { border-left: 3px solid #4caf50; }
+    .page-row.one  > .page-header { border-left: 3px solid #dcdcaa; }
+    .page-row.none > .page-header { border-left: 3px solid #444; }
+    .page-body { display: none; padding: 8px 12px; background: #1e1e1e; border-top: 1px solid #3c3c3c; }
+    .page-body.open { display: block; }
+    .field { margin: 4px 0; }
     .field-label { color: #808080; }
     .field-value { color: #ce9178; word-break: break-word; }
-    .tags-grid { margin-top: 4px; padding-left: 12px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .field-value.pending { color: #555; font-style: italic; }
+    .tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; padding-left: 12px; }
     .tag-chip {
       background: #2d2d2d; border: 1px solid #3c3c3c; border-radius: 3px;
       padding: 2px 6px; font-size: 11px; color: #9cdcfe;
     }
-    .fold-toggle { cursor: pointer; user-select: none; }
-    .fold-toggle:hover { color: #569cd6; }
-    .fold-content {
-      margin: 4px 0 2px 12px; padding: 8px; background: #2d2d2d;
-      border: 1px solid #3c3c3c; border-radius: 3px; white-space: pre-wrap;
-      word-break: break-word; color: #ce9178; max-height: 200px; overflow-y: auto; font-size: 11px;
-    }
-    #clear-btn {
-      position: fixed; bottom: 12px; right: 12px; background: #3c3c3c; color: #d4d4d4;
-      border: 1px solid #555; padding: 6px 14px; cursor: pointer; border-radius: 4px; font-size: 11px;
-    }
-    #clear-btn:hover { background: #505050; }
+    .error-text { color: #f44747; }
   </style>
 </head>
 <body>
   <div id="header"><h3>Image Analysis Debug Monitor</h3></div>
-  <div id="log"></div>
-  <button id="clear-btn" onclick="document.getElementById('log').innerHTML=''">Clear</button>
+  <div id="pages"></div>
   <script>
     const ch = new BroadcastChannel('${IMAGE_CHANNEL_NAME}');
-    const log = document.getElementById('log');
-    var foldId = 0;
+    const container = document.getElementById('pages');
 
-    function fmt(ts) {
-      const d = new Date(ts);
-      return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
-    }
+    // state[page] = { analysis, tags, analysisError, taggingError }
+    var state = {};
+    var totalPages = 0;
 
     function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 
-    function field(label, value) {
-      if (value === undefined || value === null) return '';
-      var s = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-      if (s.length <= 300) {
-        return '<div class="field"><span class="field-label">' + label + ': </span><span class="field-value">' + esc(s) + '</span></div>';
+    function buildPages(n) {
+      container.innerHTML = '';
+      state = {};
+      totalPages = n;
+      for (var i = 1; i <= n; i++) {
+        state[i] = { analysis: null, tags: null, analysisError: null, taggingError: null };
+        var row = document.createElement('div');
+        row.className = 'page-row none';
+        row.id = 'page-row-' + i;
+        row.innerHTML =
+          '<div class="page-header" onclick="togglePage(' + i + ')">' +
+            '<span class="page-arrow" id="arrow-' + i + '">▶</span>' +
+            '<span class="page-title">Page ' + i + '</span>' +
+            '<span class="status-dot" id="dot-' + i + '"></span>' +
+          '</div>' +
+          '<div class="page-body" id="body-' + i + '">' +
+            '<div class="field"><span class="field-label">Analysis: </span><span class="field-value pending" id="analysis-' + i + '">pending...</span></div>' +
+            '<div class="field"><span class="field-label">Tags: </span><span class="field-value pending" id="tags-' + i + '">pending...</span></div>' +
+          '</div>';
+        container.appendChild(row);
       }
-      var id = 'fold-' + (foldId++);
-      return '<div class="field"><span class="field-label fold-toggle" onclick="var el=document.getElementById(\\'' + id + '\\');el.style.display=el.style.display===\\'none\\'?\\'block\\':\\'none\\'">' + label + ' ▶</span><span class="field-value"> ' + esc(s.slice(0, 120)) + '...</span><pre id="' + id + '" class="fold-content" style="display:none">' + esc(s) + '</pre></div>';
     }
 
-    function add(html, cls) {
-      const div = document.createElement('div');
-      div.className = 'entry ' + cls;
-      div.innerHTML = html;
-      log.appendChild(div);
-      div.scrollIntoView({ behavior: 'smooth' });
+    function togglePage(i) {
+      var body = document.getElementById('body-' + i);
+      var arrow = document.getElementById('arrow-' + i);
+      var open = body.classList.toggle('open');
+      arrow.textContent = open ? '▼' : '▶';
     }
 
-    ch.onmessage = (e) => {
-      const ev = e.data;
-      const time = '<span class="time">' + fmt(ev.timestamp) + '</span>';
+    function updatePage(page) {
+      var s = state[page];
+      if (!s) return;
 
-      if (ev.type === 'analysis_request') {
-        add(time + '<span class="label">ANALYSIS REQUEST</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page) +
-          field('Page Text', ev.pageText), 'request');
+      // Analysis field
+      var analysisEl = document.getElementById('analysis-' + page);
+      if (analysisEl) {
+        if (s.analysisError) {
+          analysisEl.className = 'field-value error-text';
+          analysisEl.textContent = 'Error: ' + s.analysisError;
+        } else if (s.analysis !== null) {
+          analysisEl.className = 'field-value';
+          analysisEl.textContent = s.analysis;
+        }
       }
-      else if (ev.type === 'analysis_response') {
-        add(time + '<span class="label">ANALYSIS RESPONSE</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page) +
-          field('Description', ev.description), 'response');
+
+      // Tags field
+      var tagsEl = document.getElementById('tags-' + page);
+      if (tagsEl) {
+        if (s.taggingError) {
+          tagsEl.className = 'field-value error-text';
+          tagsEl.textContent = 'Error: ' + s.taggingError;
+        } else if (s.tags !== null) {
+          if (s.tags.length === 0) {
+            tagsEl.className = 'field-value';
+            tagsEl.textContent = 'none';
+          } else {
+            tagsEl.className = '';
+            tagsEl.innerHTML = '<div class="tags-wrap">' +
+              s.tags.map(function(t) { return '<span class="tag-chip">' + esc(t.label) + '</span>'; }).join('') +
+              '</div>';
+          }
+        }
       }
-      else if (ev.type === 'tagging_request') {
-        add(time + '<span class="label">TAGGING REQUEST</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page), 'request');
+
+      // Status color
+      var hasAnalysis = s.analysis !== null || s.analysisError !== null;
+      var hasTags = s.tags !== null || s.taggingError !== null;
+      var row = document.getElementById('page-row-' + page);
+      var dot = document.getElementById('dot-' + page);
+      if (row && dot) {
+        if (hasAnalysis && hasTags) {
+          row.className = 'page-row both';
+          dot.className = 'status-dot both';
+        } else if (hasAnalysis || hasTags) {
+          row.className = 'page-row one';
+          dot.className = 'status-dot one';
+        } else {
+          row.className = 'page-row none';
+          dot.className = 'status-dot';
+        }
+      }
+    }
+
+    ch.onmessage = function(e) {
+      var ev = e.data;
+
+      if (ev.type === 'book_info') {
+        buildPages(ev.totalPages);
+        return;
+      }
+
+      if (!state[ev.page]) return;
+
+      if (ev.type === 'analysis_response') {
+        state[ev.page].analysis = ev.description || '(empty)';
+        updatePage(ev.page);
       }
       else if (ev.type === 'tagging_response') {
-        var tagsHtml = '';
-        if (ev.tags && ev.tags.length > 0) {
-          tagsHtml = '<div class="tags-grid">' + ev.tags.map(function(t) {
-            return '<span class="tag-chip">' + esc(t.label) + '</span>';
-          }).join('') + '</div>';
-        } else {
-          tagsHtml = field('Tags', 'none');
-        }
-        add(time + '<span class="label">TAGGING RESPONSE</span> — book: ' + esc(ev.book) + '  page: ' + esc(ev.page) + '  (' + (ev.tags ? ev.tags.length : 0) + ' tags)' + tagsHtml, 'response');
+        state[ev.page].tags = ev.tags || [];
+        updatePage(ev.page);
       }
-      else if (ev.type === 'analysis_error' || ev.type === 'tagging_error') {
-        add(time + '<span>ERROR — ' + esc(ev.type) + '</span>' + field('Error', ev.error), 'error');
+      else if (ev.type === 'analysis_error') {
+        state[ev.page].analysisError = ev.error;
+        updatePage(ev.page);
+      }
+      else if (ev.type === 'tagging_error') {
+        state[ev.page].taggingError = ev.error;
+        updatePage(ev.page);
       }
     };
   </script>

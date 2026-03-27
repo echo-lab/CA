@@ -69,6 +69,7 @@ function stripSSML(text) {
 }
 
 export function prefetchImageAnalysis(book, pages) {
+  imageDebugLog({ type: 'book_info', book, totalPages: pages.length });
   pages.forEach((pageData, index) => {
     const page = index + 1;
     const pageText = pageData.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
