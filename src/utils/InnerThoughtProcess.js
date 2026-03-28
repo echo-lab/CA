@@ -1,9 +1,9 @@
 import { gptDebugLog } from "./debugMonitor";
 
-const categorizeOffScriptUtterances = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription) => {
+const categorizeOffScriptUtterances = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
-    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription };
+    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/categorize-utterances', payload });
 
     try {
