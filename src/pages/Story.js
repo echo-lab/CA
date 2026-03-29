@@ -216,7 +216,7 @@ const gotoNextPage = () => {
       setGeneratedQuestion(result.generatedQuestion);
       setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
     }
-  } : undefined, imageDescriptionRef, userAttentionRef);
+  } : undefined, imageDescriptionRef, userAttentionRef.current);
 
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
 
@@ -268,13 +268,13 @@ const playSound = () => {
 
 // Pre-fetch TTS audio when a generated question arrives (without auto-playing)
 useEffect(() => {
+  if (!generatedQuestion) return;
+
   // Clean up old audio before fetching new one
   if (generatedQuestionAudioRef.current) {
     generatedQuestionAudioRef.current.pause();
     generatedQuestionAudioRef.current = null;
   }
-
-  if (!generatedQuestion) return;
 
   let cancelled = false;
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
@@ -543,7 +543,7 @@ const handleNextClick = React.useCallback(() => {
              setGeneratedQuestion(result.generatedQuestion);
              setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
            }
-         } : undefined, imageDescriptionRef, userAttentionRef);
+         } : undefined, imageDescriptionRef, userAttentionRef.current);
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
            state.pagesValues[state.page].text[i].Reading=false;
          }
