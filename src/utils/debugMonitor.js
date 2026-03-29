@@ -118,13 +118,17 @@ function openGptDebugMonitor() {
 
     function formatRequest(endpoint, payload) {
       var html = '';
-      if (endpoint === '/api/categorize-utterances') {
+      if (endpoint === '/api/categorize-utterances' || endpoint === '/api/categorize-utterances-stream') {
         html += field('Utterances', payload.formattedUtterances, 300);
         html += field('Page Text', payload.bookPageText, 150);
         html += field('Question', payload.currentPageQuestion, 200);
         html += field('Page #', payload.currentPageNumber);
         html += field('Book Text', payload.bookText, 100);
         html += field('Image Analysis', payload.imageDescription, 120);
+        html += field('User Attention', payload.userAttention, 80);
+        var id = 'fold-' + (foldId++);
+        html += '<div class="field"><span class="field-label fold-toggle" onclick="var el=document.getElementById(\\'' + id + '\\');var btn=this.querySelector(\\'span\\');if(el.style.display===\\'none\\'){el.style.display=\\'block\\';btn.textContent=\\'\\u25BC\\';}else{el.style.display=\\'none\\';btn.textContent=\\'\\u25B6\\';}">Full Context <span>\\u25B6</span> </span>' +
+          '<pre id="' + id + '" class="fold-content" style="display:none">' + esc(JSON.stringify(payload, null, 2)) + '</pre></div>';
       } else {
         html += field('Payload', JSON.stringify(payload, null, 2), 500);
       }
