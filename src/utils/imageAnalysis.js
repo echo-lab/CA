@@ -90,9 +90,10 @@ function enqueuePage(book, page, pageText) {
 // Called from CharacterSelecter — prefetches first 3 pages
 export function prefetchImageAnalysis(book, pages) {
   console.log(`Prefetching image analysis for Book ${book}...`);
-  pages.slice(0, 3).forEach((pageData, index) => {
+  pages.slice(1, 4).forEach((pageData, sliceIndex) => {
+    const page = sliceIndex + 1; // slice starts at pages[1], so page 1, 2, 3
     const pageText = pageData.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
-    enqueuePage(book, index, pageText);
+    enqueuePage(book, page, pageText);
   });
 }
 
