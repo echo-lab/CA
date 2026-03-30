@@ -61,12 +61,48 @@ function stripSSML(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, '');
 }
 
+// Throttled prefetch queue — at most 2 concurrent page fetches (4 requests: analyze + tag per page)
+const PREFETCH_CONCURRENCY = 2;
+let activeCount = 0;
+const prefetchQueue = [];
+
+function drainQueue() {
+  while (activeCount < PREFETCH_CONCURRENCY && prefetchQueue.length > 0) {
+    const { book, page, pageText } = prefetchQueue.shift();
+    activeCount++;
+    Promise.all([
+      ImageAnalysis({ book, page, pageText }),
+      ImageTagging({ book, page }),
+    ]).finally(() => {
+      activeCount--;
+      drainQueue();
+    });
+  }
+}
+
+function enqueuePage(book, page, pageText) {
+  const alreadyQueued = prefetchQueue.some(e => e.book === book && e.page === page);
+  if (alreadyQueued) return;
+  prefetchQueue.push({ book, page, pageText });
+  drainQueue();
+}
+
+// Called from CharacterSelecter — prefetches first 3 pages
 export function prefetchImageAnalysis(book, pages) {
   console.log(`Prefetching image analysis for Book ${book}...`);
-  pages.forEach((pageData, index) => {
+  pages.slice(0, 3).forEach((pageData, index) => {
     const page = index + 1;
     const pageText = pageData.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
-    ImageAnalysis({ book, page, pageText });
-    ImageTagging({ book, page });
+    enqueuePage(book, page, pageText);
   });
+}
+
+// Called from Story on page advance — prefetches 3 pages ahead of current
+export function prefetchPage(book, pages, currentPage) {
+  const targetIndex = currentPage + 2; // currentPage is 0-based, so +2 = 3 pages ahead
+  if (targetIndex >= pages.length) return;
+  const pageData = pages[targetIndex];
+  const page = targetIndex + 1;
+  const pageText = pageData?.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
+  enqueuePage(book, page, pageText);
 }

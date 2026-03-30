@@ -15,7 +15,7 @@ import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
-import { ImageAnalysis, ImageTagging } from "../utils/imageAnalysis";
+import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
 
 class Book {
@@ -138,6 +138,7 @@ function Reader() {
     userAttentionRef.current = null;
     setImageTags([]);
     ImageTagging({ book: id, page: state.page + 1 }).then(tags => setImageTags(tags));
+    prefetchPage(id, state.pagesValues, state.page);
   }, [state.page, id]);
 
   // Warm/preload TTS for current + next page
@@ -1051,8 +1052,7 @@ function stripSSMLTags(text) {
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
                     cursor: 'crosshair',
                   }}
-                  onMouseEnter={() => { userAttentionRef.current = tag.label; }}
-                  onMouseLeave={() => { userAttentionRef.current = null; }}
+                  onClick={() => { userAttentionRef.current = tag.label; }}
                 />
               );
             })}
