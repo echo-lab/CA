@@ -134,11 +134,15 @@ function Reader() {
   useEffect(() => {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
-    imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
     userAttentionRef.current = null;
     setImageTags([]);
-    ImageTagging({ book: id, page: state.page }).then(tags => setImageTags(tags));
-    prefetchPage(id, state.pagesValues, state.page);
+    if (state.page > 0) {
+      imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
+      ImageTagging({ book: id, page: state.page }).then(tags => setImageTags(tags));
+      prefetchPage(id, state.pagesValues, state.page);
+    } else {
+      imageDescriptionRef.current = Promise.resolve(null);
+    }
   }, [state.page, id]);
 
   // Warm/preload TTS for current + next page
@@ -1051,8 +1055,6 @@ function stripSSMLTags(text) {
                     top: `${y0 / 10}%`, left: `${x0 / 10}%`,
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
                     cursor: 'crosshair',
-                    border: '2px solid rgba(255, 80, 80, 0.8)',
-                    boxSizing: 'border-box',
                   }}
                   title={tag.label}
                   onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
