@@ -91,18 +91,16 @@ function enqueuePage(book, page, pageText) {
 export function prefetchImageAnalysis(book, pages) {
   console.log(`Prefetching image analysis for Book ${book}...`);
   pages.slice(0, 3).forEach((pageData, index) => {
-    const page = index + 1;
     const pageText = pageData.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
-    enqueuePage(book, page, pageText);
+    enqueuePage(book, index, pageText);
   });
 }
 
 // Called from Story on page advance — prefetches 3 pages ahead of current
 export function prefetchPage(book, pages, currentPage) {
-  const targetIndex = currentPage + 2; // currentPage is 0-based, so +2 = 3 pages ahead
+  const targetIndex = currentPage + 3; // 3 pages ahead
   if (targetIndex >= pages.length) return;
   const pageData = pages[targetIndex];
-  const page = targetIndex + 1;
   const pageText = pageData?.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
-  enqueuePage(book, page, pageText);
+  enqueuePage(book, targetIndex, pageText);
 }

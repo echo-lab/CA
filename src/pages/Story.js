@@ -134,10 +134,10 @@ function Reader() {
   useEffect(() => {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
-    imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page + 1, pageText });
+    imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
     userAttentionRef.current = null;
     setImageTags([]);
-    ImageTagging({ book: id, page: state.page + 1 }).then(tags => setImageTags(tags));
+    ImageTagging({ book: id, page: state.page }).then(tags => setImageTags(tags));
     prefetchPage(id, state.pagesValues, state.page);
   }, [state.page, id]);
 
