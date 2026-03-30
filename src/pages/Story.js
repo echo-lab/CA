@@ -1052,7 +1052,7 @@ function stripSSMLTags(text) {
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
                     cursor: 'crosshair',
                   }}
-                  onClick={() => { userAttentionRef.current = tag.label; }}
+                  onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
                 />
               );
             })}
