@@ -138,7 +138,7 @@ function Reader() {
     setImageTags([]);
     if (state.page > 0) {
       imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
-      ImageTagging({ book: id, page: state.page }).then(tags => setImageTags(tags));
+      ImageTagging({ book: id, page: state.page, pageText }).then(tags => setImageTags(tags));
       prefetchPage(id, state.pagesValues, state.page);
     } else {
       imageDescriptionRef.current = Promise.resolve(null);

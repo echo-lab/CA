@@ -256,7 +256,7 @@ Give a SHORT answer of 1-2 sentences. Be similar to a parent answering a questio
 
 app.post('/tag-image', async (req, res) => {
   try {
-    const { book, page } = req.body;
+    const { book, page, pageText } = req.body;
     if (!book || !page) {
       return res.status(400).json({ message: 'Provide book and page' });
     }
@@ -286,7 +286,7 @@ app.post('/tag-image', async (req, res) => {
         role: 'user',
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: imageData } },
-          { text: 'Identify all distinct objects, characters, and scene elements in this image. For each, provide a short label and its bounding box.' },
+          { text: `${pageText ? `Page text: "${pageText}"\n\n` : ''}Detect the characters, animals, and key story objects (props, clothing, held items) visible in this illustration. Do NOT tag walls, floors, ceilings, sky, ground, or generic background scenery. Keep bounding boxes tight. If an object appears multiple times, give each a unique label. Limit to 20 objects. Return just box_2d ([y_min, x_min, y_max, x_max] normalized 0-1000) and label for each. No additional text.` },
         ],
       }],
       config: {

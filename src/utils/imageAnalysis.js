@@ -3,7 +3,7 @@ const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 const analysisCache = new Map();
 const taggingCache = new Map();
 
-export async function ImageTagging({ book, page }) {
+export async function ImageTagging({ book, page, pageText }) {
   console.log(`Fetching image tags for Book ${book}, Page ${page}...`);
   const key = `${book}-${page}`;
   if (taggingCache.has(key)) return taggingCache.get(key);
@@ -12,7 +12,7 @@ export async function ImageTagging({ book, page }) {
       const res = await fetch(`${API_BASE}/tag-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ book, page }),
+        body: JSON.stringify({ book, page, pageText }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Server error');
@@ -72,7 +72,7 @@ function drainQueue() {
     activeCount++;
     Promise.all([
       ImageAnalysis({ book, page, pageText }),
-      ImageTagging({ book, page }),
+      ImageTagging({ book, page, pageText }),
     ]).finally(() => {
       activeCount--;
       drainQueue();
