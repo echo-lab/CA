@@ -172,6 +172,7 @@ export default function CharaterSelecter() {
   const location = useLocation();
   const id = location.state?.id;
   const userName = location.state?.name;
+  const condition = location.state?.condition;
   const navigate = useNavigate();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -279,7 +280,7 @@ export default function CharaterSelecter() {
         img: role.img,
       })
     );
-    navigate("/story", { state: { selectedOptions, id } });
+    navigate("/story", { state: { selectedOptions, id, condition } });
   };
 
 

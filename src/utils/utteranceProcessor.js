@@ -16,8 +16,8 @@ function calculateConfidenceDetail(spokenWords, expectedText, options = {}) {
   const mergedUtterance = spokenWords.filter(w => w.length > 0).join(' ');
   const result = calculateHybridScore(mergedUtterance, expectedText, {
     exactWordWeight: 0.0,
-    fuzzyWeight: 0.5,
-    phoneticWeight: 0.5,
+    fuzzyWeight: 0.4,
+    phoneticWeight: 0.6,
     matchThreshold: 0.6,
     ...options,
   });
@@ -204,6 +204,7 @@ export async function processUserUtterance({
   pendingUtteranceRef,
   offScriptLogRef,
   state,
+  condition,
   speakerLabels,
   jumpToLine,
   setAudioHasEnded,
@@ -303,11 +304,17 @@ export async function processUserUtterance({
       }
 
       // Sliding window hybrid (fuzzy + phonetic)
-      if (allSpokenWords.length >= variant.wordCount) {
+      if (condition === "C1" || condition === "C2" && allSpokenWords.length >= variant.wordCount && variant.wordCount > 2) {
         const maxStartIndex = allSpokenWords.length - variant.wordCount;
         for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
           const window = allSpokenWords.slice(startIdx, startIdx + variant.wordCount);
-          const detail = calculateConfidenceDetail(window, variant.text);
+          let detail;
+          if (condition === "C2") {
+            detail = calculateConfidenceDetail(window, variant.text, { fuzzyWeight: 0, phoneticWeight: 1 });
+          }
+          else {             
+            detail = calculateConfidenceDetail(window, variant.text);
+          }
           if (detail.confidence >= 0.6) {
             console.log(`Sliding window hybrid match (${variant.label}) at position ${startIdx}! Confidence: ${(detail.confidence * 100).toFixed(1)}%`);
             debugLog({ type: 'hybrid_match', label: variant.label, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
@@ -322,12 +329,16 @@ export async function processUserUtterance({
           if (detail.confidence > bestDetail.confidence) bestDetail = detail;
         }
       }
-
       // Merged-string fallback for short lines (e.g., "Clara said" transcribed as "Claraiset")
-      console.log(`[Merged fallback] wordCount=${variant.wordCount}, spokenWords=${allSpokenWords.length}, words=[${allSpokenWords.join(', ')}]`);
-      if (variant.wordCount <= 2 && allSpokenWords.length > 0) {
+      else if (condition === "C1" || condition === "C2" && allSpokenWords.length >= variant.wordCount) {
         for (let i = 0; i < allSpokenWords.length; i++) {
-          const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text, { fuzzyWeight: 0.2, phoneticWeight: 0.8 });
+          let detail;
+          if (condition === "C2") {
+            detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text, { fuzzyWeight: 0, phoneticWeight: 1 });
+          }
+          else {
+            detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
+          }
           debugLog({ type: 'merged_check', label: variant.label, spokenWord: allSpokenWords[i], target: variant.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
           if (detail.confidence >= 0.6) {
             console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
@@ -342,6 +353,26 @@ export async function processUserUtterance({
           }
         }
       }
+
+      // // Merged-string fallback for short lines (e.g., "Clara said" transcribed as "Claraiset")
+      // console.log(`[Merged fallback] wordCount=${variant.wordCount}, spokenWords=${allSpokenWords.length}, words=[${allSpokenWords.join(', ')}]`);
+      // if (condition === "C1" || condition === "C2" && variant.wordCount <= 2 && allSpokenWords.length > 0) {
+      //   for (let i = 0; i < allSpokenWords.length; i++) {
+      //     const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
+      //     debugLog({ type: 'merged_check', label: variant.label, spokenWord: allSpokenWords[i], target: variant.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
+      //     if (detail.confidence >= 0.6) {
+      //       console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
+      //       debugLog({ type: 'merged_match', label: variant.label, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
+      //       captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, i));
+      //       clearMatchState(refs, i + 1);
+      //       if (currentLineIndex === totalLines - 1) {
+      //         currentLine.Reading = false;
+      //       }
+      //       advanceToNextLine(setAudioHasEnded, setIsPlaying);
+      //       return;
+      //     }
+      //   }
+      // }
     }
 
     // Variant failed — report reason
@@ -373,7 +404,10 @@ export async function processUserUtterance({
   debugLog({ type: 'no_match', variantsTried: searchVariants.map(v => v.label).join(', ') });
 
   // Step 3: Check if user skipped ahead (next 3 lines)
-  const foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef });
+  let foundMatch;
+  if (condition === "C1") {
+    foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef });
+  }
 
   // Step 4: Slide queue if no match found
   if (!foundMatch) {

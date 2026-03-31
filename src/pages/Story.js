@@ -35,6 +35,7 @@ function Reader() {
   const [childHasPlayed, setChildHasPlayed] = useState(false);
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
+  const condition = location.state?.condition || null;
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
@@ -657,6 +658,7 @@ React.useEffect(() => {
     pendingUtteranceRef,
     offScriptLogRef,
     state,
+    condition,
     speakerLabels,
     sendContentMessage,
     gotoNextPage,

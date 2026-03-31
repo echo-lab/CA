@@ -103,8 +103,103 @@ export const data = [
             },
           ],
         },
+
+        PageThree: {
+          img: require("../Pictures/book3/3 Library.jpg"),
+          question: "If Clara added one more stack, how many books should that stack have?",
+          text: [
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "“I made the same pattern!”",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "squawked Zoe.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "“See one book, one, two books, One, two, three books!”",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "“Nice Work.”",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara whispered.",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "“Let's read...quietly.”",
+            },
+                        {
+              Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "“We have to be quiet in this section.”",
+            },
+          ],
         },
-       
+
+        PageFour: {
+          img: require("../Pictures/book3/3 Library.jpg"),
+          question: "If Clara added one more stack, how many books should that stack have?",
+          text: [
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "“I made the same pattern!”",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "squawked Zoe.",
+            },
+            {
+              Reading: false,
+              Character: "Zoe",
+              Dialogue:
+                "“See one book, one, two books, One, two, three books!”",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue: "“Nice Work.”",
+            },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue:
+                "Clara whispered.",
+            },
+            {
+              Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "“Let's read...quietly.”",
+            },
+                        {
+              Reading: false,
+              Character: "Clara",
+              Dialogue:
+                "“We have to be quiet in this section.”",
+            },
+          ],
+        },
+        },
       },
     },
 ];
