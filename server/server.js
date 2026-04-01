@@ -473,6 +473,10 @@ ${formattedUtterances}
             ]
         }, { signal: questionAbortController.signal }).catch(err => {
             if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') return null;
+            if (err.name === 'APIUserAbortError') {
+              console.log('Question generation aborted by user');
+              return null;
+            }
             throw err;
         });
 

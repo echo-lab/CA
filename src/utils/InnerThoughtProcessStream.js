@@ -41,6 +41,7 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
                         items.push(parsed.item);
                     } else if (parsed.type === 'done') {
                         generatedQuestion = parsed.generatedQuestion;
+                        if (!generatedQuestion) gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: 'aborted — no ON_TOPIC utterances' });
                     } else if (parsed.type === 'error') {
                         throw new Error(parsed.error);
                     }
