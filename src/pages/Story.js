@@ -42,6 +42,10 @@ function Reader() {
   // How many warm requests to run in parallel
   const PRELOAD_CONCURRENCY = 1;
   const inflightRequests = useRef(new Map());
+  // Hardcoded feature flags
+  const REALTIME_ENABLED = false;
+  const DEEPGRAM_ENABLED = true;
+  const QUESTION_GEN_ENABLED = true;
 
   const {
     connected,
@@ -97,8 +101,7 @@ function Reader() {
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
   const [questionSource, setQuestionSource] = useState(null);
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
-  const [questionGenEnabled, setQuestionGenEnabled] = useState(true);
-  const questionGenEnabledRef = useRef(true);
+  const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const [isDismissingBubble, setIsDismissingBubble] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
   const imageDescriptionRef = useRef(null);
@@ -131,6 +134,15 @@ function Reader() {
       .trim()
       .replace(/\s+/g, " ");
   }
+
+  useEffect(() => {
+    if (DEEPGRAM_ENABLED) connectToDeepgram();
+    if (REALTIME_ENABLED) connect();
+    return () => {
+      disconnectDeepgram();
+      disconnect();
+    };
+  }, []);
 
   // Pre-fetch image analysis on page change so it's ready for off-script categorization
   useEffect(() => {
@@ -956,55 +968,7 @@ function stripSSMLTags(text) {
       </div>
 
     <div className="navigation-buttons-container">
-      <div className="realtime-toggle-container">
-        <span className="toggle-label">Realtime</span>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={connected}
-            onChange={() => connected ? disconnect() : connect()}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span className={`toggle-status ${connected ? 'connected' : 'disconnected'}`}>
-          {connected ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
-
-      <div className="realtime-toggle-container">
-        <span className="toggle-label">Deepgram</span>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={deepgramConnected}
-            onChange={() => deepgramConnected ? (disconnectDeepgram(), disconnect()) : (connectToDeepgram(), connect())}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span className={`toggle-status ${deepgramConnected ? 'connected' : 'disconnected'}`}>
-          {deepgramConnected ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
-
-      <div className="realtime-toggle-container">
-        <span className="toggle-label">Question Gen</span>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={questionGenEnabled}
-            onChange={() => {
-              const next = !questionGenEnabled;
-              setQuestionGenEnabled(next);
-              questionGenEnabledRef.current = next;
-            }}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span className={`toggle-status ${questionGenEnabled ? 'connected' : 'disconnected'}`}>
-          {questionGenEnabled ? 'On' : 'Off'}
-        </span>
-      </div>
-
+      
       <button
         onClick={openDebugMonitor}
         className="btn btn-outline-secondary"
