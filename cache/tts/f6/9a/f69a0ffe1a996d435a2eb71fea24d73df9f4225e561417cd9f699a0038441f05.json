@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775151710335,
+  "key": "f69a0ffe1a996d435a2eb71fea24d73df9f4225e561417cd9f699a0038441f05",
+  "v": "1",
+  "textNorm": "You are a 5-year-old child reading a children\"s story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: “Yours is yellow, blue, yellow, blue…”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 267450
+}

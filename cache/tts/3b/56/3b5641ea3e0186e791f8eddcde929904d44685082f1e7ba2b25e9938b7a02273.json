@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775151716397,
+  "key": "3b5641ea3e0186e791f8eddcde929904d44685082f1e7ba2b25e9938b7a02273",
+  "v": "1",
+  "textNorm": "You are a 5-year-old child reading a children\"s story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: “mine is green, purple, green, purple. Zip, zap, zip, zap!”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 398010
+}

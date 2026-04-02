@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155392871,
+  "key": "ea3973a3d452beb03f99fcdb898781f8ce47073a8769e949e94223f71f96ea36",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: The streamers and cake go “beep, boop, beep…” — which comes next, beep or boop?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 398010
+}

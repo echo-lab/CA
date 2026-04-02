@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155278973,
+  "key": "f831cc3048a89c298b51093a5d63b79c95fcf79b80743a4060cfd0ad67174ca3",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “A perfect pattern!”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 94650
+}

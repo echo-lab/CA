@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775148583554,
+  "key": "cdebeac5bdb5ed5b6c1391bb962f7f3bc40756771e6dab6461b2b483bb44c52e",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: The Pattern Pals: Sleepover Similarities",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 190650
+}

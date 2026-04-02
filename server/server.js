@@ -993,6 +993,37 @@ app.post('/synthesize', async (req, res) => {
     }
 });
 
+// Log session info (name, book, condition) to CSV
+app.post('/api/log-session', (req, res) => {
+    const { name, book, condition } = req.body;
+    if (!name || !book || !condition) {
+        return res.status(400).json({ message: 'Missing name, book, or condition' });
+    }
+    const csvPath = path.join(__dirname, 'session-log.csv');
+    const timestamp = new Date().toISOString();
+    const header = 'timestamp,name,book,condition\n';
+    const row = `${timestamp},${name},${book},${condition}\n`;
+
+    if (!fs.existsSync(csvPath)) {
+        fs.writeFileSync(csvPath, header + row);
+    } else {
+        fs.appendFileSync(csvPath, row);
+    }
+    console.log(`[session-log] ${name}, book ${book}, ${condition}`);
+    res.json({ success: true });
+});
+
+// Download session log CSV
+app.get('/api/log-session/download', (req, res) => {
+    const csvPath = path.join(__dirname, 'session-log.csv');
+    if (!fs.existsSync(csvPath)) {
+        return res.status(404).json({ message: 'No session log found' });
+    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=session-log.csv');
+    res.sendFile(csvPath);
+});
+
 if(process.env.DEVMODE){
     const port = process.env.REACT_APP_PORT || 5001;
     const server = app.listen(port, () => console.log(`Server started on port ${port}`));

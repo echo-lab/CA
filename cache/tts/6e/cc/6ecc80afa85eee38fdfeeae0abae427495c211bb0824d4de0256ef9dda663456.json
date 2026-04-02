@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155357096,
+  "key": "6ecc80afa85eee38fdfeeae0abae427495c211bb0824d4de0256ef9dda663456",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: exclaimed Zoey, taking a huge bite.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 159930
+}

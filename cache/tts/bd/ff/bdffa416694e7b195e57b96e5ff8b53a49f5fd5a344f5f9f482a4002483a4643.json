@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155350873,
+  "key": "bdffa416694e7b195e57b96e5ff8b53a49f5fd5a344f5f9f482a4002483a4643",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Zoey gave Clara a BIG hug.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 169530
+}

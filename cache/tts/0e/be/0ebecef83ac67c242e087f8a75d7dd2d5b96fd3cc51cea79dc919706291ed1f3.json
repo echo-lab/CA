@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155347766,
+  "key": "0ebecef83ac67c242e087f8a75d7dd2d5b96fd3cc51cea79dc919706291ed1f3",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Zoey pointed at the hats.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 123450
+}

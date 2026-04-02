@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775147186943,
+  "key": "3f9a22dd9d7fb3bc896e7ae69773b9c4ad2f44474345c0b78b165d125c7bc70b",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Clara hugged her tail. Who else could the party be for?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 196410
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155290134,
+  "key": "9682876827ca9ce79eacf6f5bc4071bd1db237db78b5bfb219f07be1fe56f2b9",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “Uh-oh,”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 44730
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155360952,
+  "key": "87182ef163ee9132069230416510bc63db591b6288e99c08df49b7353a2fea9b",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Clara laughed.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 65850
+}

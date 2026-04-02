@@ -8,7 +8,7 @@ import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import parentImage from "../Pictures/virtual.webp"
+import parentImage from "../Pictures/Virtual.png";
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
@@ -48,7 +48,7 @@ function Reader() {
   const QUESTION_GEN_ENABLED = true;
 
   const {
-    connected,
+    // connected,
     connect,
     disconnect,
     sendContentMessage,
@@ -806,24 +806,14 @@ function stripSSMLTags(text) {
            <div>
                 <div className="wrapper">
                 <div className="role-image-container">
-                  <img src={parentImage} alt="Parent" />
-                  <button onClick={() => { playSound(); }} className="play-sound-button">
-                  <PlayArrowIcon />
-                  </button>
+                  <img src={parentImage} alt="Parent" onClick={() => { playSound(); }} style={{ width: '100px', cursor: 'pointer' }} />
                   </div>
 
                   <div className="question-dialogue d-flex justify-content-between align-items-center">
                     <div className="storyTitle m-0"></div>
                     {state.pagesValues[state.page].question}
                 </div>
-
                 </div>
-
-                {isCategorizationPending && (
-                  <div className="wrapper" style={{ marginTop: '8px', opacity: 0.6 }}>
-                    <div className="question-dialogue">Thinking of a follow-up question...</div>
-                  </div>
-                )}
            </div>
      );
   };
@@ -840,7 +830,8 @@ function stripSSMLTags(text) {
     const isChildTurn = currentRoleNav?.role === "Child" && currentLine?.Reading;
 
     // Disable button if it's child's turn and they haven't played yet
-    const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
+    const shouldDisableButton = isButtonDisabled || isAudioPlaying;
+    // const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
 
     let buttonText;
     let buttonClass = "";
@@ -887,13 +878,13 @@ function stripSSMLTags(text) {
     const currentRoleCheck = currentLine ? state.CharacterRoles.find(
       (option) => option.Character === currentLine.Character
     ) : null;
-    const isChildTurn = currentRoleCheck?.role === "Child" && currentLine?.Reading;
+    // const isChildTurn = currentRoleCheck?.role === "Child" && currentLine?.Reading;
 
-    // If it's child's turn and they haven't played, don't allow advancement
-    if (isChildTurn && !childHasPlayed) {
-      console.log("Child must play their line first!");
-      return;
-    }
+    // // If it's child's turn and they haven't played, don't allow advancement
+    // if (isChildTurn && !childHasPlayed) {
+    //   console.log("Child must play their line first!");
+    //   return;
+    // }
 
     if (state.hasReachedEnd) {
       navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
@@ -968,7 +959,7 @@ function stripSSMLTags(text) {
       </div>
 
     <div className="navigation-buttons-container">
-      
+
       <button
         onClick={openDebugMonitor}
         className="btn btn-outline-secondary"

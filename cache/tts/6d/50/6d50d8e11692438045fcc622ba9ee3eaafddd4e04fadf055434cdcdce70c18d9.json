@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775148749153,
+  "key": "6d50d8e11692438045fcc622ba9ee3eaafddd4e04fadf055434cdcdce70c18d9",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: sang Zoey. It was their first sleepover.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 167610
+}

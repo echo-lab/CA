@@ -24,8 +24,15 @@ export default function ConditionSelecter() {
   const { id, name } = location.state || {};
   const [selected, setSelected] = useState(null);
 
+  const BASE_URL = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
+
   const handleNext = () => {
     if (!selected) return;
+    fetch(`${BASE_URL}/api/log-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, book: id, condition: selected }),
+    }).catch(err => console.error('Failed to log session:', err));
     navigate("/Character", { state: { id, name, condition: selected } });
   };
 
@@ -51,8 +58,8 @@ export default function ConditionSelecter() {
             onClick={() => setSelected(c.id)}
             style={{
               width: "100%",
-              maxWidth: "560px",
-              padding: "20px 24px",
+              maxWidth: "2000px",
+              padding: "80px 60px",
               borderRadius: "8px",
               border: `2px solid ${selected === c.id ? "#1976d2" : "#ccc"}`,
               background: selected === c.id ? "#e3f2fd" : "#fff",
@@ -61,7 +68,7 @@ export default function ConditionSelecter() {
               transition: "all 0.15s",
             }}
           >
-            <h5 style={{ margin: "0 0 6px", color: selected === c.id ? "#1976d2" : "#333" }}>{c.label}</h5>
+            <h2 style={{ margin: 0, fontSize: "2rem", color: selected === c.id ? "#1976d2" : "#333" }}>{c.label}</h2>
           </div>
         ))}
       </div>

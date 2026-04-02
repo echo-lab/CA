@@ -31,10 +31,17 @@ function Home() {
     <div className=''> <NavigationBar />
     </div>
 
-    <div className="go-home-button p-3">
+    <div className="go-home-button p-3" style={{ display: "flex", gap: "10px" }}>
   <Link to="/">
     <button className="btn btn-outline-secondary">Go Home</button>
   </Link>
+  <button
+    className="btn btn-outline-secondary"
+    onClick={() => {
+      const BASE_URL = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
+      window.open(`${BASE_URL}/api/log-session/download`, '_blank');
+    }}
+  >Download Session Log</button>
 </div>
     
     <div className='home'>

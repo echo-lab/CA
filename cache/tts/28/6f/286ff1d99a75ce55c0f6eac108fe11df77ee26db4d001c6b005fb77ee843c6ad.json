@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775147135076,
+  "key": "286ff1d99a75ce55c0f6eac108fe11df77ee26db4d001c6b005fb77ee843c6ad",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Can you and your grown-up pick two streamer colors and make a repeating pattern—what comes next?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 361530
+}

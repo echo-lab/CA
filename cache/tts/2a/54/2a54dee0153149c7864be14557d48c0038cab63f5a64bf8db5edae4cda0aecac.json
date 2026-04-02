@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155322120,
+  "key": "2a54dee0153149c7864be14557d48c0038cab63f5a64bf8db5edae4cda0aecac",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “Oh no!”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 75450
+}

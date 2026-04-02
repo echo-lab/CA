@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775156871240,
+  "key": "0aa00ea254c5085582b0eef9dc4772e3850c7ce4ec9550e1b371ae420af340e0",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Clara looked down. Had Zoey really forgotten her birthday?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 252090
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155347753,
+  "key": "e7d7296e3466ac1e44528b24304d7a9080f8b0a78a79cafb26f95c103e1f3a5a",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Zoey set the table.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 92730
+}

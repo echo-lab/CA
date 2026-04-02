@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155350512,
+  "key": "1e4ff99cde9da3e4491622f4610eeb62de62ca13e75d2595cbba776e119a8cd5",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: They threw open the cake box.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 129210
+}
