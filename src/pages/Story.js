@@ -51,7 +51,6 @@ function Reader() {
     isMuted,
     userUtterance,
     speakerLabels,
-    toggleMute,
     remoteAudioRef,
     deepgramConnected,
     deepgramTranscript,
@@ -98,6 +97,8 @@ function Reader() {
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
   const [questionSource, setQuestionSource] = useState(null);
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
+  const [questionGenEnabled, setQuestionGenEnabled] = useState(true);
+  const questionGenEnabledRef = useRef(true);
   const [isDismissingBubble, setIsDismissingBubble] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
   const imageDescriptionRef = useRef(null);
@@ -208,21 +209,23 @@ function Reader() {
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
 
-  const hasOffScript = offScriptLogRef?.current?.length > 0;
-  if (hasOffScript) {
-    setIsCategorizationPending(true);
-    setGeneratedQuestion(null);
-    setQuestionSource(null);
-  }
-  const nextPage = state.page + 1;
-  console.log("sendOffScriptLog called, page:", state.page);
-  sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
-    setIsCategorizationPending(false);
-    if (result?.generatedQuestion) {
-      setGeneratedQuestion(result.generatedQuestion);
-      setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
+  if (questionGenEnabledRef.current) {
+    const hasOffScript = offScriptLogRef?.current?.length > 0;
+    if (hasOffScript) {
+      setIsCategorizationPending(true);
+      setGeneratedQuestion(null);
+      setQuestionSource(null);
     }
-  } : undefined, imageDescriptionRef, userAttentionRef.current);
+    const nextPage = state.page + 1;
+    console.log("sendOffScriptLog called, page:", state.page);
+    sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
+      setIsCategorizationPending(false);
+      if (result?.generatedQuestion) {
+        setGeneratedQuestion(result.generatedQuestion);
+        setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
+      }
+    } : undefined, imageDescriptionRef, userAttentionRef.current);
+  }
 
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
 
@@ -541,15 +544,17 @@ const handleNextClick = React.useCallback(() => {
            setGeneratedQuestion(null);
            setQuestionSource(null);
          }
-         const nextPageNum = state.page + 1;
-         console.log("sendOffScriptLog called from handleNextClick, page:", state.page);
-         sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
-           setIsCategorizationPending(false);
-           if (result?.generatedQuestion) {
-             setGeneratedQuestion(result.generatedQuestion);
-             setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
-           }
-         } : undefined, imageDescriptionRef, userAttentionRef.current);
+         if (questionGenEnabledRef.current) {
+           const nextPageNum = state.page + 1;
+           console.log("sendOffScriptLog called from handleNextClick, page:", state.page);
+           sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
+             setIsCategorizationPending(false);
+             if (result?.generatedQuestion) {
+               setGeneratedQuestion(result.generatedQuestion);
+               setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
+             }
+           } : undefined, imageDescriptionRef, userAttentionRef.current);
+         }
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
            state.pagesValues[state.page].text[i].Reading=false;
          }
@@ -673,7 +678,8 @@ React.useEffect(() => {
       }
     },
     imageDescriptionRef,
-    userAttentionRef
+    userAttentionRef,
+    questionGenEnabledRef
   });
 }, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine]);
 
@@ -966,22 +972,6 @@ function stripSSMLTags(text) {
       </div>
 
       <div className="realtime-toggle-container">
-        <span className="toggle-label">AI Audio</span>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={!isMuted}
-            onChange={toggleMute}
-            disabled={!connected}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span className={`toggle-status ${!isMuted ? 'connected' : 'disconnected'}`}>
-          {!isMuted ? 'Unmuted' : 'Muted'}
-        </span>
-      </div>
-
-      <div className="realtime-toggle-container">
         <span className="toggle-label">Deepgram</span>
         <label className="toggle-switch">
           <input
@@ -993,6 +983,25 @@ function stripSSMLTags(text) {
         </label>
         <span className={`toggle-status ${deepgramConnected ? 'connected' : 'disconnected'}`}>
           {deepgramConnected ? 'Connected' : 'Disconnected'}
+        </span>
+      </div>
+
+      <div className="realtime-toggle-container">
+        <span className="toggle-label">Question Gen</span>
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            checked={questionGenEnabled}
+            onChange={() => {
+              const next = !questionGenEnabled;
+              setQuestionGenEnabled(next);
+              questionGenEnabledRef.current = next;
+            }}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+        <span className={`toggle-status ${questionGenEnabled ? 'connected' : 'disconnected'}`}>
+          {questionGenEnabled ? 'On' : 'Off'}
         </span>
       </div>
 
