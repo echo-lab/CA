@@ -211,7 +211,8 @@ export async function processUserUtterance({
   setIsPlaying,
   onCategorizationResult,
   imageDescriptionRef,
-  userAttentionRef
+  userAttentionRef,
+  questionGenEnabledRef
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
@@ -224,7 +225,7 @@ export async function processUserUtterance({
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
     // Send sandwiched off-script words before moving to new line
-    if (offScriptLogRef?.current?.length) {
+    if (offScriptLogRef?.current?.length && questionGenEnabledRef?.current) {
       console.log("sendOffScriptLog called on line change, page:", state.page, "new line index:", currentLineIndex);
       sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef, userAttentionRef.current);
     }
