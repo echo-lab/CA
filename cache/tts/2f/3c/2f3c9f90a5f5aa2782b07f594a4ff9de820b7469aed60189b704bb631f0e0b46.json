@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775186021558,
+  "key": "2f3c9f90a5f5aa2782b07f594a4ff9de820b7469aed60189b704bb631f0e0b46",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: She checked in front of the curtains.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 138810
+}

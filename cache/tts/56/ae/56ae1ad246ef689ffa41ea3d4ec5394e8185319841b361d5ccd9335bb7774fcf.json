@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775233842141,
+  "key": "56ae1ad246ef689ffa41ea3d4ec5394e8185319841b361d5ccd9335bb7774fcf",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Clara has slippers, a blanket, and a bunny — if we make the pattern slipper, blanket, bunny, slipper... what comes next?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 524730
+}

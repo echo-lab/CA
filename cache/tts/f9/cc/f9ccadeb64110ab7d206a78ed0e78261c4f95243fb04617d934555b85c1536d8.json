@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775238573811,
+  "key": "f9ccadeb64110ab7d206a78ed0e78261c4f95243fb04617d934555b85c1536d8",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: You think Clara will hide behind the armchair—if the hiding pattern is armchair, table, armchair, where should she hide next to keep the pattern?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 540090
+}

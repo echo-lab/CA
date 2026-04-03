@@ -805,14 +805,13 @@ function stripSSMLTags(text) {
     return (
            <div>
                 <div className="wrapper">
-                <div className="role-image-container">
-                  <img src={parentImage} alt="Parent" onClick={() => { playSound(); }} style={{ width: '100px', cursor: 'pointer' }} />
+                  <div className="role-image-container">
+                    <img src={parentImage} alt="Parent" onClick={() => { playSound(); }} style={{ width: '100px', cursor: 'pointer' }} />
                   </div>
-
-                  <div className="question-dialogue d-flex justify-content-between align-items-center">
-                    <div className="storyTitle m-0"></div>
-                    {state.pagesValues[state.page].question}
-                </div>
+                  <div className="question-dialogue d-flex justify-content-between align-items-center" onClick={() => { playSound(); }} style={{ cursor: 'pointer' }}>
+                      <div className="storyTitle m-0"></div>
+                      {state.pagesValues[state.page].question}
+                  </div>
                 </div>
            </div>
      );

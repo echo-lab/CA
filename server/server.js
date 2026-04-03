@@ -243,7 +243,7 @@ The two characters in every image are:
 - Zoe: the bird (any bird you see is always Zoe)
 - Clara: the chameleon (any chameleon or lizard you see is always Clara)
 Always call them by name — never say "the bird" or "the chameleon".
-Give a SHORT answer of 1-2 sentences. Be similar to a parent answering a question to their kid. ${pageText ? `\n\nThe text on this page reads:\n${pageText}` : ''}`,
+Give a SHORT answer of 1 sentence. Be similar to a parent answering a question to their kid. ${pageText ? `\n\nThe text on this page reads:\n${pageText}` : ''}`,
       },
     });
 
@@ -341,9 +341,6 @@ Categories:
 - ON_TOPIC: Related to the book's content, characters, story, illustrations, or the current page's question. Includes answering comprehension questions, describing illustrations, discussing characters, referencing earlier events, or making story-prompted personal connections.
 - OFF_TOPIC: Unrelated to the book. Includes daily life chat, attention redirections (example: "sit still", "pay attention"), comments about the physical book, or unprompted tangential stories.
 
-Classification rules:
-- Keep each rationale to ONE short sentence.
-
 TASK 2 — ONLY if there is at least one ON_TOPIC utterance, GENERATE ONE short, engaging educational question based on the user's ON_TOPIC utterance(s), the book content, and the image description (if provided). The question should teach toddlers about patterns and provoke further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, do NOT generate a question.`
                 },
                 {
@@ -378,9 +375,8 @@ Classify each utterance, then generate one follow-up question from on-topic ones
                                     properties: {
                                         line: { type: "string" },
                                         category: { type: "string", enum: ["ON_TOPIC", "OFF_TOPIC"] },
-                                        rationale: { type: "string" }
                                     },
-                                    required: ["line", "category", "rationale"],
+                                    required: ["line", "category"],
                                     additionalProperties: false
                                 }
                             },
@@ -424,6 +420,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
         const categorizationStreamPromise = openai.chat.completions.create({
             model: "gpt-5-mini",
             stream: true,
+            // Got rid of rationale for speed and simplicity, can add back if needed {"category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
             messages: [
                 {
                     role: "developer",
@@ -433,9 +430,10 @@ CLASSIFY each off-script utterance. Output one JSON object per line (NDJSON), no
 
 Categories:
 - ON_TOPIC: Related to the book content, characters, story, illustrations, or current page question.
+- PAGE_QUESTION: The user's response is directly RESTATING the current page's question.
 - OFF_TOPIC: Unrelated to the book. Daily chat, attention redirections, comments about the physical book.
 
-The off-script utterances must be classified: {"line":"<utterance>","category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
+Output exactly ONE JSON line per request: {"category":"ON_TOPIC, PAGE_QUESTION, or OFF_TOPIC"}
 Output ONLY the NDJSON lines, nothing else.`
                 },
                 {
@@ -472,7 +470,7 @@ ${formattedUtterances}
                 }
             ]
         }, { signal: questionAbortController.signal }).catch(err => {
-            if (err.name === 'AbortError' || err.name === 'APIUserAbortError' || err.code === 'ERR_CANCELED') return null;
+            if (err.name === 'AbortError' || err instanceof OpenAI.APIUserAbortError || err.code === 'ERR_CANCELED') return null;
             throw err;
         });
 
@@ -480,13 +478,16 @@ ${formattedUtterances}
         const categorizationStream = await categorizationStreamPromise;
         const items = [];
         let buffer = '';
+        let hasOnTopic = false;
 
+        // To-Do - optimize by starting to parse stream and abort question as soon as we see an ON_TOPIC, instead of waiting for whole categorization to finish
         for await (const chunk of categorizationStream) {
             const token = chunk.choices[0]?.delta?.content || '';
             buffer += token;
 
             const lines = buffer.split('\n');
             buffer = lines.pop();
+            console.log('Received line:', lines);
 
             for (const line of lines) {
                 const trimmed = line.trim();
@@ -505,14 +506,17 @@ ${formattedUtterances}
                 const item = JSON.parse(buffer.trim());
                 items.push(item);
                 res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
+                console.log('Categorization item (from flush):', item);
+                if (item.category === 'ON_TOPIC') hasOnTopic = true;
             } catch (e) {}
         }
 
         // Categorization done — decide whether to use or cancel question generation
-        const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
+        // const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
         let generatedQuestion = null;
 
         if (hasOnTopic) {
+            console.log("Generating question based on ON_TOPIC utterance(s)");
             const qResult = await questionPromise;
             generatedQuestion = qResult?.choices[0]?.message?.content?.trim() || null;
         } else {
@@ -801,10 +805,10 @@ app.get('/test-categorize', (req, res) => {
       btn.disabled = true;
       btn.textContent = 'Processing...';
       resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances...</span>';
+      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances-stream...</span>';
 
       try {
-        const res = await fetch('/api/categorize-utterances', {
+        const res = await fetch('/api/categorize-utterances-stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(getRequestBody())
@@ -819,7 +823,7 @@ app.get('/test-categorize', (req, res) => {
             html += '<div style="margin:4px 0 4px 12px;">'
               + '<span style="color:' + color + '">[' + item.category + ']</span> '
               + item.text
-              + '<span style="color:#888"> &mdash; ' + item.rationale + '</span>'
+              + '<span style="color:#888"> &mdash; ' + '</span>'
               + '</div>';
           });
         }

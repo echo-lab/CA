@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775238743743,
+  "key": "908b4bce6ed9121189565dccad6430a4b18424c61ae269623aef497f0e93bf9e",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: We looked under the blanket, in the closet, and behind the flowers—if Zoey checks those same places again, where will she look next?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 467130
+}

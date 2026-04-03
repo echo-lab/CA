@@ -270,6 +270,9 @@ export async function processUserUtterance({
   }
   variants.forEach((variant, i) => {
     const words = variant.split(/\s+/).filter(w => w.length > 0);
+    if (!utteranceQueuesRef.current[i]) {
+      utteranceQueuesRef.current[i] = [];
+    }
     utteranceQueuesRef.current[i].push(...words);
   });
 
