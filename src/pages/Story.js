@@ -10,7 +10,6 @@ import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 import parentImage from "../Pictures/Virtual.png";
 import ReactScrollableFeed from 'react-scrollable-feed';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
@@ -41,7 +40,6 @@ function Reader() {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   // How many warm requests to run in parallel
   const PRELOAD_CONCURRENCY = 1;
-  const inflightRequests = useRef(new Map());
   // Hardcoded feature flags
   const REALTIME_ENABLED = false;
   const DEEPGRAM_ENABLED = true;
@@ -108,6 +106,7 @@ function Reader() {
   const [imageTags, setImageTags] = useState([]);
   const userAttentionRef = useRef(null);
   const pagesWithoutPageQuestionRef = useRef(0);
+  const pendingPageQuestionFlag = useRef(false);
 
 
   let lastSpokenText = "";
@@ -234,8 +233,7 @@ const gotoNextPage = () => {
       if (pagesWithoutPageQuestionRef.current >= 4) {
         const pageQuestion = state.pagesValues[state.page]?.question;
         if (pageQuestion) {
-          setGeneratedQuestion(pageQuestion);
-          setQuestionSource('current-page');
+          pendingPageQuestionFlag.current = true;
           pagesWithoutPageQuestionRef.current = 0;
         }
       }
@@ -249,14 +247,14 @@ const gotoNextPage = () => {
       if (hasPageQuestion) {
         pagesWithoutPageQuestionRef.current = 0;
       } else {
+        // If LLM didn't identify a PAGE_QUESTION, increment the counter
         pagesWithoutPageQuestionRef.current += 1;
       }
 
       if (pagesWithoutPageQuestionRef.current >= 4) {
         const pageQuestion = state.pagesValues[result.sourcePage]?.question;
         if (pageQuestion) {
-          setGeneratedQuestion(pageQuestion);
-          setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
+          pendingPageQuestionFlag.current = true;
           pagesWithoutPageQuestionRef.current = 0;
           return;
         }
@@ -281,8 +279,7 @@ const gotoNextPage = () => {
       state.pagesValues[state.page].text[i].Reading=false;
     }
     setState(prevState => {
-      prevState.pagesValues[prevState.page + 1].text[0].Reading = true;
-      return { ...prevState, page: prevState.page + 1, index: 1 };
+      return { ...prevState, page: prevState.page + 1, index: 0 };
     });
   } else {
     navigate('/Home', { state: { id: 1 } });
@@ -576,8 +573,16 @@ const handleNextClick = React.useCallback(() => {
       if (state.page < state.pagesValues.length - 1) {
         //userUtterancesRef.current = []; // Clear user utterances when moving to next page
         if (isPlaying) {
-         // Move to the next page
+         // Reading finished on this page — show pending page question if any
          setIsPlaying(false);
+         if (pendingPageQuestionFlag.current) {
+           const pageQuestion = state.pagesValues[state.page]?.question;
+           if (pageQuestion) {
+             setGeneratedQuestion(pageQuestion);
+             setQuestionSource('current-page');
+           }
+           pendingPageQuestionFlag.current = false;
+         }
         } else {
          console.log("new page")
          const hasOffScript = offScriptLogRef?.current?.length > 0;
@@ -591,8 +596,7 @@ const handleNextClick = React.useCallback(() => {
            if (pagesWithoutPageQuestionRef.current >= 4) {
              const pageQuestion = state.pagesValues[state.page]?.question;
              if (pageQuestion) {
-               setGeneratedQuestion(pageQuestion);
-               setQuestionSource('current-page');
+               pendingPageQuestionFlag.current = true;
                pagesWithoutPageQuestionRef.current = 0;
              }
            }
@@ -613,8 +617,7 @@ const handleNextClick = React.useCallback(() => {
              if (pagesWithoutPageQuestionRef.current >= 4) {
                const pageQuestion = state.pagesValues[result.sourcePage]?.question;
                if (pageQuestion) {
-                 setGeneratedQuestion(pageQuestion);
-                 setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
+                 pendingPageQuestionFlag.current = true;
                  pagesWithoutPageQuestionRef.current = 0;
                  return;
                }
@@ -654,6 +657,15 @@ const handleNextClick = React.useCallback(() => {
            hasReachedEnd: state.page === state.pagesValues.length - 1 && state.pagesValues[state.page].text.length === state.index
          }));
          setIsPlaying(false);
+         // Show pending page question now that reading is done
+         if (pendingPageQuestionFlag.current) {
+           const pageQuestion = state.pagesValues[state.page]?.question;
+           if (pageQuestion) {
+             setGeneratedQuestion(pageQuestion);
+             setQuestionSource('current-page');
+           }
+           pendingPageQuestionFlag.current = false;
+         }
       }
  }
 
@@ -752,12 +764,11 @@ React.useEffect(() => {
         pagesWithoutPageQuestionRef.current += 1;
       }
 
-      // If 4+ pages without PAGE_QUESTION, force the page's built-in question
+      // If 4+ pages without PAGE_QUESTION, defer the page's built-in question until reading finishes
       if (pagesWithoutPageQuestionRef.current >= 4) {
         const pageQuestion = state.pagesValues[result.sourcePage]?.question;
         if (pageQuestion) {
-          setGeneratedQuestion(pageQuestion);
-          setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');
+          pendingPageQuestionFlag.current = true;
           pagesWithoutPageQuestionRef.current = 0;
           return;
         }
