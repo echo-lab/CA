@@ -140,7 +140,7 @@ img {
  .role-image-container img {
   display: flex;  
   align-items: center; /* Center children horizontally */
-  height: 60px;
+  height: 120px;
   width: auto;
 }
 
@@ -149,7 +149,7 @@ img {
   flex-direction: column; 
   justify-content: flex-start; /* Start from the top */
   align-items: center; /* Center horizontally */
-  margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
+  margin-right:10px; /* Adjust as needed for spacing between image column and dialogue */
   flex-shrink: 0; /* Prevent the container from shrinking */
 }
 

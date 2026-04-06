@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775336514704,
+  "key": "b50460eac7f582d2282b3bd87adb2f6f7023dbe18b2a9da387bccd4b0a5d085d",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Can you make the sleepover pattern with me — pajamas, bunny slippers, story, pajamas, bunny slippers... what comes next?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 499770
+}

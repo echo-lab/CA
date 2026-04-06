@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775369817881,
+  "key": "78ea2cf7d945abc4888574e0e97a9ffccc6ba534f142abcd9ca48b87d932fb1f",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Zoey exclaimed.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 96570
+}

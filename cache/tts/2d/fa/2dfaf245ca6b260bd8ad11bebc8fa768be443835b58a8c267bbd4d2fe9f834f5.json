@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775421860049,
+  "key": "2dfaf245ca6b260bd8ad11bebc8fa768be443835b58a8c267bbd4d2fe9f834f5",
+  "v": "1",
+  "textNorm": "You are a 5-year-old child reading a children\"s story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: “Let’s count them—one book. One, two books. One, two, three books.”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 526650
+}

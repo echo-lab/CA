@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775238424067,
+  "key": "43ba61177840c4c146858a79f939ed910f30b2e511c829bb44ed94dc72b10fe9",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: What comes next in this pattern: heart, flower, flower, heart, flower, ___?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 388410
+}

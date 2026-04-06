@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155271302,
+  "key": "9b78a44fa84a0634f00af62d9c4491541bf4ccab3b283ae10978fde7b9662dca",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “Let’s choose a cake!”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 86970
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775190747797,
+  "key": "8db2523aee86b5a420385471bc6f78b32eb1246b23038ba8d2e7c9045eb80ea0",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: One bag is yellow–blue–yellow–blue and the other is green–purple–green–purple—can you show what color comes next for each?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 607290
+}

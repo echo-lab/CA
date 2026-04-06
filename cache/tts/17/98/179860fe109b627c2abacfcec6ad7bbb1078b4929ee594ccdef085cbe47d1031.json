@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155941595,
+  "key": "179860fe109b627c2abacfcec6ad7bbb1078b4929ee594ccdef085cbe47d1031",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: You will see questions in this box while reading the book. Feel free to use them at your convenience.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 325050
+}

@@ -40,14 +40,9 @@ export const data = [
             },
             {
               Reading: false,
-              Character: "Clara",
-              Dialogue:
-                "“Shh!”",
-            },
-            {
-              Reading: false,
               Character: "Narrator",
-              Dialogue: "Clara whispered.",
+              Dialogue:
+                "“Shh! Clara whispered.”",
             },
             {
               Reading: false,

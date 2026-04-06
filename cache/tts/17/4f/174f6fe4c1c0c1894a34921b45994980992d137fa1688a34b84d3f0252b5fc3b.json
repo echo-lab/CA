@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775371123564,
+  "key": "174f6fe4c1c0c1894a34921b45994980992d137fa1688a34b84d3f0252b5fc3b",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: How do you think Clara is feeling?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 117690
+}

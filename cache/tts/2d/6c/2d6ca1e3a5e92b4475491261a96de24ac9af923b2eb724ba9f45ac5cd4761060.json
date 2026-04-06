@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155348274,
+  "key": "2d6ca1e3a5e92b4475491261a96de24ac9af923b2eb724ba9f45ac5cd4761060",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: They turned to the balloons.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 113850
+}

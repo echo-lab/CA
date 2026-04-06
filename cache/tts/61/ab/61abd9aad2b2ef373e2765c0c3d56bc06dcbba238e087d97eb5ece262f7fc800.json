@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155296660,
+  "key": "61abd9aad2b2ef373e2765c0c3d56bc06dcbba238e087d97eb5ece262f7fc800",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “Wait! There aren’t enough circle balloons.”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 165690
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155349575,
+  "key": "c0a0eb370e7f7cf35d921911027a19da6d20bc39e0248cf9c0c2bd213551d91c",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Clara and Zoey moved the balloons.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 158010
+}

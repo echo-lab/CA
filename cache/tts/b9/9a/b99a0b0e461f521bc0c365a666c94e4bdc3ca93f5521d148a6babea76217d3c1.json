@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155319387,
+  "key": "b99a0b0e461f521bc0c365a666c94e4bdc3ca93f5521d148a6babea76217d3c1",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “Star, star, circle! Star, star, circle!”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 311610
+}

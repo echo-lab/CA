@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775237614843,
+  "key": "4d3fc94fffb00b92f10390c6a1afc4e23d2f8911f57b5e95053bf4bfce798996",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: She looked behind some flowers. No Clara there either!",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 221370
+}

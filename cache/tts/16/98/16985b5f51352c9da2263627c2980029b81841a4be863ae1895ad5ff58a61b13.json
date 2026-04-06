@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775147190863,
+  "key": "16985b5f51352c9da2263627c2980029b81841a4be863ae1895ad5ff58a61b13",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: If Zoey lines her streamers red, blue, red, blue, what color should she put next?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 403770
+}

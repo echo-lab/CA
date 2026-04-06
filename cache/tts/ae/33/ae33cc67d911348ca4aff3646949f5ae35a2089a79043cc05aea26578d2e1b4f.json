@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775156413025,
+  "key": "ae33cc67d911348ca4aff3646949f5ae35a2089a79043cc05aea26578d2e1b4f",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: What is Zoey trying to do with the streamers?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 154170
+}

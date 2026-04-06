@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775336539914,
+  "key": "44b0a0ef73c73518026aada2eded1478c0c15c82fe6717bb8f97c59d465b7e7e",
+  "v": "1",
+  "textNorm": "You are a 5-year-old child reading a children\"s story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: “Our blankets have the same pattern,”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 200250
+}

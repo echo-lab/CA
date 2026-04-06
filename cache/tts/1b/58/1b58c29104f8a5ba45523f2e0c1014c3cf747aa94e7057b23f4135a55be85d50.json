@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775152235162,
+  "key": "1b58c29104f8a5ba45523f2e0c1014c3cf747aa94e7057b23f4135a55be85d50",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “This is going to be so much fun!”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 123450
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775336541433,
+  "key": "6d2da84e1a94ce8c8fa1381a21f12c38d7698bae2a220ff75ee308fd72ce523a",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Zoey admitted.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 63930
+}

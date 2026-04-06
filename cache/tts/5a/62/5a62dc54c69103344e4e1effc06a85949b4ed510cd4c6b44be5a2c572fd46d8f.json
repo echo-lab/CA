@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775422183777,
+  "key": "5a62dc54c69103344e4e1effc06a85949b4ed510cd4c6b44be5a2c572fd46d8f",
+  "v": "1",
+  "textNorm": "You are a 5-year-old child reading a children\"s story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: “We have to be quiet in this section.”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 198330
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155271915,
+  "key": "307b05f6f71a26a9ec54237c165126653f711869eeb313c8547e701287591dd0",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “Oh… it’s your birthday?”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 110010
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775186028649,
+  "key": "e364939fd6b1905c4f356406f825bff8041f792a7395910a4a88546655c65e78",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: She peeked behind the curtains...",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 119610
+}

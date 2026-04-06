@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775237592777,
+  "key": "4b16af0dda1d186289e266af03f08074f60e5ed4a8fbc298405984a7557a1822",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: She opened the closet. No Clara.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 167610
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775146749546,
+  "key": "6feb8754f3a3b6aefecadc7dca02dbef11352c09c1020ed9b09fe3f2108d16b2",
+  "v": "1",
+  "textNorm": "You are a 5-year-old child reading a children\"s story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: “And it’s my birthday.”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 146490
+}

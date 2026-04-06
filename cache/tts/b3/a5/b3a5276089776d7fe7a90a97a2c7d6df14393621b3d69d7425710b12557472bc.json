@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155283153,
+  "key": "b3a5276089776d7fe7a90a97a2c7d6df14393621b3d69d7425710b12557472bc",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: “Beep, boop, beep, boop!”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 106170
+}

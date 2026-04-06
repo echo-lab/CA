@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775151730556,
+  "key": "76dd26642e26a0ebc5313e939481120666c70b32319457968d2201cd1ad4a68c",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: She looked around. No Clara.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 146490
+}

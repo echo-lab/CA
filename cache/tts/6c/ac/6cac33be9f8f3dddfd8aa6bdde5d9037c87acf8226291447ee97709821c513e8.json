@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775146699855,
+  "key": "6cac33be9f8f3dddfd8aa6bdde5d9037c87acf8226291447ee97709821c513e8",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Clara the chameleon found Zoey making a BIG mess.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 252090
+}

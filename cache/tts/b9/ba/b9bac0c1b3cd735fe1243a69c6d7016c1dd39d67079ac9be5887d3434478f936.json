@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775155430136,
+  "key": "b9bac0c1b3cd735fe1243a69c6d7016c1dd39d67079ac9be5887d3434478f936",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: The Pattern Pals: Levels in the Library",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 171450
+}

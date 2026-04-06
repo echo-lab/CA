@@ -110,7 +110,7 @@ function setupDeepgramProxy(server) {
             interim_results: true,
             diarize: true,
             smart_format: true,
-            keyterms: ['zoe', 'clara', 'add', 'bags', 'beamed', 'beep', 'beeps', 'big', 'boom', 'boop', 'boops', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap', 'zip', 'zop'],
+            keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5'],
         });
 
         // Handle Deepgram connection opened
@@ -243,7 +243,7 @@ The two characters in every image are:
 - Zoe: the bird (any bird you see is always Zoe)
 - Clara: the chameleon (any chameleon or lizard you see is always Clara)
 Always call them by name — never say "the bird" or "the chameleon".
-Give a SHORT answer of 1-2 sentences. Be similar to a parent answering a question to their kid. ${pageText ? `\n\nThe text on this page reads:\n${pageText}` : ''}`,
+Give a SHORT answer of 1 sentence. Be similar to a parent answering a question to their kid. ${pageText ? `\n\nThe text on this page reads:\n${pageText}` : ''}`,
       },
     });
 
@@ -341,9 +341,6 @@ Categories:
 - ON_TOPIC: Related to the book's content, characters, story, illustrations, or the current page's question. Includes answering comprehension questions, describing illustrations, discussing characters, referencing earlier events, or making story-prompted personal connections.
 - OFF_TOPIC: Unrelated to the book. Includes daily life chat, attention redirections (example: "sit still", "pay attention"), comments about the physical book, or unprompted tangential stories.
 
-Classification rules:
-- Keep each rationale to ONE short sentence.
-
 TASK 2 — ONLY if there is at least one ON_TOPIC utterance, GENERATE ONE short, engaging educational question based on the user's ON_TOPIC utterance(s), the book content, and the image description (if provided). The question should teach toddlers about patterns and provoke further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, do NOT generate a question.`
                 },
                 {
@@ -378,9 +375,8 @@ Classify each utterance, then generate one follow-up question from on-topic ones
                                     properties: {
                                         line: { type: "string" },
                                         category: { type: "string", enum: ["ON_TOPIC", "OFF_TOPIC"] },
-                                        rationale: { type: "string" }
                                     },
-                                    required: ["line", "category", "rationale"],
+                                    required: ["line", "category"],
                                     additionalProperties: false
                                 }
                             },
@@ -424,6 +420,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
         const categorizationStreamPromise = openai.chat.completions.create({
             model: "gpt-5-mini",
             stream: true,
+            // Got rid of rationale for speed and simplicity, can add back if needed {"category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
             messages: [
                 {
                     role: "developer",
@@ -433,9 +430,10 @@ CLASSIFY each off-script utterance. Output one JSON object per line (NDJSON), no
 
 Categories:
 - ON_TOPIC: Related to the book content, characters, story, illustrations, or current page question.
+- PAGE_QUESTION: The user's response is directly RESTATING the current page's question.
 - OFF_TOPIC: Unrelated to the book. Daily chat, attention redirections, comments about the physical book.
 
-The off-script utterances must be classified: {"line":"<utterance>","category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
+Output exactly ONE JSON line per request: {"category":"ON_TOPIC, PAGE_QUESTION, or OFF_TOPIC"}
 Output ONLY the NDJSON lines, nothing else.`
                 },
                 {
@@ -457,7 +455,17 @@ ${formattedUtterances}
             messages: [
                 {
                     role: "developer",
-                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. Base it on the utterances, book content, and image description if provided. Reply with only the question, no extra text.`
+                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging follow-up question for a toddler based on what they just said, the book content, and the image (if provided).
+Use one of these strategies (vary across calls):
+- Open-ended: Ask the child to describe or explain ("What's happening here?")
+- Wh-question: Who, what, where, why about the story or illustration
+- Recall: Ask about something earlier in the story
+- Completion: Leave a blank for the child to fill in (for repetitive/rhyming text)
+Guidelines:
+- Build on the provided contexts utterance, user attention, and page information— respond to what THEY noticed
+- Keep it short and natural (how a parent would talk)
+- For ages 3-6: prefer concrete, simple language
+- Reply with only the question, no extra text.`
                 },
                 {
                     role: "user",
@@ -472,7 +480,7 @@ ${formattedUtterances}
                 }
             ]
         }, { signal: questionAbortController.signal }).catch(err => {
-            if (err.name === 'AbortError' || err.name === 'APIUserAbortError' || err.code === 'ERR_CANCELED') return null;
+            if (err.name === 'AbortError' || err instanceof OpenAI.APIUserAbortError || err.code === 'ERR_CANCELED') return null;
             throw err;
         });
 
@@ -480,7 +488,9 @@ ${formattedUtterances}
         const categorizationStream = await categorizationStreamPromise;
         const items = [];
         let buffer = '';
+        let hasOnTopic = false;
 
+        // To-Do - optimize by starting to parse stream and abort question as soon as we see an ON_TOPIC, instead of waiting for whole categorization to finish
         for await (const chunk of categorizationStream) {
             const token = chunk.choices[0]?.delta?.content || '';
             buffer += token;
@@ -505,14 +515,17 @@ ${formattedUtterances}
                 const item = JSON.parse(buffer.trim());
                 items.push(item);
                 res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
+                console.log('Categorization item (from flush):', item);
+                if (item.category === 'ON_TOPIC') hasOnTopic = true;
             } catch (e) {}
         }
 
         // Categorization done — decide whether to use or cancel question generation
-        const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
+        // const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
         let generatedQuestion = null;
 
         if (hasOnTopic) {
+            console.log("Generating question based on ON_TOPIC utterance(s)");
             const qResult = await questionPromise;
             generatedQuestion = qResult?.choices[0]?.message?.content?.trim() || null;
         } else {
@@ -801,10 +814,10 @@ app.get('/test-categorize', (req, res) => {
       btn.disabled = true;
       btn.textContent = 'Processing...';
       resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances...</span>';
+      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances-stream...</span>';
 
       try {
-        const res = await fetch('/api/categorize-utterances', {
+        const res = await fetch('/api/categorize-utterances-stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(getRequestBody())
@@ -819,7 +832,7 @@ app.get('/test-categorize', (req, res) => {
             html += '<div style="margin:4px 0 4px 12px;">'
               + '<span style="color:' + color + '">[' + item.category + ']</span> '
               + item.text
-              + '<span style="color:#888"> &mdash; ' + item.rationale + '</span>'
+              + '<span style="color:#888"> &mdash; ' + '</span>'
               + '</div>';
           });
         }
@@ -991,6 +1004,37 @@ app.post('/synthesize', async (req, res) => {
         console.error('Error in Google Text-to-Speech:', error);
         res.status(500).json({ message: error.toString() });
     }
+});
+
+// Log session info (name, book, condition) to CSV
+app.post('/api/log-session', (req, res) => {
+    const { name, book, condition } = req.body;
+    if (!name || !book || !condition) {
+        return res.status(400).json({ message: 'Missing name, book, or condition' });
+    }
+    const csvPath = path.join(__dirname, 'session-log.csv');
+    const timestamp = new Date().toISOString();
+    const header = 'timestamp,name,book,condition\n';
+    const row = `${timestamp},${name},${book},${condition}\n`;
+
+    if (!fs.existsSync(csvPath)) {
+        fs.writeFileSync(csvPath, header + row);
+    } else {
+        fs.appendFileSync(csvPath, row);
+    }
+    console.log(`[session-log] ${name}, book ${book}, ${condition}`);
+    res.json({ success: true });
+});
+
+// Download session log CSV
+app.get('/api/log-session/download', (req, res) => {
+    const csvPath = path.join(__dirname, 'session-log.csv');
+    if (!fs.existsSync(csvPath)) {
+        return res.status(404).json({ message: 'No session log found' });
+    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=session-log.csv');
+    res.sendFile(csvPath);
 });
 
 if(process.env.DEVMODE){

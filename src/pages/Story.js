@@ -8,7 +8,7 @@ import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import parentImage from "../Pictures/virtual.webp"
+import parentImage from "../Pictures/Virtual.png";
 import ReactScrollableFeed from 'react-scrollable-feed';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
@@ -42,9 +42,13 @@ function Reader() {
   // How many warm requests to run in parallel
   const PRELOAD_CONCURRENCY = 1;
   const inflightRequests = useRef(new Map());
+  // Hardcoded feature flags
+  const REALTIME_ENABLED = false;
+  const DEEPGRAM_ENABLED = true;
+  const QUESTION_GEN_ENABLED = true;
 
   const {
-    connected,
+    // connected,
     connect,
     disconnect,
     sendContentMessage,
@@ -97,13 +101,13 @@ function Reader() {
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
   const [questionSource, setQuestionSource] = useState(null);
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
-  const [questionGenEnabled, setQuestionGenEnabled] = useState(true);
-  const questionGenEnabledRef = useRef(true);
+  const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const [isDismissingBubble, setIsDismissingBubble] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
   const userAttentionRef = useRef(null);
+  const pagesWithoutPageQuestionRef = useRef(0);
 
 
   let lastSpokenText = "";
@@ -131,6 +135,15 @@ function Reader() {
       .trim()
       .replace(/\s+/g, " ");
   }
+
+  useEffect(() => {
+    if (DEEPGRAM_ENABLED) connectToDeepgram();
+    if (REALTIME_ENABLED) connect();
+    return () => {
+      disconnectDeepgram();
+      disconnect();
+    };
+  }, []);
 
   // Pre-fetch image analysis on page change so it's ready for off-script categorization
   useEffect(() => {
@@ -215,11 +228,40 @@ const gotoNextPage = () => {
       setIsCategorizationPending(true);
       setGeneratedQuestion(null);
       setQuestionSource(null);
+    } else {
+      // No off-script utterances on this page — counts as no PAGE_QUESTION
+      pagesWithoutPageQuestionRef.current += 1;
+      if (pagesWithoutPageQuestionRef.current >= 4) {
+        const pageQuestion = state.pagesValues[state.page]?.question;
+        if (pageQuestion) {
+          setGeneratedQuestion(pageQuestion);
+          setQuestionSource('current-page');
+          pagesWithoutPageQuestionRef.current = 0;
+        }
+      }
     }
     const nextPage = state.page + 1;
     console.log("sendOffScriptLog called, page:", state.page);
     sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
       setIsCategorizationPending(false);
+
+      const hasPageQuestion = result?.items?.some(i => i.category === 'PAGE_QUESTION');
+      if (hasPageQuestion) {
+        pagesWithoutPageQuestionRef.current = 0;
+      } else {
+        pagesWithoutPageQuestionRef.current += 1;
+      }
+
+      if (pagesWithoutPageQuestionRef.current >= 4) {
+        const pageQuestion = state.pagesValues[result.sourcePage]?.question;
+        if (pageQuestion) {
+          setGeneratedQuestion(pageQuestion);
+          setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
+          pagesWithoutPageQuestionRef.current = 0;
+          return;
+        }
+      }
+
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
         setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
@@ -543,12 +585,41 @@ const handleNextClick = React.useCallback(() => {
            setIsCategorizationPending(true);
            setGeneratedQuestion(null);
            setQuestionSource(null);
+         } else if (questionGenEnabledRef.current) {
+           // No off-script utterances — counts as no PAGE_QUESTION
+           pagesWithoutPageQuestionRef.current += 1;
+           if (pagesWithoutPageQuestionRef.current >= 4) {
+             const pageQuestion = state.pagesValues[state.page]?.question;
+             if (pageQuestion) {
+               setGeneratedQuestion(pageQuestion);
+               setQuestionSource('current-page');
+               pagesWithoutPageQuestionRef.current = 0;
+             }
+           }
          }
          if (questionGenEnabledRef.current) {
            const nextPageNum = state.page + 1;
            console.log("sendOffScriptLog called from handleNextClick, page:", state.page);
            sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
              setIsCategorizationPending(false);
+
+             const hasPageQuestion = result?.items?.some(i => i.category === 'PAGE_QUESTION');
+             if (hasPageQuestion) {
+               pagesWithoutPageQuestionRef.current = 0;
+             } else {
+               pagesWithoutPageQuestionRef.current += 1;
+             }
+
+             if (pagesWithoutPageQuestionRef.current >= 4) {
+               const pageQuestion = state.pagesValues[result.sourcePage]?.question;
+               if (pageQuestion) {
+                 setGeneratedQuestion(pageQuestion);
+                 setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
+                 pagesWithoutPageQuestionRef.current = 0;
+                 return;
+               }
+             }
+
              if (result?.generatedQuestion) {
                setGeneratedQuestion(result.generatedQuestion);
                setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
@@ -672,6 +743,27 @@ React.useEffect(() => {
     setIsPlaying,
     onCategorizationResult: (result) => {
       setIsCategorizationPending(false);
+
+      // Track consecutive pages without PAGE_QUESTION
+      const hasPageQuestion = result?.items?.some(i => i.category === 'PAGE_QUESTION');
+      if (hasPageQuestion) {
+        pagesWithoutPageQuestionRef.current = 0;
+      } else {
+        pagesWithoutPageQuestionRef.current += 1;
+      }
+
+      // If 4+ pages without PAGE_QUESTION, force the page's built-in question
+      if (pagesWithoutPageQuestionRef.current >= 4) {
+        const pageQuestion = state.pagesValues[result.sourcePage]?.question;
+        if (pageQuestion) {
+          setGeneratedQuestion(pageQuestion);
+          setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');
+          pagesWithoutPageQuestionRef.current = 0;
+          return;
+        }
+      }
+
+      // Otherwise use the AI-generated question as usual
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
         setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');
@@ -793,25 +885,14 @@ function stripSSMLTags(text) {
     return (
            <div>
                 <div className="wrapper">
-                <div className="role-image-container">
-                  <img src={parentImage} alt="Parent" />
-                  <button onClick={() => { playSound(); }} className="play-sound-button">
-                  <PlayArrowIcon />
-                  </button>
+                  <div className="role-image-container">
+                    <img src={parentImage} alt="Parent" onClick={() => { playSound(); }} style={{ width: '100px', cursor: 'pointer' }} />
                   </div>
-
-                  <div className="question-dialogue d-flex justify-content-between align-items-center">
-                    <div className="storyTitle m-0"></div>
-                    {state.pagesValues[state.page].question}
-                </div>
-
-                </div>
-
-                {isCategorizationPending && (
-                  <div className="wrapper" style={{ marginTop: '8px', opacity: 0.6 }}>
-                    <div className="question-dialogue">Thinking of a follow-up question...</div>
+                  <div className="question-dialogue d-flex justify-content-between align-items-center" onClick={() => { playSound(); }} style={{ cursor: 'pointer' }}>
+                      <div className="storyTitle m-0"></div>
+                      {state.pagesValues[state.page].question}
                   </div>
-                )}
+                </div>
            </div>
      );
   };
@@ -828,7 +909,8 @@ function stripSSMLTags(text) {
     const isChildTurn = currentRoleNav?.role === "Child" && currentLine?.Reading;
 
     // Disable button if it's child's turn and they haven't played yet
-    const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
+    const shouldDisableButton = isButtonDisabled || isAudioPlaying;
+    // const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
 
     let buttonText;
     let buttonClass = "";
@@ -875,13 +957,13 @@ function stripSSMLTags(text) {
     const currentRoleCheck = currentLine ? state.CharacterRoles.find(
       (option) => option.Character === currentLine.Character
     ) : null;
-    const isChildTurn = currentRoleCheck?.role === "Child" && currentLine?.Reading;
+    // const isChildTurn = currentRoleCheck?.role === "Child" && currentLine?.Reading;
 
-    // If it's child's turn and they haven't played, don't allow advancement
-    if (isChildTurn && !childHasPlayed) {
-      console.log("Child must play their line first!");
-      return;
-    }
+    // // If it's child's turn and they haven't played, don't allow advancement
+    // if (isChildTurn && !childHasPlayed) {
+    //   console.log("Child must play their line first!");
+    //   return;
+    // }
 
     if (state.hasReachedEnd) {
       navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
@@ -956,54 +1038,6 @@ function stripSSMLTags(text) {
       </div>
 
     <div className="navigation-buttons-container">
-      <div className="realtime-toggle-container">
-        <span className="toggle-label">Realtime</span>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={connected}
-            onChange={() => connected ? disconnect() : connect()}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span className={`toggle-status ${connected ? 'connected' : 'disconnected'}`}>
-          {connected ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
-
-      <div className="realtime-toggle-container">
-        <span className="toggle-label">Deepgram</span>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={deepgramConnected}
-            onChange={() => deepgramConnected ? (disconnectDeepgram(), disconnect()) : (connectToDeepgram(), connect())}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span className={`toggle-status ${deepgramConnected ? 'connected' : 'disconnected'}`}>
-          {deepgramConnected ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
-
-      <div className="realtime-toggle-container">
-        <span className="toggle-label">Question Gen</span>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={questionGenEnabled}
-            onChange={() => {
-              const next = !questionGenEnabled;
-              setQuestionGenEnabled(next);
-              questionGenEnabledRef.current = next;
-            }}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span className={`toggle-status ${questionGenEnabled ? 'connected' : 'disconnected'}`}>
-          {questionGenEnabled ? 'On' : 'Off'}
-        </span>
-      </div>
 
       <button
         onClick={openDebugMonitor}
