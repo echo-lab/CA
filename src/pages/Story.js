@@ -107,6 +107,7 @@ function Reader() {
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
   const userAttentionRef = useRef(null);
+  const pagesWithoutPageQuestionRef = useRef(0);
 
 
   let lastSpokenText = "";
@@ -227,11 +228,40 @@ const gotoNextPage = () => {
       setIsCategorizationPending(true);
       setGeneratedQuestion(null);
       setQuestionSource(null);
+    } else {
+      // No off-script utterances on this page — counts as no PAGE_QUESTION
+      pagesWithoutPageQuestionRef.current += 1;
+      if (pagesWithoutPageQuestionRef.current >= 4) {
+        const pageQuestion = state.pagesValues[state.page]?.question;
+        if (pageQuestion) {
+          setGeneratedQuestion(pageQuestion);
+          setQuestionSource('current-page');
+          pagesWithoutPageQuestionRef.current = 0;
+        }
+      }
     }
     const nextPage = state.page + 1;
     console.log("sendOffScriptLog called, page:", state.page);
     sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
       setIsCategorizationPending(false);
+
+      const hasPageQuestion = result?.items?.some(i => i.category === 'PAGE_QUESTION');
+      if (hasPageQuestion) {
+        pagesWithoutPageQuestionRef.current = 0;
+      } else {
+        pagesWithoutPageQuestionRef.current += 1;
+      }
+
+      if (pagesWithoutPageQuestionRef.current >= 4) {
+        const pageQuestion = state.pagesValues[result.sourcePage]?.question;
+        if (pageQuestion) {
+          setGeneratedQuestion(pageQuestion);
+          setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
+          pagesWithoutPageQuestionRef.current = 0;
+          return;
+        }
+      }
+
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
         setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
@@ -555,12 +585,41 @@ const handleNextClick = React.useCallback(() => {
            setIsCategorizationPending(true);
            setGeneratedQuestion(null);
            setQuestionSource(null);
+         } else if (questionGenEnabledRef.current) {
+           // No off-script utterances — counts as no PAGE_QUESTION
+           pagesWithoutPageQuestionRef.current += 1;
+           if (pagesWithoutPageQuestionRef.current >= 4) {
+             const pageQuestion = state.pagesValues[state.page]?.question;
+             if (pageQuestion) {
+               setGeneratedQuestion(pageQuestion);
+               setQuestionSource('current-page');
+               pagesWithoutPageQuestionRef.current = 0;
+             }
+           }
          }
          if (questionGenEnabledRef.current) {
            const nextPageNum = state.page + 1;
            console.log("sendOffScriptLog called from handleNextClick, page:", state.page);
            sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
              setIsCategorizationPending(false);
+
+             const hasPageQuestion = result?.items?.some(i => i.category === 'PAGE_QUESTION');
+             if (hasPageQuestion) {
+               pagesWithoutPageQuestionRef.current = 0;
+             } else {
+               pagesWithoutPageQuestionRef.current += 1;
+             }
+
+             if (pagesWithoutPageQuestionRef.current >= 4) {
+               const pageQuestion = state.pagesValues[result.sourcePage]?.question;
+               if (pageQuestion) {
+                 setGeneratedQuestion(pageQuestion);
+                 setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
+                 pagesWithoutPageQuestionRef.current = 0;
+                 return;
+               }
+             }
+
              if (result?.generatedQuestion) {
                setGeneratedQuestion(result.generatedQuestion);
                setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
@@ -684,6 +743,27 @@ React.useEffect(() => {
     setIsPlaying,
     onCategorizationResult: (result) => {
       setIsCategorizationPending(false);
+
+      // Track consecutive pages without PAGE_QUESTION
+      const hasPageQuestion = result?.items?.some(i => i.category === 'PAGE_QUESTION');
+      if (hasPageQuestion) {
+        pagesWithoutPageQuestionRef.current = 0;
+      } else {
+        pagesWithoutPageQuestionRef.current += 1;
+      }
+
+      // If 4+ pages without PAGE_QUESTION, force the page's built-in question
+      if (pagesWithoutPageQuestionRef.current >= 4) {
+        const pageQuestion = state.pagesValues[result.sourcePage]?.question;
+        if (pageQuestion) {
+          setGeneratedQuestion(pageQuestion);
+          setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');
+          pagesWithoutPageQuestionRef.current = 0;
+          return;
+        }
+      }
+
+      // Otherwise use the AI-generated question as usual
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
         setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');

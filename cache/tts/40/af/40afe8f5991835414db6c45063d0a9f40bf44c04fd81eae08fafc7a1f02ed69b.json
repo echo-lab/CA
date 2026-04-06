@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775336545671,
+  "key": "40afe8f5991835414db6c45063d0a9f40bf44c04fd81eae08fafc7a1f02ed69b",
+  "v": "1",
+  "textNorm": "You are a 5-year-old child reading a children\"s story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: “Mine goes purple, pink, green, purple, pink, green.”",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "laomedeia",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Child",
+  "bytes": 388410
+}

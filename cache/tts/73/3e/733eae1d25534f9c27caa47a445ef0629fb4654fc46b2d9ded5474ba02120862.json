@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775336609667,
+  "key": "733eae1d25534f9c27caa47a445ef0629fb4654fc46b2d9ded5474ba02120862",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Zoey\"s blanket goes blue, yellow, red, blue, yellow, red — what color comes next?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 465210
+}

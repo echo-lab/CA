@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775364052268,
+  "key": "dd0841329b122dde2c00de4ba30cc9236e1dd50521fb3ea231d5291b95056277",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Where would you put the orange and blue stripes on the cake?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 186810
+}

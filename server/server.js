@@ -110,7 +110,7 @@ function setupDeepgramProxy(server) {
             interim_results: true,
             diarize: true,
             smart_format: true,
-            keyterms: ['zoe', 'clara', 'add', 'bags', 'beamed', 'beep', 'beeps', 'big', 'boom', 'boop', 'boops', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap', 'zip', 'zop'],
+            keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5'],
         });
 
         // Handle Deepgram connection opened
@@ -455,7 +455,17 @@ ${formattedUtterances}
             messages: [
                 {
                     role: "developer",
-                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. Base it on the utterances, book content, and image description if provided. Reply with only the question, no extra text.`
+                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging follow-up question for a toddler based on what they just said, the book content, and the image (if provided).
+Use one of these strategies (vary across calls):
+- Open-ended: Ask the child to describe or explain ("What's happening here?")
+- Wh-question: Who, what, where, why about the story or illustration
+- Recall: Ask about something earlier in the story
+- Completion: Leave a blank for the child to fill in (for repetitive/rhyming text)
+Guidelines:
+- Build on the provided contexts utterance, user attention, and page information— respond to what THEY noticed
+- Keep it short and natural (how a parent would talk)
+- For ages 3-6: prefer concrete, simple language
+- Reply with only the question, no extra text.`
                 },
                 {
                     role: "user",
@@ -487,7 +497,6 @@ ${formattedUtterances}
 
             const lines = buffer.split('\n');
             buffer = lines.pop();
-            console.log('Received line:', lines);
 
             for (const line of lines) {
                 const trimmed = line.trim();

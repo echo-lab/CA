@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775336602029,
+  "key": "2956a001c9f30bb36175e519a4ca900af2b4eff9227ebdb29b4d95bfc8541c9e",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Zoey smiled.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 73530
+}

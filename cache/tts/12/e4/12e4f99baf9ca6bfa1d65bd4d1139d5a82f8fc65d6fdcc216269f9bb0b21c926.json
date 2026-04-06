@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775364089138,
+  "key": "12e4f99baf9ca6bfa1d65bd4d1139d5a82f8fc65d6fdcc216269f9bb0b21c926",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: What would you say to Clara to make her feel better?",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 156090
+}

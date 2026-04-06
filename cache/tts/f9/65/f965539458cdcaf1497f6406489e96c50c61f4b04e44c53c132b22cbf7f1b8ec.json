@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775336625081,
+  "key": "f965539458cdcaf1497f6406489e96c50c61f4b04e44c53c132b22cbf7f1b8ec",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: The End.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 62010
+}

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775421830489,
+  "key": "e229fa3ff0378b72b928941d122a4b049304f2dfa64ea66bed030e51bd668b12",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: squawked Zoey. It was her first library visit.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 204090
+}

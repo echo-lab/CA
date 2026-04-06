@@ -640,15 +640,9 @@ export const data = [
             },
             {
               Reading: false,
-              Character: "Zoe",
-              Dialogue:
-                "“Mmm…”",
-            },
-            {
-              Reading: false,
               Character: "Narrator",
               Dialogue:
-                "said Zoe.",
+                "“Mmm…” said Zoe.",
             },
             {
               Reading: false,

@@ -1,0 +1,14 @@
+{
+  "createdAt": 1775421836896,
+  "key": "6fec92eb90b92d0d84094dcb4444b5ec869886d0f8ede5ee3e0b385a64e45ed9",
+  "v": "1",
+  "textNorm": "Say the following in a clear, natural, conversational way suitable for narrating a children\"s story: Clara whispered.",
+  "model": "gemini-2.5-flash-tts",
+  "voice": "puck",
+  "emotion": "neutral",
+  "fmt": "wav",
+  "sr": "24000",
+  "rate": "",
+  "role": "Yellow Yancey",
+  "bytes": 88890
+}
