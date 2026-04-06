@@ -24,7 +24,6 @@ function App() {
             <Route path='/Home' element={<Home />}/>
             <Route path='/Story' element={<Story />}/>
             <Route path='/Character' element={<CharacterSelecter />}/>
-            <Route path='/Condition' element={<ConditionSelecter />}/>
           </Routes>
         </Router>
       </AudioStreamControlProvider>

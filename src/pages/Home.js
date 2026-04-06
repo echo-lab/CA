@@ -7,8 +7,7 @@ import NavigationBar from '../components/NavigationBar';
 
 function Home() {
   const location = useLocation();
-    const { userName } = location.state || {}; // Safely access userName, defaulting to an empty object if state is undefined
-    
+  const { id, name } = location.state || {};
 
   const renderCard = (card, index) =>{
     return (
@@ -18,7 +17,7 @@ function Home() {
             <img className="card-img-top h-50" src={card.img} alt="Card" />
             <div className="card-body">
               <h5 className="card-title">{card.title}</h5>
-              <Link to="/Condition" state={{id: card.id, name:userName}}><button className="btn btn-primary">Start Reading</button></Link>
+              <Link to="/Character" state={{ id, name, condition: 'C1' }}><button className="btn btn-primary">Start Reading</button></Link>
             </div>
           </div>
           </div>
