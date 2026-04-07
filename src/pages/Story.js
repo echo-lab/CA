@@ -43,7 +43,7 @@ function Reader() {
   // Hardcoded feature flags
   const REALTIME_ENABLED = false;
   const DEEPGRAM_ENABLED = true;
-  const QUESTION_GEN_ENABLED = true;
+  const QUESTION_GEN_ENABLED = false;
 
   const {
     // connected,
@@ -218,6 +218,18 @@ function Reader() {
     return () => { stopped = true; };
   }, [state.page, state.pagesValues, state.CharacterRoles]);
 
+const tryFlagPendingPageQuestion = (pageIndex) => {
+    if (pagesWithoutPageQuestionRef.current >= 4) {
+      const pageQuestion = state.pagesValues[pageIndex]?.question;
+      if (pageQuestion) {
+        pendingPageQuestionFlag.current = true;
+        pagesWithoutPageQuestionRef.current = 0;
+        return true;
+      }
+    }
+    return false;
+  };
+
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
 
@@ -230,13 +242,7 @@ const gotoNextPage = () => {
     } else {
       // No off-script utterances on this page — counts as no PAGE_QUESTION
       pagesWithoutPageQuestionRef.current += 1;
-      if (pagesWithoutPageQuestionRef.current >= 4) {
-        const pageQuestion = state.pagesValues[state.page]?.question;
-        if (pageQuestion) {
-          pendingPageQuestionFlag.current = true;
-          pagesWithoutPageQuestionRef.current = 0;
-        }
-      }
+      tryFlagPendingPageQuestion(state.page);
     }
     const nextPage = state.page + 1;
     console.log("sendOffScriptLog called, page:", state.page);
@@ -251,13 +257,8 @@ const gotoNextPage = () => {
         pagesWithoutPageQuestionRef.current += 1;
       }
 
-      if (pagesWithoutPageQuestionRef.current >= 4) {
-        const pageQuestion = state.pagesValues[result.sourcePage]?.question;
-        if (pageQuestion) {
-          pendingPageQuestionFlag.current = true;
-          pagesWithoutPageQuestionRef.current = 0;
-          return;
-        }
+      if (tryFlagPendingPageQuestion(result.sourcePage)) {
+        return;
       }
 
       if (result?.generatedQuestion) {
@@ -614,13 +615,8 @@ const handleNextClick = React.useCallback(() => {
                pagesWithoutPageQuestionRef.current += 1;
              }
 
-             if (pagesWithoutPageQuestionRef.current >= 4) {
-               const pageQuestion = state.pagesValues[result.sourcePage]?.question;
-               if (pageQuestion) {
-                 pendingPageQuestionFlag.current = true;
-                 pagesWithoutPageQuestionRef.current = 0;
-                 return;
-               }
+             if (tryFlagPendingPageQuestion(result.sourcePage)) {
+               return;
              }
 
              if (result?.generatedQuestion) {
@@ -765,13 +761,8 @@ React.useEffect(() => {
       }
 
       // If 4+ pages without PAGE_QUESTION, defer the page's built-in question until reading finishes
-      if (pagesWithoutPageQuestionRef.current >= 4) {
-        const pageQuestion = state.pagesValues[result.sourcePage]?.question;
-        if (pageQuestion) {
-          pendingPageQuestionFlag.current = true;
-          pagesWithoutPageQuestionRef.current = 0;
-          return;
-        }
+      if (tryFlagPendingPageQuestion(result.sourcePage)) {
+        return;
       }
 
       // Otherwise use the AI-generated question as usual
