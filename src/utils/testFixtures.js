@@ -10,8 +10,6 @@ export function createMockRefs(overrides = {}) {
     accumulatedUtterancesRef: { current: [] },
     utteranceQueuesRef: { current: [] },
     currentLineTrackingRef: { current: { page: 0, index: 0 } },
-    silenceTimeoutRef: { current: null },
-    pendingUtteranceRef: { current: '' },
     offScriptLogRef: { current: [] },
     ...overrides,
   };

@@ -701,8 +701,6 @@ const userUtterancesRef = useRef([]);
 const accumulatedUtterancesRef = useRef([]); // Accumulate utterances for current line
 const utteranceQueuesRef = useRef([]); // Parallel queues for each normalizeText variant
 const currentLineTrackingRef = useRef({ page: -1, index: -1 }); // Track which line we're accumulating for
-const silenceTimeoutRef = useRef(null); // Track timeout for silence detection
-const pendingUtteranceRef = useRef(""); // Store utterance waiting to be sent after silence
 const offScriptLogRef = useRef([]); // Log of off-script words by line, sent to LLM on page change
 const currentPageRef = useRef(state.page); // Always holds latest page for async callbacks
 React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
@@ -742,8 +740,6 @@ React.useEffect(() => {
     accumulatedUtterancesRef,
     utteranceQueuesRef,
     currentLineTrackingRef,
-    silenceTimeoutRef,
-    pendingUtteranceRef,
     offScriptLogRef,
     state,
     condition,

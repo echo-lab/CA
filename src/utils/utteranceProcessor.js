@@ -1,12 +1,23 @@
 import { categorizeOffScriptUtterances } from "./InnerThoughtProcess";
 import { categorizeOffScriptUtterancesStreaming } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
-import { normalizeText, splitIntoSentences, isMultiSentenceLong } from "./textNormalizer";
+import { normalizeText } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
 
 // Toggle: set to true to use streaming implementation
 const USE_STREAMING = true;
 const categorize = USE_STREAMING ? categorizeOffScriptUtterancesStreaming : categorizeOffScriptUtterances;
+
+// Parallel-queue layout: utteranceQueuesRef.current is always [slot0, slot1]
+//   slot 0 = expanded-contractions form
+//   slot 1 = original (apostrophes/punctuation stripped) form
+// Both slots stay in lockstep — same length, same logical timeline of words.
+// When normalizeText returns only 1 variant (no contractions), both slots get the same words.
+const VARIANT_SLOT_COUNT = 2;
+
+function emptyQueues() {
+  return Array.from({ length: VARIANT_SLOT_COUNT }, () => []);
+}
 
 function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
@@ -28,7 +39,7 @@ function calculateConfidence(spokenWords, expectedText) {
   return calculateConfidenceDetail(spokenWords, expectedText).confidence;
 }
 
-function getSentenceSearchVariants(expectedText) {
+function divideExpectedText(expectedText) {
   const words = expectedText[0].split(/\s+/).filter(w => w.length > 0);
   const totalWords = words.length;
   const percentages = [1.0, 0.75, 0.50, 0.25];
@@ -37,12 +48,12 @@ function getSentenceSearchVariants(expectedText) {
   for (const pct of percentages) {
     const keepCount = Math.ceil(totalWords * pct);
     if (keepCount < 3 && pct < 1.0) break;
-    if (totalWords <= 8 && pct < 1.0) break;
+    if (totalWords <= 4 && pct < 1.0) break;
 
-    const startIdx = totalWords - keepCount;
+    const startInd = totalWords - keepCount;
     const slicedText = expectedText.map(variant => {
       const varWords = variant.split(/\s+/).filter(w => w.length > 0);
-      return varWords.slice(startIdx).join(' ');
+      return varWords.slice(startInd).join(' ');
     });
 
     variants.push({
@@ -60,14 +71,9 @@ function emitQueueState(utteranceQueuesRef) {
   debugLog({ type: 'queue_state', wordCount: q.length, words: q.join(' ') });
 }
 
-function clearMatchState({ accumulatedUtterancesRef, utteranceQueuesRef, silenceTimeoutRef, pendingUtteranceRef }, wordsToConsume) {
+function clearMatchState({ accumulatedUtterancesRef, utteranceQueuesRef }, wordsToConsume) {
   accumulatedUtterancesRef.current = [];
   utteranceQueuesRef.current = utteranceQueuesRef.current.map(q => q.slice(wordsToConsume));
-  if (silenceTimeoutRef.current) {
-    clearTimeout(silenceTimeoutRef.current);
-    silenceTimeoutRef.current = null;
-  }
-  pendingUtteranceRef.current = "";
   emitQueueState(utteranceQueuesRef);
 }
 
@@ -103,7 +109,6 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
     // const imageDescription = null; // Paused image analysis to avoid quota
-    console.log('Sending off-script log for categorization:', { formattedLog, currentPageQuestion, bookText, imageDescription });
     const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention);
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -124,7 +129,11 @@ function jumpToFutureLine(jumpToLine, checkIndex, totalLines) {
   setTimeout(() => jumpToLine(Math.min(checkIndex + 2, totalLines)), 100);
 }
 
+// Forward search uses slot 0 (expanded form) only — best-effort lookahead, simpler is fine.
 function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef }) {
+  const allSpokenWords = utteranceQueuesRef.current[0] || [];
+  const allSpokenWordCount = allSpokenWords.length;
+
   for (let offset = 1; offset <= 3; offset++) {
     const checkIndex = currentLineIndex + offset;
     if (checkIndex >= totalLines) break;
@@ -132,59 +141,40 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
     const checkLine = state.pagesValues[state.page]?.text?.[checkIndex];
     if (!checkLine?.Dialogue) continue;
 
-    const strippedDialogue = stripSSMLTags(checkLine.Dialogue);
+    const checkText = normalizeText(stripSSMLTags(checkLine.Dialogue));
+    const searchVariants = divideExpectedText(checkText);
+    debugLog({ type: 'forward_search_start', lineIndex: checkIndex });
 
-    // For long multi-sentence lines, match against individual sentences
-    const isSplit = isMultiSentenceLong(strippedDialogue);
-    const matchTargets = isSplit
-      ? splitIntoSentences(strippedDialogue)
-      : [strippedDialogue];
-    console.log(`Forward search line ${checkIndex}: ${isSplit ? `split into ${matchTargets.length} sentences: [${matchTargets.join(' | ')}]` : `single target: "${strippedDialogue}"`}`);
+    for (const variant of searchVariants) {
+      // Exact subsequence match
+      const exactMatch = findSubsequenceMatch(variant.text, allSpokenWords);
+      if (exactMatch !== null) {
+        debugLog({ type: 'forward_exact_match', label: variant.label, lineIndex: checkIndex, startIdx: exactMatch.startIdx });
+        captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx));
+        clearMatchState(refs, exactMatch.endIdx);
+        jumpToFutureLine(jumpToLine, checkIndex, totalLines);
+        return true;
+      }
 
-    for (const target of matchTargets) {
-      const checkText = normalizeText(target);
-      const searchVariants = getSentenceSearchVariants(checkText);
-      debugLog({ type: 'forward_search_start', lineIndex: checkIndex, target });
-
-      for (const variant of searchVariants) {
-        for (const allSpokenWords of utteranceQueuesRef.current) {
-          const allSpokenWordCount = allSpokenWords.length;
-
-          // Exact subsequence match
-          const exactMatch = findSubsequenceMatch(variant.text, allSpokenWords);
-          if (exactMatch !== null) {
-            console.log(`Exact subsequence match on future line ${checkIndex} (${variant.label} of "${target}") at position ${exactMatch.startIdx}!`);
-            debugLog({ type: 'forward_exact_match', label: variant.label, lineIndex: checkIndex, startIdx: exactMatch.startIdx });
-            captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx));
-            clearMatchState(refs, exactMatch.endIdx);
+      if (variant.wordCount <= allSpokenWordCount) {
+        const maxStartIndex = allSpokenWordCount - variant.wordCount;
+        for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
+          const windowWords = allSpokenWords.slice(startIdx, startIdx + variant.wordCount);
+          const fwdDetail = calculateConfidenceDetail(windowWords, variant.text);
+          if (fwdDetail.confidence >= 0.6) {
+            debugLog({ type: 'forward_hybrid_match', label: variant.label, lineIndex: checkIndex, confidence: (fwdDetail.confidence * 100).toFixed(1), fuzzyScore: ((1 - fwdDetail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - fwdDetail.phoneticScore) * 100).toFixed(1) });
+            captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx));
+            clearMatchState(refs, startIdx + variant.wordCount);
             jumpToFutureLine(jumpToLine, checkIndex, totalLines);
             return true;
           }
-
-          if (variant.wordCount <= allSpokenWordCount) {
-            // Sliding window: try each window position
-            const maxStartIndex = allSpokenWordCount - variant.wordCount;
-            for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
-              const windowWords = allSpokenWords.slice(startIdx, startIdx + variant.wordCount);
-              const fwdDetail = calculateConfidenceDetail(windowWords, variant.text);
-              if (fwdDetail.confidence >= 0.6) {
-                console.log(`Match found at future line ${checkIndex} (${variant.label} of "${target}") with window at ${startIdx}! Jumping ahead.`);
-                debugLog({ type: 'forward_hybrid_match', label: variant.label, lineIndex: checkIndex, confidence: (fwdDetail.confidence * 100).toFixed(1), fuzzyScore: ((1 - fwdDetail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - fwdDetail.phoneticScore) * 100).toFixed(1) });
-                captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx));
-                clearMatchState(refs, startIdx + variant.wordCount);
-                jumpToFutureLine(jumpToLine, checkIndex, totalLines);
-                return true;
-              }
-            }
-          } else {
-            // Queue shorter than future line — use full queue
-            if (calculateConfidence(allSpokenWords, variant.text) >= 0.6) {
-              captureOffScriptWords(offScriptLogRef, checkIndex, []);
-              clearMatchState(refs, allSpokenWordCount);
-              jumpToFutureLine(jumpToLine, checkIndex, totalLines);
-              return true;
-            }
-          }
+        }
+      } else {
+        if (calculateConfidence(allSpokenWords, variant.text) >= 0.6) {
+          captureOffScriptWords(offScriptLogRef, checkIndex, []);
+          clearMatchState(refs, allSpokenWordCount);
+          jumpToFutureLine(jumpToLine, checkIndex, totalLines);
+          return true;
         }
       }
     }
@@ -200,8 +190,6 @@ export async function processUserUtterance({
   accumulatedUtterancesRef,
   utteranceQueuesRef,
   currentLineTrackingRef,
-  silenceTimeoutRef,
-  pendingUtteranceRef,
   offScriptLogRef,
   state,
   condition,
@@ -221,33 +209,24 @@ export async function processUserUtterance({
   // Always check for line/page change regardless of utterance dedup
   if (currentLineTrackingRef.current.page !== state.page) {
     accumulatedUtterancesRef.current = [];
-    utteranceQueuesRef.current = [];
+    utteranceQueuesRef.current = emptyQueues();
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
     // Send sandwiched off-script words before moving to new line
     if (offScriptLogRef?.current?.length && questionGenEnabledRef?.current) {
-      console.log("sendOffScriptLog called on line change, page:", state.page, "new line index:", currentLineIndex);
       sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef, userAttentionRef.current);
     }
     currentLineTrackingRef.current.index = currentLineIndex;
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-      silenceTimeoutRef.current = null;
-    }
-    pendingUtteranceRef.current = "";
   }
 
   if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
 
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
-  console.log(`Processing utterance: "${userUtterance}"`);
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
-    console.log(`All lines read. Capturing post-last-line utterance for off-script analysis: "${userUtterance}"`);
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
     captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0));
-    console.log(`Post-last-line utterance collected: "${userUtterance}"`);
     return;
   }
 
@@ -261,72 +240,68 @@ export async function processUserUtterance({
     return;
   }
 
-  // Accumulate utterance and words — build parallel queues for each normalized variant
+  // Accumulate utterance words into 2 parallel queues — slot 0 = expanded, slot 1 = original.
+  // When normalizeText only returns 1 variant, both slots get the same words (lockstep invariant).
   accumulatedUtterancesRef.current.push({ speaker: speakerLabels || 'Unknown', utterance: userUtterance.toLowerCase().trim() });
   lastProcessedUtteranceRef.current = userUtterance;
-  const variants = normalizeText(userUtterance);
+  const uttVariants = normalizeText(userUtterance);
+  const uttSlot0 = uttVariants[0].split(/\s+/).filter(w => w.length > 0);
+  const uttSlot1 = (uttVariants[1] ?? uttVariants[0]).split(/\s+/).filter(w => w.length > 0);
   if (utteranceQueuesRef.current.length === 0) {
-    utteranceQueuesRef.current = variants.map(() => []);
+    utteranceQueuesRef.current = emptyQueues();
   }
-  variants.forEach((variant, i) => {
-    const words = variant.split(/\s+/).filter(w => w.length > 0);
-    if (!utteranceQueuesRef.current[i]) {
-      utteranceQueuesRef.current[i] = [];
-    }
-    utteranceQueuesRef.current[i].push(...words);
-  });
+  utteranceQueuesRef.current[0].push(...uttSlot0);
+  utteranceQueuesRef.current[1].push(...uttSlot1);
 
-  // Prepare expected text (array of variants)
-  const expectedText = normalizeText(stripSSMLTags(currentLine.Dialogue));
-  const expectedWordCount = expectedText[0].split(/\s+/).filter(w => w.length > 0).length;
-  const refs = { accumulatedUtterancesRef, utteranceQueuesRef, silenceTimeoutRef, pendingUtteranceRef };
+  // Prepare expected text — same 2-slot structure: slot 0 expanded, slot 1 original.
+  const expVariants = normalizeText(stripSSMLTags(currentLine.Dialogue));
+  const expectedTexts = [expVariants[0], expVariants[1] ?? expVariants[0]];
+  const expectedWordCount = expectedTexts[0].split(/\s+/).filter(w => w.length > 0).length;
 
-  const primaryQueueSnapshot = utteranceQueuesRef.current[0] || [];
-  debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: expectedText[0], lineIndex: currentLineIndex });
-  debugLog({ type: 'queue_state', wordCount: primaryQueueSnapshot.length, words: primaryQueueSnapshot.join(' ') });
+  const refs = { accumulatedUtterancesRef, utteranceQueuesRef };
 
-  // Try matching with progressive sentence trimming: 100% → 75% → 50% → 25%
-  const searchVariants = getSentenceSearchVariants(expectedText);
+  debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: expectedTexts[0], lineIndex: currentLineIndex });
+  emitQueueState(utteranceQueuesRef);
 
-  for (const variant of searchVariants) {
-    debugLog({ type: 'variant_attempt', label: variant.label, text: variant.text[0], wordCount: variant.wordCount });
-    let bestDetail = { confidence: 0, fuzzyScore: 1, phoneticScore: 1 };
+  // Try each variant pair: original (slot 1) first, then expanded (slot 0).
+  // Within each pair, progressive sentence trimming: 100% → 75% → 50% → 25%.
+  const variantOrder = [1, 0];
+  const allTriedLabels = [];
 
-    for (const allSpokenWords of utteranceQueuesRef.current) {
+  for (const slot of variantOrder) {
+    const allSpokenWords = utteranceQueuesRef.current[slot];
+    const dividedSentences = divideExpectedText([expectedTexts[slot]]);
+
+    for (const divSentence of dividedSentences) {
+      const labelTag = `slot${slot}-${divSentence.label}`;
+      allTriedLabels.push(labelTag);
+      debugLog({ type: 'variant_attempt', label: labelTag, text: divSentence.text[0], wordCount: divSentence.wordCount });
+      let bestDetail = { confidence: 0, fuzzyScore: 1, phoneticScore: 1 };
+
       // Exact subsequence match
-      const exactMatch = findSubsequenceMatch(variant.text, allSpokenWords);
+      const exactMatch = findSubsequenceMatch(divSentence.text, allSpokenWords);
       if (exactMatch !== null) {
-        console.log(`Exact subsequence match (${variant.label}) at position ${exactMatch.startIdx}!`);
-        debugLog({ type: 'exact_match', label: variant.label, startIdx: exactMatch.startIdx });
+        debugLog({ type: 'exact_match', label: labelTag, startIdx: exactMatch.startIdx });
         captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx));
         clearMatchState(refs, exactMatch.endIdx);
-        if (currentLineIndex === totalLines - 1) {
-          currentLine.Reading = false;
-        }
+        if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
         advanceToNextLine(setAudioHasEnded, setIsPlaying);
         return;
       }
 
       // Sliding window hybrid (fuzzy + phonetic)
-      if (condition === "C1" || condition === "C2" && allSpokenWords.length >= variant.wordCount && variant.wordCount > 2) {
-        const maxStartIndex = allSpokenWords.length - variant.wordCount;
+      if (condition === "C1" || (condition === "C2" && divSentence.wordCount > 2)) {
+        const maxStartIndex = allSpokenWords.length - divSentence.wordCount;
         for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
-          const window = allSpokenWords.slice(startIdx, startIdx + variant.wordCount);
-          let detail;
-          if (condition === "C2") {
-            detail = calculateConfidenceDetail(window, variant.text, { fuzzyWeight: 0, phoneticWeight: 1 });
-          }
-          else {             
-            detail = calculateConfidenceDetail(window, variant.text);
-          }
+          const window = allSpokenWords.slice(startIdx, startIdx + divSentence.wordCount);
+          const detail = condition === "C2"
+            ? calculateConfidenceDetail(window, divSentence.text, { fuzzyWeight: 0, phoneticWeight: 1 })
+            : calculateConfidenceDetail(window, divSentence.text);
           if (detail.confidence >= 0.6) {
-            console.log(`Sliding window hybrid match (${variant.label}) at position ${startIdx}! Confidence: ${(detail.confidence * 100).toFixed(1)}%`);
-            debugLog({ type: 'hybrid_match', label: variant.label, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
+            debugLog({ type: 'hybrid_match', label: labelTag, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
             captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx));
-            clearMatchState(refs, startIdx + variant.wordCount);
-            if (currentLineIndex === totalLines - 1) {
-              currentLine.Reading = false;
-            }
+            clearMatchState(refs, startIdx + divSentence.wordCount);
+            if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
             advanceToNextLine(setAudioHasEnded, setIsPlaying);
             return;
           }
@@ -334,78 +309,34 @@ export async function processUserUtterance({
         }
       }
       // Merged-string fallback for short lines (e.g., "Clara said" transcribed as "Claraiset")
-      else if (condition === "C1" || condition === "C2" && allSpokenWords.length >= variant.wordCount) {
+      else if (condition === "C1" || (condition === "C2" && divSentence.wordCount < 3)) {
         for (let i = 0; i < allSpokenWords.length; i++) {
-          let detail;
-          if (condition === "C2") {
-            detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text, { fuzzyWeight: 0, phoneticWeight: 1 });
-          }
-          else {
-            detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
-          }
-          debugLog({ type: 'merged_check', label: variant.label, spokenWord: allSpokenWords[i], target: variant.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
+          const detail = condition === "C2"
+            ? calculateConfidenceDetail([allSpokenWords[i]], divSentence.text, { fuzzyWeight: 0, phoneticWeight: 1 })
+            : calculateConfidenceDetail([allSpokenWords[i]], divSentence.text);
+          debugLog({ type: 'merged_check', label: labelTag, spokenWord: allSpokenWords[i], target: divSentence.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
           if (detail.confidence >= 0.6) {
-            console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
-            debugLog({ type: 'merged_match', label: variant.label, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
+            debugLog({ type: 'merged_match', label: labelTag, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
             captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, i));
             clearMatchState(refs, i + 1);
-            if (currentLineIndex === totalLines - 1) {
-              currentLine.Reading = false;
-            }
+            if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
             advanceToNextLine(setAudioHasEnded, setIsPlaying);
             return;
           }
         }
       }
 
-      // // Merged-string fallback for short lines (e.g., "Clara said" transcribed as "Claraiset")
-      // console.log(`[Merged fallback] wordCount=${variant.wordCount}, spokenWords=${allSpokenWords.length}, words=[${allSpokenWords.join(', ')}]`);
-      // if (condition === "C1" || condition === "C2" && variant.wordCount <= 2 && allSpokenWords.length > 0) {
-      //   for (let i = 0; i < allSpokenWords.length; i++) {
-      //     const detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
-      //     debugLog({ type: 'merged_check', label: variant.label, spokenWord: allSpokenWords[i], target: variant.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
-      //     if (detail.confidence >= 0.6) {
-      //       console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
-      //       debugLog({ type: 'merged_match', label: variant.label, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
-      //       captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, i));
-      //       clearMatchState(refs, i + 1);
-      //       if (currentLineIndex === totalLines - 1) {
-      //         currentLine.Reading = false;
-      //       }
-      //       advanceToNextLine(setAudioHasEnded, setIsPlaying);
-      //       return;
-      //     }
-      //   }
-      // }
-    }
-
-    // Variant failed — report reason
-    const maxQueueLen = Math.max(...utteranceQueuesRef.current.map(q => q.length), 0);
-    if (maxQueueLen < variant.wordCount) {
       debugLog({
-        type: 'variant_result', label: variant.label,
-        reason: 'insufficient_words', have: maxQueueLen, need: variant.wordCount
-      });
-    } else {
-      const queueSnapshot = (utteranceQueuesRef.current[0] || []).join(' ');
-      debugLog({
-        type: 'variant_result', label: variant.label,
-        reason: 'low_confidence',
+        type: 'variant_result', label: labelTag, reason: 'low_confidence',
         fuzzyScore: ((1 - bestDetail.fuzzyScore) * 100).toFixed(1),
         phoneticScore: ((1 - bestDetail.phoneticScore) * 100).toFixed(1),
         confidence: (bestDetail.confidence * 100).toFixed(1),
-        queue: queueSnapshot
+        queue: allSpokenWords.join(' ')
       });
     }
   }
 
-  // Debug log (use first variant queue for logging)
-  const primaryQueue = utteranceQueuesRef.current[0] || [];
-  console.log(`--- No match for current line ---`);
-  console.log(`Expected: "${expectedText.join(' | ')}" | User Utterance: [${primaryQueue.join(', ')}]`);
-  console.log(`Tried ${searchVariants.length} sentence variant(s) (${searchVariants.map(v => v.label).join(', ')}) — no match >= 60%`);
-  console.log(`---------------------------------`);
-  debugLog({ type: 'no_match', variantsTried: searchVariants.map(v => v.label).join(', ') });
+  debugLog({ type: 'no_match', variantsTried: allTriedLabels.join(', ') });
 
   // Step 3: Check if user skipped ahead (next 3 lines)
   let foundMatch;
@@ -413,18 +344,15 @@ export async function processUserUtterance({
     foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef });
   }
 
-  // Step 4: Slide queue if no match found
+  // Step 4: Slide queue if no match found — slice 1 word from front of ALL parallel queues
   if (!foundMatch) {
+    const primaryQueue = utteranceQueuesRef.current[0] || [];
     if (primaryQueue.length >= expectedWordCount) {
-      const removed = utteranceQueuesRef.current.map(q => q.shift());
-      console.log(`No match found. Sliding queue: removed "${removed[0]}"`);
-      debugLog({ type: 'queue_slide', removed: removed[0] });
-      if (removed[0]) {
-        captureOffScriptWords(offScriptLogRef, currentLineIndex, [removed[0]]);
-      }
+      const removed = utteranceQueuesRef.current[0].shift();
+      utteranceQueuesRef.current[1].shift();
+      debugLog({ type: 'queue_slide', removed });
+      if (removed) captureOffScriptWords(offScriptLogRef, currentLineIndex, [removed]);
       emitQueueState(utteranceQueuesRef);
-    } else {
-      console.log(`Waiting for more words: ${primaryQueue.length}/${expectedWordCount} words in queue`);
     }
   }
 }

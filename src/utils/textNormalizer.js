@@ -27,12 +27,12 @@ export function normalizeText(text) {
   // Convert numbers to words: "5" -> "five", "1st" -> "first"
   result = convertNumbersToWords(result);
 
-  let expandedResult = expandContractions(result);
+  let expandedResult = expandContractions(result); // "can't" -> "cannot", "they're" -> "they are"
   if (expandedResult !== result) {
     expandedResult = expandedResult.replace(/-/g, ' ');
     expandedResult = expandedResult.replace(/[*.,!?%@#;:'"()\u2026]/g, "");
     expandedResult = removeFillersFromText(expandedResult);
-    resultOptions.push(expandedResult);
+    resultOptions.push(expandedResult); // Add expanded form as a variant
   }
 
   // Replace hyphens with spaces: "well-known" -> "well known"
@@ -44,9 +44,9 @@ export function normalizeText(text) {
   // Remove hesitation sounds (uhh, umm, etc.) that are never transcribed by speech recognition
   result = removeFillersFromText(result);
 
-  resultOptions.push(result);
+  resultOptions.push(result); // Add normalized form as a variant
 
-  return resultOptions;
+  return resultOptions; // Return array of variants (expanded and normalized)
 }
 
 function removeFillersFromText(text) {

@@ -306,7 +306,7 @@ function openUtteranceDebugMonitor() {
         add(time + 'Queue slide: removed "' + esc(ev.removed) + '"', 'neutral');
       }
       else if (ev.type === 'forward_search_start') {
-        add(time + 'Forward search line ' + ev.lineIndex + ': "' + esc(ev.target) + '"', 'neutral');
+        add(time + 'Forward search line ' + ev.lineIndex, 'neutral');
       }
       else if (ev.type === 'offscript_update') {
         offscriptEntries = ev.entries;
