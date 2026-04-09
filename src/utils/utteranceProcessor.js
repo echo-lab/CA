@@ -77,10 +77,21 @@ function clearMatchState({ accumulatedUtterancesRef, utteranceQueuesRef }, words
   emitQueueState(utteranceQueuesRef);
 }
 
-function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords) {
+// Capture off-script words into ref for later categorization, and log them for debugging
+function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, context) {
   if (!offScriptLogRef || leftoverWords.length === 0) return;
   offScriptLogRef.current.push({ lineIndex, text: leftoverWords.join(' ') });
   debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
+  if (context) {
+    sendOffScriptLog(
+      offScriptLogRef,
+      context.state.page,
+      context.state,
+      context.onCategorizationResult,
+      context.imageDescriptionRef,
+      context.userAttentionRef?.current
+    );
+  }
 }
 
 export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention) {
@@ -130,7 +141,7 @@ function jumpToFutureLine(jumpToLine, checkIndex, totalLines) {
 }
 
 // Forward search uses slot 0 (expanded form) only — best-effort lookahead, simpler is fine.
-function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef }) {
+function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext }) {
   const allSpokenWords = utteranceQueuesRef.current[0] || [];
   const allSpokenWordCount = allSpokenWords.length;
 
@@ -150,7 +161,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
       const exactMatch = findSubsequenceMatch(variant.text, allSpokenWords);
       if (exactMatch !== null) {
         debugLog({ type: 'forward_exact_match', label: variant.label, lineIndex: checkIndex, startIdx: exactMatch.startIdx });
-        captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx));
+        captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx), categorizationContext); // 
         clearMatchState(refs, exactMatch.endIdx);
         jumpToFutureLine(jumpToLine, checkIndex, totalLines);
         return true;
@@ -163,7 +174,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
           const fwdDetail = calculateConfidenceDetail(windowWords, variant.text);
           if (fwdDetail.confidence >= 0.6) {
             debugLog({ type: 'forward_hybrid_match', label: variant.label, lineIndex: checkIndex, confidence: (fwdDetail.confidence * 100).toFixed(1), fuzzyScore: ((1 - fwdDetail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - fwdDetail.phoneticScore) * 100).toFixed(1) });
-            captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx));
+            captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + variant.wordCount);
             jumpToFutureLine(jumpToLine, checkIndex, totalLines);
             return true;
@@ -171,7 +182,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
         }
       } else {
         if (calculateConfidence(allSpokenWords, variant.text) >= 0.6) {
-          captureOffScriptWords(offScriptLogRef, checkIndex, []);
+          captureOffScriptWords(offScriptLogRef, checkIndex, [], categorizationContext); // 
           clearMatchState(refs, allSpokenWordCount);
           jumpToFutureLine(jumpToLine, checkIndex, totalLines);
           return true;
@@ -179,7 +190,6 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
       }
     }
   }
-
   return false;
 }
 
@@ -205,18 +215,14 @@ export async function processUserUtterance({
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
   const currentLine = state.pagesValues[state.page]?.text?.[currentLineIndex];
+  const categorizationContext = { state, onCategorizationResult, imageDescriptionRef, userAttentionRef };
 
+  // ------ Subject to change: line/page change handling logic ------
   // Always check for line/page change regardless of utterance dedup
   if (currentLineTrackingRef.current.page !== state.page) {
     accumulatedUtterancesRef.current = [];
     utteranceQueuesRef.current = emptyQueues();
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
-  } else if (currentLineTrackingRef.current.index !== currentLineIndex) {
-    // Send sandwiched off-script words before moving to new line
-    if (offScriptLogRef?.current?.length && questionGenEnabledRef?.current) {
-      sendOffScriptLog(offScriptLogRef, state.page, state, onCategorizationResult, imageDescriptionRef, userAttentionRef.current);
-    }
-    currentLineTrackingRef.current.index = currentLineIndex;
   }
 
   if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
@@ -226,10 +232,10 @@ export async function processUserUtterance({
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
-    captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0));
+    captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
     return;
   }
-
+  // --------------------------------------------------------------
   if (!currentLine?.Reading) return;
 
   const currentCharacter = state.CharacterRoles.find(obj => obj.Character === currentLine.Character);
@@ -299,7 +305,7 @@ export async function processUserUtterance({
             : calculateConfidenceDetail(window, divSentence.text);
           if (detail.confidence >= 0.6) {
             debugLog({ type: 'hybrid_match', label: labelTag, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
-            captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx));
+            captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + divSentence.wordCount);
             if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
             advanceToNextLine(setAudioHasEnded, setIsPlaying);
@@ -317,7 +323,7 @@ export async function processUserUtterance({
           debugLog({ type: 'merged_check', label: labelTag, spokenWord: allSpokenWords[i], target: divSentence.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
           if (detail.confidence >= 0.6) {
             debugLog({ type: 'merged_match', label: labelTag, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
-            captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, i));
+            captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, i), categorizationContext);
             clearMatchState(refs, i + 1);
             if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
             advanceToNextLine(setAudioHasEnded, setIsPlaying);
@@ -341,18 +347,17 @@ export async function processUserUtterance({
   // Step 3: Check if user skipped ahead (next 3 lines)
   let foundMatch;
   if (condition === "C1") {
-    foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef });
+    foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext });
   }
 
   // Step 4: Slide queue if no match found — slice 1 word from front of ALL parallel queues
   if (!foundMatch) {
-    const primaryQueue = utteranceQueuesRef.current[0] || [];
+    const primaryQueue = utteranceQueuesRef.current[0] || []; // Use slot 0 (expanded) as primary for queue length check and sliding, since it has more consistent tokenization after normalization.
     if (primaryQueue.length >= expectedWordCount) {
+      captureOffScriptWords(offScriptLogRef, currentLineIndex, primaryQueue, categorizationContext);
       const removed = utteranceQueuesRef.current[0].shift();
       utteranceQueuesRef.current[1].shift();
       debugLog({ type: 'queue_slide', removed });
-      if (removed) captureOffScriptWords(offScriptLogRef, currentLineIndex, [removed]);
-      emitQueueState(utteranceQueuesRef);
     }
   }
 }
