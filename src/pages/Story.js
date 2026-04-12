@@ -8,7 +8,9 @@ import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import parentImage from "../Pictures/Virtual.png";
+import virtualCompany from "../Pictures/Virtual.png";
+import virtualComany2 from "../Pictures/Virtual-U.png";
+import virtualCompany3 from "../Pictures/Virtual-O.png";
 import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
@@ -31,6 +33,8 @@ function Reader() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isGeneratedQuestionPlaying, setIsGeneratedQuestionPlaying] = useState(false);
+  const [isPageQuestionPlaying, setIsPageQuestionPlaying] = useState(false);
   const [childHasPlayed, setChildHasPlayed] = useState(false);
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
@@ -44,6 +48,8 @@ function Reader() {
   const REALTIME_ENABLED = false;
   const DEEPGRAM_ENABLED = true;
   const QUESTION_GEN_ENABLED = true;
+
+  const frames = [virtualCompany, virtualComany2, virtualCompany3];
 
   const {
     // connected,
@@ -98,9 +104,12 @@ function Reader() {
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
   const [questionSource, setQuestionSource] = useState(null);
+  // isCategorizationPending is a UI mirror of utteranceProcessor's module-level
+  // flag. utteranceProcessor's sendOffScriptLog is the single source of truth;
+  // it drives this state via onCategorizationStart / onCategorizationResult callbacks.
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
-  const [isDismissingBubble, setIsDismissingBubble] = useState(false);
+  const [isSlidingBack, setIsSlidingBack] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
@@ -111,6 +120,7 @@ function Reader() {
 
   let lastSpokenText = "";
   let lastSpokenTime = 0;
+  const frameIndexRef = useRef(0);
 
   const handleTextSelection = () => {
     setTimeout(() => {
@@ -128,6 +138,28 @@ function Reader() {
       }
     }, 100);
   };
+
+  function changeFrame() {
+    const imgElement = document.getElementById("role-image");
+    if (!imgElement) return;
+    frameIndexRef.current = (frameIndexRef.current + 1) % frames.length;
+    imgElement.src = frames[frameIndexRef.current];
+  }
+
+  // Animate the role-image when generated question is playing
+  useEffect(() => {
+    let intervalId = null;
+    if (isGeneratedQuestionPlaying || isPageQuestionPlaying) {
+      intervalId = setInterval(changeFrame, 250);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      // Reset to default frame
+      frameIndexRef.current = 0;
+      const imgElement = document.getElementById("role-image");
+      if (imgElement) imgElement.src = frames[0];
+    };
+  }, [isGeneratedQuestionPlaying, isPageQuestionPlaying]);
 
   function canon(text) {
     return stripSSMLTags(String(text || ""))
@@ -224,7 +256,6 @@ const gotoNextPage = () => {
   if (questionGenEnabledRef.current) {
     const hasOffScript = offScriptLogRef?.current?.length > 0;
     if (hasOffScript) {
-      setIsCategorizationPending(true);
       setGeneratedQuestion(null);
       setQuestionSource(null);
     } else {
@@ -264,7 +295,7 @@ const gotoNextPage = () => {
         setGeneratedQuestion(result.generatedQuestion);
         setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
       }
-    } : undefined, imageDescriptionRef, userAttentionRef.current);
+    } : undefined, imageDescriptionRef, userAttentionRef.current, hasOffScript ? () => setIsCategorizationPending(true) : undefined);
   }
 
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
@@ -311,6 +342,7 @@ const playSound = () => {
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
   const voiceName = narratorRole?.VA || "kore";
   const role = narratorRole?.role || null;
+  setIsPageQuestionPlaying(true);
   speak(state.pagesValues[state.page].question, voiceName, "neutral", role);
 };
 
@@ -353,8 +385,15 @@ useEffect(() => {
 }, [generatedQuestion]);
 
 const speakGenerated = () => {
-  // Start dismiss animation immediately
-  setIsDismissingBubble(true);
+  // Start slide-back animation to return image to original size.
+  // isSlidingBack takes priority over hasGenerated in the className,
+  // so slide-back plays even while generatedQuestion is still set.
+  // The onAnimationEnd handler on the img clears both states when slide-back finishes.
+  setIsSlidingBack(true);
+
+  // Capture values before the timeout clears them
+  const cachedAudio = generatedQuestionAudioRef.current;
+  const cachedQuestion = generatedQuestion;
 
   // Mute realtime audio while TTS plays to prevent overlap
   if (remoteAudioRef.current) {
@@ -366,23 +405,20 @@ const speakGenerated = () => {
     }
   };
 
-  if (generatedQuestionAudioRef.current) {
-    const audio = generatedQuestionAudioRef.current;
-    audio.addEventListener("ended", unmute, { once: true });
-    audio.currentTime = 0;
-    audio.play();
-  } else if (generatedQuestion) {
+  if (cachedAudio) {
+    setIsGeneratedQuestionPlaying(true);
+    cachedAudio.addEventListener("ended", () => { unmute(); setIsGeneratedQuestionPlaying(false); }, { once: true });
+    cachedAudio.currentTime = 0;
+    cachedAudio.play();
+  } else if (cachedQuestion) {
     const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
     const voiceName = narratorRole?.VA || "kore";
     const role = narratorRole?.role || null;
-    speak(generatedQuestion, voiceName, "neutral", role).then(unmute).catch(unmute);
+    setIsGeneratedQuestionPlaying(true);
+    speak(cachedQuestion, voiceName, "neutral", role)
+      .then(() => { unmute(); setIsGeneratedQuestionPlaying(false); })
+      .catch(() => { unmute(); setIsGeneratedQuestionPlaying(false); });
   }
-
-  // Remove bubble after exit animation completes (600ms matches CSS)
-  setTimeout(() => {
-    setGeneratedQuestion(null);
-    setIsDismissingBubble(false);
-  }, 600);
 };
 
 async function speak(text, voiceName = "kore", emotion = "neutral", role = null) {
@@ -448,6 +484,7 @@ async function speak(text, voiceName = "kore", emotion = "neutral", role = null)
     }
 
     setIsAudioPlaying(false);
+    setIsPageQuestionPlaying(false);
     setAudioHasEnded(true);
     setIsButtonDisabled(false);
 }, [audio, isPlaying]);
@@ -587,7 +624,6 @@ const handleNextClick = React.useCallback(() => {
          console.log("new page")
          const hasOffScript = offScriptLogRef?.current?.length > 0;
          if (hasOffScript) {
-           setIsCategorizationPending(true);
            setGeneratedQuestion(null);
            setQuestionSource(null);
          } else if (questionGenEnabledRef.current) {
@@ -627,7 +663,7 @@ const handleNextClick = React.useCallback(() => {
                setGeneratedQuestion(result.generatedQuestion);
                setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
              }
-           } : undefined, imageDescriptionRef, userAttentionRef.current);
+           } : undefined, imageDescriptionRef, userAttentionRef.current, hasOffScript ? () => setIsCategorizationPending(true) : undefined);
          }
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
            state.pagesValues[state.page].text[i].Reading=false;
@@ -699,7 +735,7 @@ React.useEffect(() => {
 const lastProcessedUtteranceRef = useRef("");
 const userUtterancesRef = useRef([]);
 const accumulatedUtterancesRef = useRef([]); // Accumulate utterances for current line
-const utteranceQueuesRef = useRef([]); // Parallel queues for each normalizeText variant
+const utteranceQueuesRef = useRef([]); // Parallel queues for each normalizeText variant 
 const currentLineTrackingRef = useRef({ page: -1, index: -1 }); // Track which line we're accumulating for
 const offScriptLogRef = useRef([]); // Log of off-script words by line, sent to LLM on page change
 const currentPageRef = useRef(state.page); // Always holds latest page for async callbacks
@@ -749,6 +785,7 @@ React.useEffect(() => {
     jumpToLine,
     setAudioHasEnded,
     setIsPlaying,
+    onCategorizationStart: () => setIsCategorizationPending(true),
     onCategorizationResult: (result) => {
       setIsCategorizationPending(false);
 
@@ -888,16 +925,32 @@ function stripSSMLTags(text) {
 
 
   function renderQuestion() {
+    const hasGenerated = generatedQuestion && !isCategorizationPending;
+    const questionText = hasGenerated ? generatedQuestion : state.pagesValues[state.page].question;
+    const handleClick = hasGenerated ? speakGenerated : playSound;
 
     return (
            <div>
                 <div className="wrapper">
                   <div className="role-image-container">
-                    <img src={parentImage} alt="Parent" onClick={() => { playSound(); }} style={{ width: '100px', cursor: 'pointer' }} />
+                    <img
+                      id="role-image"
+                      src={virtualCompany}
+                      alt="Parent"
+                      onClick={handleClick}
+                      style={{ width: '200px', cursor: 'pointer' }}
+                      className={isSlidingBack ? 'slide-back' : hasGenerated ? 'slide-closer' : ''}
+                      onAnimationEnd={(e) => {
+                        if (e.animationName === 'slide-back') {
+                          setIsSlidingBack(false);
+                          setGeneratedQuestion(null);
+                        }
+                      }}
+                    />
                   </div>
-                  <div className="question-dialogue d-flex justify-content-between align-items-center" onClick={() => { playSound(); }} style={{ cursor: 'pointer' }}>
+                  <div className="question-dialogue d-flex justify-content-between align-items-center" onClick={handleClick} style={{ cursor: 'pointer' }}>
                       <div className="storyTitle m-0"></div>
-                      {state.pagesValues[state.page].question}
+                      {questionText}
                   </div>
                 </div>
            </div>
@@ -1021,16 +1074,6 @@ function stripSSMLTags(text) {
       {/* Hidden audio element for remote audio stream */}
       <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
 
-      {/* Floating speech bubble for generated question */}
-      {generatedQuestion && !isCategorizationPending && (
-        <div
-          className={`speech-bubble-overlay ${questionSource === 'previous-page' ? 'from-left' : 'from-bottom'}${isDismissingBubble ? ' dismissing' : ''}`}
-          onClick={speakGenerated}
-          title={generatedQuestion}
-        >
-          <div className="speech-bubble-icon">?</div>
-        </div>
-      )}
 
       <div className="navbar navbar-light bg-light row1">
         <div className="home btn col-1">

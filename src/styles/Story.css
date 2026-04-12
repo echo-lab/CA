@@ -138,19 +138,70 @@ img {
  }
 
  .role-image-container img {
-  display: flex;  
+  display: flex;
   align-items: center; /* Center children horizontally */
-  height: 120px;
-  width: auto;
+  height: 230px;
+  width: 230px;
+  object-fit: contain;
+}
+
+.role-image-container img.slide-closer {
+  animation:
+    slide-closer 1.2s ease-in-out forwards,
+    bounce 1.4s ease-in-out 1.2s infinite;
+}
+
+.role-image-container img.slide-back {
+  animation: slide-back 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes slide-closer {
+  0% {
+    transform: translateX(0) translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(-150px) translateY(0) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-150px) translateY(150px) scale(0.8) rotate(30deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) translateY(0) scale(1.2) rotate(30deg);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateX(0) translateY(0) scale(1.2) rotate(30deg);
+  }
+  50% {
+    transform: translateX(5px) translateY(-5px) scale(1.2) rotate(30deg);
+  }
+}
+
+@keyframes slide-back {
+  0% {
+    transform: translateX(0) translateY(0) scale(1.2) rotate(30deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 .role-image-container {
   display: flex;
-  flex-direction: column; 
+  flex-direction: column;
   justify-content: flex-start; /* Start from the top */
   align-items: center; /* Center horizontally */
-  margin-right:10px; /* Adjust as needed for spacing between image column and dialogue */
+  margin-right:0px; /* Adjust as needed for spacing between image column and dialogue */
   flex-shrink: 0; /* Prevent the container from shrinking */
+  overflow: visible; /* Prevent image clipping during animation */
 }
 
 .role-image-container-text {
