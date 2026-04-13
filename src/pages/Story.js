@@ -110,6 +110,10 @@ function Reader() {
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const [isSlidingBack, setIsSlidingBack] = useState(false);
+  // Tracks whether slide-closer has already played. Prevents re-triggering
+  // the animation when a new generated question replaces an existing one —
+  // the image stays in place, only the question text/audio updates.
+  const hasSlidCloserRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
@@ -210,6 +214,7 @@ function Reader() {
     if (next?.text?.length) pagesToWarm.push(next);
 
     // Build a flat list of warm tasks for ALL lines from valid speakers
+    const narratorInfo = voiceByChar.get('Narrator');
     const tasks = [];
     for (const page of pagesToWarm) {
       for (const line of page.text) {
@@ -221,6 +226,14 @@ function Reader() {
           text,
           voiceName: charInfo.voiceName,
           role: charInfo.role
+        });
+      }
+      // Also warm the page question (uses narrator voice)
+      if (page.question && narratorInfo) {
+        tasks.push({
+          text: page.question,
+          voiceName: narratorInfo.voiceName,
+          role: narratorInfo.role
         });
       }
     }
@@ -741,6 +754,12 @@ const offScriptLogRef = useRef([]); // Log of off-script words by line, sent to 
 const currentPageRef = useRef(state.page); // Always holds latest page for async callbacks
 React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
+// Mirror of state for processUserUtterance — lets the effect read current
+// state.index / state.page without depending on them, breaking the
+// match → advanceToNextLine → state.index change → re-fire cycle.
+const stateRef = useRef(state);
+React.useEffect(() => { stateRef.current = state; });
+
 // Jump to a specific line index
 const jumpToLine = useCallback((lineIndex) => {
   setAudioHasEnded(false);
@@ -768,7 +787,7 @@ const jumpToLine = useCallback((lineIndex) => {
   });
 }, [continueReading]);
 
-React.useEffect(() => {
+React.useEffect(() => { // Whenever userUtterance changes, process it to check for matches with current line and handle off-script categorization
   processUserUtterance({
     userUtterance,
     lastProcessedUtteranceRef,
@@ -777,7 +796,7 @@ React.useEffect(() => {
     utteranceQueuesRef,
     currentLineTrackingRef,
     offScriptLogRef,
-    state,
+    state: stateRef.current,
     condition,
     speakerLabels,
     sendContentMessage,
@@ -799,7 +818,7 @@ React.useEffect(() => {
 
       // If 4+ pages without PAGE_QUESTION, defer the page's built-in question until reading finishes
       if (pagesWithoutPageQuestionRef.current >= 4) {
-        const pageQuestion = state.pagesValues[result.sourcePage]?.question;
+        const pageQuestion = stateRef.current.pagesValues[result.sourcePage]?.question;
         if (pageQuestion) {
           pendingPageQuestionFlag.current = true;
           pagesWithoutPageQuestionRef.current = 0;
@@ -817,7 +836,8 @@ React.useEffect(() => {
     userAttentionRef,
     questionGenEnabledRef
   });
-}, [userUtterance, state.index, state.page, state.pagesValues, state.CharacterRoles, speakerLabels, sendContentMessage, gotoNextPage, jumpToLine]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [userUtterance]);
 
 
 function stripSSMLTags(text) {
@@ -926,6 +946,7 @@ function stripSSMLTags(text) {
 
   function renderQuestion() {
     const hasGenerated = generatedQuestion && !isCategorizationPending;
+    const imageChecker = !!generatedQuestion;
     const questionText = hasGenerated ? generatedQuestion : state.pagesValues[state.page].question;
     const handleClick = hasGenerated ? speakGenerated : playSound;
 
@@ -939,11 +960,14 @@ function stripSSMLTags(text) {
                       alt="Parent"
                       onClick={handleClick}
                       style={{ width: '200px', cursor: 'pointer' }}
-                      className={isSlidingBack ? 'slide-back' : hasGenerated ? 'slide-closer' : ''}
+                      className={isSlidingBack ? 'slide-back' : imageChecker ? (hasSlidCloserRef.current ? 'slide-closer-hold' : 'slide-closer') : ''}
                       onAnimationEnd={(e) => {
-                        if (e.animationName === 'slide-back') {
+                        if (e.animationName === 'slide-closer') {
+                          hasSlidCloserRef.current = true;
+                        } else if (e.animationName === 'slide-back') {
                           setIsSlidingBack(false);
                           setGeneratedQuestion(null);
+                          hasSlidCloserRef.current = false;
                         }
                       }}
                     />

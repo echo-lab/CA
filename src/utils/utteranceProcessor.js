@@ -97,6 +97,9 @@ function isUtteranceComplete(text) {
 // Words slide off the matching queue one at a time and accumulate here.
 // On flush, only these pending words are sent — then the buffer is cleared.
 let pendingOffScriptWords = [];
+// Accumulates off-script words until POS says the sentence is complete.
+let pendingPOSBuffer = [];
+const MAX_OFFSCRIPT_BUFFER = 20;
 
 // Source of truth for whether a categorization request is currently in flight.
 // sendOffScriptLog owns this flag — every categorization path goes through
@@ -123,27 +126,37 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, contex
 
   if (!context) return;
 
-  // const pendingText = pendingOffScriptWords.join(' '); // 
-
-  // Flush if sentence seems complete or buffer is too large
-  // if (isUtteranceComplete(leftoverWords.join(' ')) || leftoverWords.length >= MAX_OFFSCRIPT_BUFFER) {
-  
   // Remove words already sent in a previous flush
   const alreadySent = new Set(pendingOffScriptWords);
+  const newWords = leftoverWords.filter(w => !alreadySent.has(w));
+  if (newWords.length === 0) return;
+
+  // Accumulate into POS buffer
+  pendingPOSBuffer.push(...newWords);
+  debugLog({ type: 'pos_buffer', words: pendingPOSBuffer.join(' '), count: pendingPOSBuffer.length });
+
+  // Only flush when the sentence seems complete or the buffer is too large
+  const bufferText = pendingPOSBuffer.join(' ');
+  if (!isUtteranceComplete(bufferText) && pendingPOSBuffer.length < MAX_OFFSCRIPT_BUFFER) {
+    debugLog({ type: 'offscript_hold', reason: 'mid_sentence', text: bufferText, wordCount: pendingPOSBuffer.length });
+    return;
+  }
+
+  // Sentence complete or buffer full — flush
+  debugLog({ type: 'pos_flush', reason: pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER ? 'buffer_full' : 'sentence_complete', text: bufferText });
 
   // Clear offScriptLogRef so these words aren't re-sent on page change
   offScriptLogRef.current = [];
   if (!isCategorizationPending) {
-    const newWords = leftoverWords.filter(w => !alreadySent.has(w));
-    if (newWords.length === 0) return;
     // Prepend any entries that were deferred during a previous in-flight round
     const snapshot = [
       ...deferredOffScriptEntries,
-      { lineIndex: lineIndex, text: newWords.join(' ') },
+      { lineIndex: lineIndex, text: bufferText },
     ];
     deferredOffScriptEntries = [];
     deferredContext = null;
     pendingOffScriptWords = [];
+    pendingPOSBuffer = [];
     sendOffScriptLog(
       { current: snapshot },
       context.state.page,
@@ -156,11 +169,10 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, contex
   } else {
     // A categorization is in flight — park these words for the next round.
     // sendOffScriptLog's finally block will drain the buffer when it completes.
-    const newWords = leftoverWords.filter(w => !alreadySent.has(w));
-    if (newWords.length === 0) return;
-    deferredOffScriptEntries.push({ lineIndex, text: newWords.join(' ') });
+    deferredOffScriptEntries.push({ lineIndex, text: bufferText });
     deferredContext = context;
-    debugLog({ type: 'offscript_deferred', lineIndex, text: newWords.join(' '), bufferSize: deferredOffScriptEntries.length });
+    pendingPOSBuffer = [];
+    debugLog({ type: 'offscript_deferred', lineIndex, text: bufferText, bufferSize: deferredOffScriptEntries.length });
   }
 }
 
@@ -198,10 +210,6 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
     onResult?.({ sourcePage: oldPage });
   } finally {
     isCategorizationPending = false;
-    // Drain any entries that arrived while this request was in flight.
-    // Using the context captured at the time they were deferred (callbacks
-    // and imageDescriptionRef are stable; state is whatever was current when
-    // the deferred words were received).
     if (deferredOffScriptEntries.length > 0 && deferredContext) {
       const entries = deferredOffScriptEntries;
       const ctx = deferredContext;
@@ -318,8 +326,7 @@ export async function processUserUtterance({
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   }
 
-  if (!userUtterance || userUtterance === lastProcessedUtteranceRef.current) return;
-
+  if (!userUtterance) return;
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
@@ -353,7 +360,9 @@ export async function processUserUtterance({
   utteranceQueuesRef.current[1].push(...uttSlot1);
 
   // Prepare expected text — same 2-slot structure: slot 0 expanded, slot 1 original.
-  const expVariants = normalizeText(stripSSMLTags(currentLine.Dialogue));
+  const rawDialogue = stripSSMLTags(currentLine.Dialogue)?.trim();
+  if (!rawDialogue) return; // nothing to match against (pure SSML or empty line)
+  const expVariants = normalizeText(rawDialogue);
   const expectedTexts = [expVariants[0], expVariants[1] ?? expVariants[0]];
   const expectedWordCount = expectedTexts[0].split(/\s+/).filter(w => w.length > 0).length;
 

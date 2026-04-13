@@ -151,6 +151,11 @@ img {
     bounce 1.4s ease-in-out 1.2s infinite;
 }
 
+.role-image-container img.slide-closer-hold {
+  transform: translateX(0) translateY(0) scale(1.2) rotate(30deg);
+  animation: bounce 1.4s ease-in-out infinite;
+}
+
 .role-image-container img.slide-back {
   animation: slide-back 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }

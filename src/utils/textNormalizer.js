@@ -15,7 +15,7 @@ export function isMultiSentenceLong(text) {
 }
 
 export function normalizeText(text) {
-  if (!text || typeof text !== 'string') return '';
+  if (!text || typeof text !== 'string') return [''];
 
   let result = text.toLowerCase().trim();
 
