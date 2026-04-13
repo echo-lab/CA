@@ -103,7 +103,7 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
-  const [questionSource, setQuestionSource] = useState(null);
+
   // isCategorizationPending is a UI mirror of utteranceProcessor's module-level
   // flag. utteranceProcessor's sendOffScriptLog is the single source of truth;
   // it drives this state via onCategorizationStart / onCategorizationResult callbacks.
@@ -270,7 +270,7 @@ const gotoNextPage = () => {
     const hasOffScript = offScriptLogRef?.current?.length > 0;
     if (hasOffScript) {
       setGeneratedQuestion(null);
-      setQuestionSource(null);
+
     } else {
       // No off-script utterances on this page — counts as no PAGE_QUESTION
       pagesWithoutPageQuestionRef.current += 1;
@@ -282,7 +282,6 @@ const gotoNextPage = () => {
         }
       }
     }
-    const nextPage = state.page + 1;
     console.log("sendOffScriptLog called, page:", state.page);
     sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
       setIsCategorizationPending(false);
@@ -306,7 +305,6 @@ const gotoNextPage = () => {
 
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
-        setQuestionSource(result.sourcePage !== nextPage ? 'previous-page' : 'current-page');
       }
     } : undefined, imageDescriptionRef, userAttentionRef.current, hasOffScript ? () => setIsCategorizationPending(true) : undefined);
   }
@@ -334,7 +332,6 @@ const gotoNextPage = () => {
 const gotoPreviousPage = () => {
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
   setGeneratedQuestion(null);
-  setQuestionSource(null);
   setIsCategorizationPending(false);
 
   setIsPlaying(prevIsPlaying => {
@@ -629,7 +626,6 @@ const handleNextClick = React.useCallback(() => {
            const pageQuestion = state.pagesValues[state.page]?.question;
            if (pageQuestion) {
              setGeneratedQuestion(pageQuestion);
-             setQuestionSource('current-page');
            }
            pendingPageQuestionFlag.current = false;
          }
@@ -638,7 +634,7 @@ const handleNextClick = React.useCallback(() => {
          const hasOffScript = offScriptLogRef?.current?.length > 0;
          if (hasOffScript) {
            setGeneratedQuestion(null);
-           setQuestionSource(null);
+     
          } else if (questionGenEnabledRef.current) {
            // No off-script utterances — counts as no PAGE_QUESTION
            pagesWithoutPageQuestionRef.current += 1;
@@ -651,7 +647,6 @@ const handleNextClick = React.useCallback(() => {
            }
          }
          if (questionGenEnabledRef.current) {
-           const nextPageNum = state.page + 1;
            console.log("sendOffScriptLog called from handleNextClick, page:", state.page);
            sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
              setIsCategorizationPending(false);
@@ -674,7 +669,6 @@ const handleNextClick = React.useCallback(() => {
 
              if (result?.generatedQuestion) {
                setGeneratedQuestion(result.generatedQuestion);
-               setQuestionSource(result.sourcePage !== nextPageNum ? 'previous-page' : 'current-page');
              }
            } : undefined, imageDescriptionRef, userAttentionRef.current, hasOffScript ? () => setIsCategorizationPending(true) : undefined);
          }
@@ -711,7 +705,6 @@ const handleNextClick = React.useCallback(() => {
            const pageQuestion = state.pagesValues[state.page]?.question;
            if (pageQuestion) {
              setGeneratedQuestion(pageQuestion);
-             setQuestionSource('current-page');
            }
            pendingPageQuestionFlag.current = false;
          }
@@ -829,7 +822,6 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
       // Otherwise use the AI-generated question as usual
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
-        setQuestionSource(result.sourcePage !== currentPageRef.current ? 'previous-page' : 'current-page');
       }
     },
     imageDescriptionRef,
@@ -1192,10 +1184,5 @@ function stripSSMLTags(text) {
     </div>
     </div>
   );
-
-
-
-
-
 }
 export default Reader;

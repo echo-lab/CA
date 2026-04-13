@@ -230,10 +230,12 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
 }
 
 function advanceToNextLine(setAudioHasEnded, setIsPlaying) {
-  setTimeout(() => {
-    setAudioHasEnded(true);
-    setIsPlaying(true);
-  }, 100);
+  setAudioHasEnded(true);
+  setIsPlaying(true);
+  // setTimeout(() => {
+  //   setAudioHasEnded(true);
+  //   setIsPlaying(true);
+  // }, 100);
 }
 
 function jumpToFutureLine(jumpToLine, checkIndex, totalLines) {
