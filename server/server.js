@@ -428,13 +428,24 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
 
 CLASSIFY each off-script utterance. Output one JSON object per line (NDJSON), no extra text.
 
-Categories:
-- ON_TOPIC: Related to the book content, characters, story, illustrations, or current page question.
-- PAGE_QUESTION: The user's response is directly RESTATING the current page's question.
-- OFF_TOPIC: Unrelated to the book. Daily chat, attention redirections, comments about the physical book.
+1. ON_TOPIC: 
+   - Directly addresses the current page's narrative, character emotions, or visual details.
+   - Shows accurate comprehension of the story (e.g., correct character names/genders).
+   - Must be substantive. Do not use for one-word fillers.
 
-Output exactly ONE JSON line per request: {"category":"ON_TOPIC, PAGE_QUESTION, or OFF_TOPIC"}
-Output ONLY the NDJSON lines, nothing else.`
+2. PAGE_QUESTION: 
+   - The utterance is a literal or near-literal restatement of the prompt question.
+
+3. OFF_TOPIC: 
+   - CONTEXT DRIFT: References topics/objects from previous pages not present now (e.g., talking about 'cake' on a 'streamer' page).
+   - HALLUCINATION: Mentioning objects or actions not in the provided Image Analysis or Text (e.g., calling a party hat a 'nest').
+   - FACTUAL ERROR: Using incorrect genders or names for characters (e.g., calling Zoe 'he').
+   - NON-SUBSTANTIVE: Fillers, signals of presence, or empty reactions (e.g., 'so', 'oh', 'um').
+   - EXTERNAL: Daily chat or physical environment comments.
+
+OUTPUT REQUIREMENT:
+- Output exactly ONE JSON line per request: {"category":"ON_TOPIC", "PAGE_QUESTION", or "OFF_TOPIC"}
+- Output ONLY the NDJSON lines. No conversational filler.`
                 },
                 {
                     role: "user",

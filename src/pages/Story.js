@@ -15,7 +15,7 @@ import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
-import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
+import { processUserUtterance, sendOffScriptLog, abortCurrentCategorization } from "../utils/utteranceProcessor";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
 
@@ -115,6 +115,7 @@ function Reader() {
   // the image stays in place, only the question text/audio updates.
   const hasSlidCloserRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
+  const dismissingQuestionRef = useRef(null);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
   const userAttentionRef = useRef(null);
@@ -266,11 +267,12 @@ function Reader() {
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
 
+  clearQuestionUI();
+
   if (questionGenEnabledRef.current) {
     const hasOffScript = offScriptLogRef?.current?.length > 0;
     if (hasOffScript) {
-      setGeneratedQuestion(null);
-
+      // generatedQuestion already cleared by clearQuestionUI above
     } else {
       // No off-script utterances on this page — counts as no PAGE_QUESTION
       pagesWithoutPageQuestionRef.current += 1;
@@ -303,9 +305,9 @@ const gotoNextPage = () => {
         }
       }
 
-      if (result?.generatedQuestion) {
-        setGeneratedQuestion(result.generatedQuestion);
-      }
+      // if (result?.generatedQuestion) {
+      //   setGeneratedQuestion(result.generatedQuestion);
+      // }
     } : undefined, imageDescriptionRef, userAttentionRef.current, hasOffScript ? () => setIsCategorizationPending(true) : undefined);
   }
 
@@ -331,8 +333,7 @@ const gotoNextPage = () => {
 
 const gotoPreviousPage = () => {
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
-  setGeneratedQuestion(null);
-  setIsCategorizationPending(false);
+  clearQuestionUI();
 
   setIsPlaying(prevIsPlaying => {
     return false;
@@ -394,6 +395,21 @@ useEffect(() => {
   return () => { cancelled = true; };
 }, [generatedQuestion]);
 
+// Wipe both the displayed question and any in-flight categorization.
+// Called on every page transition so stale state can't leak across pages.
+const clearQuestionUI = () => {
+  abortCurrentCategorization();
+  setGeneratedQuestion(null);
+  setIsSlidingBack(false);
+  setIsCategorizationPending(false);
+  hasSlidCloserRef.current = false;
+  dismissingQuestionRef.current = null;
+  if (generatedQuestionAudioRef.current) {
+    generatedQuestionAudioRef.current.pause();
+    generatedQuestionAudioRef.current = null;
+  }
+};
+
 const speakGenerated = () => {
   // Start slide-back animation to return image to original size.
   // isSlidingBack takes priority over hasGenerated in the className,
@@ -401,8 +417,14 @@ const speakGenerated = () => {
   // The onAnimationEnd handler on the img clears both states when slide-back finishes.
   setIsSlidingBack(true);
 
-  // Capture values before the timeout clears them
+  // Remember which question we're dismissing so slide-back's animationEnd
+  // only nulls state if no new question replaced it mid-animation.
+  dismissingQuestionRef.current = generatedQuestion;
+
+  // Detach the audio from the prefetch ref so a new question arriving
+  // during playback can't pause/null the Audio we're about to play.
   const cachedAudio = generatedQuestionAudioRef.current;
+  generatedQuestionAudioRef.current = null;
   const cachedQuestion = generatedQuestion;
 
   // Mute realtime audio while TTS plays to prevent overlap
@@ -619,6 +641,7 @@ const handleNextClick = React.useCallback(() => {
      // If there's no more text on the current page, check if there are more pages to go to
       if (state.page < state.pagesValues.length - 1) {
         //userUtterancesRef.current = []; // Clear user utterances when moving to next page
+        clearQuestionUI();
         if (isPlaying) {
          // Reading finished on this page — show pending page question if any
          setIsPlaying(false);
@@ -626,16 +649,17 @@ const handleNextClick = React.useCallback(() => {
            const pageQuestion = state.pagesValues[state.page]?.question;
            if (pageQuestion) {
              setGeneratedQuestion(pageQuestion);
+             // Showing the built-in page question supersedes any in-flight
+             // categorization — clear the pending flag so the click lands on
+             // speakGenerated (with slide-back) rather than playSound.
+             setIsCategorizationPending(false);
            }
            pendingPageQuestionFlag.current = false;
          }
         } else {
          console.log("new page")
          const hasOffScript = offScriptLogRef?.current?.length > 0;
-         if (hasOffScript) {
-           setGeneratedQuestion(null);
-     
-         } else if (questionGenEnabledRef.current) {
+         if (!hasOffScript && questionGenEnabledRef.current) {
            // No off-script utterances — counts as no PAGE_QUESTION
            pagesWithoutPageQuestionRef.current += 1;
            if (pagesWithoutPageQuestionRef.current >= 4) {
@@ -667,9 +691,9 @@ const handleNextClick = React.useCallback(() => {
                }
              }
 
-             if (result?.generatedQuestion) {
-               setGeneratedQuestion(result.generatedQuestion);
-             }
+            //  if (result?.generatedQuestion) {
+            //    setGeneratedQuestion(result.generatedQuestion);
+            //  }
            } : undefined, imageDescriptionRef, userAttentionRef.current, hasOffScript ? () => setIsCategorizationPending(true) : undefined);
          }
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
@@ -705,6 +729,7 @@ const handleNextClick = React.useCallback(() => {
            const pageQuestion = state.pagesValues[state.page]?.question;
            if (pageQuestion) {
              setGeneratedQuestion(pageQuestion);
+             setIsCategorizationPending(false);
            }
            pendingPageQuestionFlag.current = false;
          }
@@ -799,6 +824,11 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
     setIsPlaying,
     onCategorizationStart: () => setIsCategorizationPending(true),
     onCategorizationResult: (result) => {
+      // Belt-and-suspenders: ignore results from a page the user already left.
+      // abortCurrentCategorization() should prevent this, but if the fetch
+      // had already started draining bytes when the abort fired, the callback
+      // may still arrive — discard it.
+      if (result?.sourcePage !== stateRef.current.page) return;
       setIsCategorizationPending(false);
 
       // Track consecutive pages without PAGE_QUESTION
@@ -957,8 +987,14 @@ function stripSSMLTags(text) {
                         if (e.animationName === 'slide-closer') {
                           hasSlidCloserRef.current = true;
                         } else if (e.animationName === 'slide-back') {
+                          // Capture into a local BEFORE resetting the ref —
+                          // the functional setter below runs asynchronously and
+                          // would otherwise read the already-reset null.
+                          const dismissed = dismissingQuestionRef.current;
+                          dismissingQuestionRef.current = null;
                           setIsSlidingBack(false);
-                          setGeneratedQuestion(null);
+                          // Only clear if no new question arrived during slide-back.
+                          setGeneratedQuestion(curr => curr === dismissed ? null : curr);
                           hasSlidCloserRef.current = false;
                         }
                       }}
@@ -977,6 +1013,7 @@ function stripSSMLTags(text) {
     const isLastIndex = state.pagesValues[state.page].text.length === state.index;
     const isLastPage = state.page === state.pagesValues.length - 1;
 
+    
     // Check if current line is child's turn
     const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
     const currentRoleNav = currentLine ? state.CharacterRoles.find(

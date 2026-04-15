@@ -5,10 +5,22 @@ import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
 
-// Toggle: set to true to use streaming implementation
 const USE_STREAMING = true;
 const categorize = USE_STREAMING ? categorizeOffScriptUtterancesStreaming : categorizeOffScriptUtterances;
 const VARIANT_SLOT_COUNT = 2;
+const MID_SENTENCE_TAGS = new Set([
+  'Determiner',      // "the", "a", "this"
+  'Preposition',     // "to", "of", "in"
+  'Conjunction',     // "and", "but", "because"
+  'Auxiliary',        // "is", "was", "have"
+]);
+const MAX_OFFSCRIPT_BUFFER = 20;
+let pendingOffScriptWords = [];
+let pendingPOSBuffer = [];
+let currentAbortController = null;
+let deferredOffScriptEntries = [];
+let deferredContext = null;
+let isCategorizationPending = false;
 
 function emptyQueues() {
   return Array.from({ length: VARIANT_SLOT_COUNT }, () => []);
@@ -72,14 +84,6 @@ function clearMatchState({ accumulatedUtterancesRef, utteranceQueuesRef }, words
   emitQueueState(utteranceQueuesRef);
 }
 
-// POS tags that indicate the user is mid-sentence and likely has more to say
-const MID_SENTENCE_TAGS = new Set([
-  'Determiner',      // "the", "a", "this"
-  'Preposition',     // "to", "of", "in"
-  'Conjunction',     // "and", "but", "because"
-  'Auxiliary',        // "is", "was", "have"
-]);
-
 function isUtteranceComplete(text) {
   const doc = nlp(text);
   const terms = doc.termList();
@@ -93,28 +97,21 @@ function isUtteranceComplete(text) {
   return !isMidSentence;
 }
 
-// Separate pending buffer for words not yet sent for categorization.
-// Words slide off the matching queue one at a time and accumulate here.
-// On flush, only these pending words are sent — then the buffer is cleared.
-let pendingOffScriptWords = [];
-// Accumulates off-script words until POS says the sentence is complete.
-let pendingPOSBuffer = [];
-const MAX_OFFSCRIPT_BUFFER = 20;
+export function abortCurrentCategorization() {
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
+  pendingOffScriptWords = [];
+  pendingPOSBuffer = [];
+  deferredOffScriptEntries = [];
+  deferredContext = null;
+  isCategorizationPending = false;
+}
 
-// Source of truth for whether a categorization request is currently in flight.
-// sendOffScriptLog owns this flag — every categorization path goes through
-// that function, so tracking it here means the flag never drifts regardless
-// of which caller (Story.js page-change vs. utteranceProcessor mid-page) kicks it off.
-let isCategorizationPending = false;
 export function getIsCategorizationPending() {
   return isCategorizationPending;
 }
-
-// Words that arrive while a categorization is in flight get parked here.
-// When the in-flight call finishes, sendOffScriptLog's finally block drains
-// this buffer and kicks off a follow-up request using the stored context.
-let deferredOffScriptEntries = [];
-let deferredContext = null;
 
 // Capture off-script words into pending buffer, flush when POS says sentence is complete
 function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, context) {
@@ -167,8 +164,6 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, contex
       context.onCategorizationStart
     );
   } else {
-    // A categorization is in flight — park these words for the next round.
-    // sendOffScriptLog's finally block will drain the buffer when it completes.
     deferredOffScriptEntries.push({ lineIndex, text: bufferText });
     deferredContext = context;
     pendingPOSBuffer = [];
@@ -195,20 +190,31 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
     .map(([idx, text]) => `[Line ${idx + 1}] "${text}"`)
     .join('\n');
 
-  // Clear ref before awaiting so subsequent calls don't re-send
   offScriptLogRef.current = [];
   debugLog({ type: 'offscript_clear' });
+
+  const controller = new AbortController();
+  currentAbortController = controller;
 
   isCategorizationPending = true;
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention);
+    const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, controller.signal);
+    if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
+    if (err.name === 'AbortError') return;  // clean exit, no error log
     console.error('Categorization error:', err);
-    onResult?.({ sourcePage: oldPage });
+    if (!controller.signal.aborted) {
+      onResult?.({ sourcePage: oldPage });
+    }
   } finally {
+    if (currentAbortController === controller) {
+      currentAbortController = null;
+    }
+    if (controller.signal.aborted) return;
+
     isCategorizationPending = false;
     if (deferredOffScriptEntries.length > 0 && deferredContext) {
       const entries = deferredOffScriptEntries;
@@ -232,10 +238,6 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
 function advanceToNextLine(setAudioHasEnded, setIsPlaying) {
   setAudioHasEnded(true);
   setIsPlaying(true);
-  // setTimeout(() => {
-  //   setAudioHasEnded(true);
-  //   setIsPlaying(true);
-  // }, 100);
 }
 
 function jumpToFutureLine(jumpToLine, checkIndex, totalLines) {
@@ -348,8 +350,6 @@ export async function processUserUtterance({
     return;
   }
 
-  // Accumulate utterance words into 2 parallel queues — slot 0 = expanded, slot 1 = original.
-  // When normalizeText only returns 1 variant, both slots get the same words (lockstep invariant).
   accumulatedUtterancesRef.current.push({ speaker: speakerLabels || 'Unknown', utterance: userUtterance.toLowerCase().trim() });
   lastProcessedUtteranceRef.current = userUtterance;
   const uttVariants = normalizeText(userUtterance);
@@ -373,8 +373,6 @@ export async function processUserUtterance({
   debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: expectedTexts[0], lineIndex: currentLineIndex });
   emitQueueState(utteranceQueuesRef);
 
-  // Try each variant pair: original (slot 1) first, then expanded (slot 0).
-  // Within each pair, progressive sentence trimming: 100% → 75% → 50% → 25%.
   const variantOrder = [1, 0];
   const allTriedLabels = [];
 
