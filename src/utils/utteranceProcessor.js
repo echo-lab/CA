@@ -21,6 +21,9 @@ let currentAbortController = null;
 let deferredOffScriptEntries = [];
 let deferredContext = null;
 let isCategorizationPending = false;
+let awaitingQuestionAnswer = false;
+
+export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
 
 function emptyQueues() {
   return Array.from({ length: VARIANT_SLOT_COUNT }, () => []);
@@ -107,6 +110,7 @@ export function abortCurrentCategorization() {
   deferredOffScriptEntries = [];
   deferredContext = null;
   isCategorizationPending = false;
+  awaitingQuestionAnswer = false;
 }
 
 export function getIsCategorizationPending() {
@@ -317,7 +321,8 @@ export async function processUserUtterance({
   onCategorizationStart,
   imageDescriptionRef,
   userAttentionRef,
-  questionGenEnabledRef
+  questionGenEnabledRef,
+  onQuestionAnswered
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
@@ -331,12 +336,17 @@ export async function processUserUtterance({
   }
 
   if (!userUtterance) return;
+
+  const wasAwaiting = awaitingQuestionAnswer;
+  awaitingQuestionAnswer = false;
+
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
     captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
+    if (wasAwaiting) onQuestionAnswered?.();
     return;
   }
 
@@ -441,5 +451,6 @@ export async function processUserUtterance({
     const removed = utteranceQueuesRef.current[0].shift();
     utteranceQueuesRef.current[1].shift();
     debugLog({ type: 'queue_slide', removed });
+    if (wasAwaiting) onQuestionAnswered?.();
   }
 }

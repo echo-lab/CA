@@ -15,9 +15,11 @@ import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
-import { processUserUtterance, sendOffScriptLog, abortCurrentCategorization } from "../utils/utteranceProcessor";
+import { processUserUtterance, sendOffScriptLog, abortCurrentCategorization, setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
+
+const REINFORCEMENT_PHRASES = ["I see.", "Mhmm.", "Okay.", "Interesting!", "That's nice."];
 
 class Book {
   constructor(data) {
@@ -399,6 +401,7 @@ useEffect(() => {
 // Called on every page transition so stale state can't leak across pages.
 const clearQuestionUI = () => {
   abortCurrentCategorization();
+  setAwaitingQuestionAnswer(false);
   setGeneratedQuestion(null);
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
@@ -408,6 +411,14 @@ const clearQuestionUI = () => {
     generatedQuestionAudioRef.current.pause();
     generatedQuestionAudioRef.current = null;
   }
+};
+
+const playReinforcement = () => {
+  const phrase = REINFORCEMENT_PHRASES[Math.floor(Math.random() * REINFORCEMENT_PHRASES.length)];
+  const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
+  const voiceName = narratorRole?.VA || "kore";
+  const role = narratorRole?.role || null;
+  speak(phrase, voiceName, "neutral", role).catch(() => {});
 };
 
 const speakGenerated = () => {
@@ -439,7 +450,7 @@ const speakGenerated = () => {
 
   if (cachedAudio) {
     setIsGeneratedQuestionPlaying(true);
-    cachedAudio.addEventListener("ended", () => { unmute(); setIsGeneratedQuestionPlaying(false); }, { once: true });
+    cachedAudio.addEventListener("ended", () => { unmute(); setIsGeneratedQuestionPlaying(false); setAwaitingQuestionAnswer(true); }, { once: true });
     cachedAudio.currentTime = 0;
     cachedAudio.play();
   } else if (cachedQuestion) {
@@ -448,7 +459,7 @@ const speakGenerated = () => {
     const role = narratorRole?.role || null;
     setIsGeneratedQuestionPlaying(true);
     speak(cachedQuestion, voiceName, "neutral", role)
-      .then(() => { unmute(); setIsGeneratedQuestionPlaying(false); })
+      .then(() => { unmute(); setIsGeneratedQuestionPlaying(false); setAwaitingQuestionAnswer(true); })
       .catch(() => { unmute(); setIsGeneratedQuestionPlaying(false); });
   }
 };
@@ -856,7 +867,8 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
     },
     imageDescriptionRef,
     userAttentionRef,
-    questionGenEnabledRef
+    questionGenEnabledRef,
+    onQuestionAnswered: playReinforcement
   });
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [userUtterance]);
