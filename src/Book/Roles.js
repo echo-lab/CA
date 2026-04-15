@@ -35,13 +35,13 @@ export const roles = [
     img: require("../Pictures/Mates-05.png"),
     voiceColor: "Coral"
   },
-  // {
-  //   Role: "Dummy",
-  //   RoleParameter: "gacrux",
-  //   img: require("../Pictures/adult.png"),
-  //   voiceColor: "Gray",
-  //   isDummy: true
-  // },
+  {
+    Role: "Dummy",
+    RoleParameter: "gacrux",
+    img: require("../Pictures/adult.png"),
+    voiceColor: "Gray",
+    isDummy: true
+  },
   {
     Role: "Parent",
     RoleParameter: "leda",

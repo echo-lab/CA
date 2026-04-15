@@ -1,6 +1,6 @@
 import { gptDebugLog } from "./debugMonitor";
 
-const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention) => {
+const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, signal) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
     const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention };
@@ -10,7 +10,8 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
         const response = await fetch(`${BASE_URL}/api/categorize-utterances-stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal
         });
 
         if (!response.ok) {
@@ -55,6 +56,10 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
         gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream', data: result });
         return result;
     } catch (error) {
+        if (error.name === 'AbortError') {
+            gptDebugLog({ type: 'gpt_aborted', endpoint: '/api/categorize-utterances-stream' });
+            return null;
+        }
         console.error('Error in streaming categorization:', error);
         gptDebugLog({ type: 'gpt_error', endpoint: '/api/categorize-utterances-stream', error: error.message });
         return null;

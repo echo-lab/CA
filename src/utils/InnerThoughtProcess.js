@@ -1,6 +1,6 @@
 import { gptDebugLog } from "./debugMonitor";
 
-const categorizeOffScriptUtterances = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention) => {
+const categorizeOffScriptUtterances = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, signal) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
     const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention };
@@ -12,7 +12,8 @@ const categorizeOffScriptUtterances = async (formattedUtterances, currentPageQue
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal
         });
 
         if (!response.ok) {
@@ -24,6 +25,10 @@ const categorizeOffScriptUtterances = async (formattedUtterances, currentPageQue
         gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances', data: result });
         return result;
     } catch (error) {
+        if (error.name === 'AbortError') {
+            gptDebugLog({ type: 'gpt_aborted', endpoint: '/api/categorize-utterances' });
+            return null;
+        }
         console.error('Error categorizing off-script utterances:', error);
         gptDebugLog({ type: 'gpt_error', endpoint: '/api/categorize-utterances', error: error.message });
         return null;
