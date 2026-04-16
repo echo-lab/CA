@@ -283,7 +283,7 @@ const gotoNextPage = () => {
       return { ...prevState, page: prevState.page + 1, index: 0 };
     });
   } else {
-    navigate('/Home', { state: { id: 1 } });
+    navigate('/Home');
   }
 };
 
@@ -968,7 +968,7 @@ function stripSSMLTags(text) {
     // }
 
     if (state.hasReachedEnd) {
-      navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
+      navigate('/Home');
       return;
     }
 
@@ -1029,7 +1029,7 @@ function stripSSMLTags(text) {
 
       <div className="navbar navbar-light bg-light row1">
         <div className="home btn col-1">
-          <Link to={{ pathname: "/Home", state: { id: 1 } }}>
+          <Link to="/Home">
             <button className="btn btn-primary">
               <i>
                 <KeyboardDoubleArrowLeftIcon />

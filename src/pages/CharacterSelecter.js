@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Modal from "react-modal";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
@@ -17,6 +17,7 @@ import { data as data3 } from "../Book/Book3";
 
 import { say } from "../utils/ttsClient";
 import { prefetchImageAnalysis } from "../utils/imageAnalysis";
+import { useUser } from "../utils/UserContext";
 
 const url = process.env.REACT_APP_TTSURL;
 const port = process.env.REACT_APP_PORT;
@@ -171,7 +172,7 @@ function Book(data) {
 export default function CharaterSelecter() {
   const location = useLocation();
   const id = location.state?.id;
-  const userName = location.state?.name;
+  const { userName } = useUser();
   const condition = location.state?.condition;
   const navigate = useNavigate();
 
@@ -300,7 +301,7 @@ export default function CharaterSelecter() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="d-flex flex-column min-vh-100">
           <div className="d-flex justify-content-between p-3 bg-light">
-            <button className="btn btn-primary" onClick={() => navigate("/")}>
+            <button className="btn btn-primary" onClick={() => navigate("/Home")}>
               <KeyboardDoubleArrowLeftIcon fontSize="large" />
             </button>
             <div className="text-center">

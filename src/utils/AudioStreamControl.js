@@ -283,6 +283,7 @@ export function AudioStreamControlProvider({ children }) {
       const dc = pc.createDataChannel("oai-events");
       dataChannelRef.current = dc;
 
+      // ----------------------------------------Session Started---------------------------------------------
       dc.onopen = () => {
         console.log("DataChannel opened");
         setConnected(true);
@@ -386,7 +387,7 @@ export function AudioStreamControlProvider({ children }) {
       // Create and set local description
       const offer = await pc.createOffer({ offerToReceiveAudio: true });
       await pc.setLocalDescription(offer);
-
+      
       // Exchange SDP with OpenAI
       const sdpResp = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",

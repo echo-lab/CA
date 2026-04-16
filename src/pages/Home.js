@@ -1,14 +1,11 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import '../styles/Home.css';
 import { bookInfo } from "../Book/Books.js"; // assuming that Books.js is in the same directory as Home.js
 import NavigationBar from '../components/NavigationBar';
 
 
 function Home() {
-  const location = useLocation();
-  const { name } = location.state || {};
-
   const renderCard = (card, index) =>{
     return (
         <div className="m-3" key={index}>
@@ -17,7 +14,10 @@ function Home() {
             <img className="card-img-top h-50" src={card.img} alt="Card" />
             <div className="card-body">
               <h5 className="card-title">{card.title}</h5>
-              <Link to="/Condition" state={{ id: card.id, name }}><button className="btn btn-primary">Start Reading</button></Link>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <Link to="/Condition" state={{ id: card.id }}><button className="btn btn-primary">Start Reading</button></Link>
+                <Link to="/Survey" state={{ id: card.id }}><button className="btn btn-outline-primary">User Survey</button></Link>
+              </div>
             </div>
           </div>
           </div>

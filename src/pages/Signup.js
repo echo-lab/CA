@@ -4,14 +4,17 @@ import image2 from '../Pictures/Mates-05.png'
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
 import  { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../utils/UserContext';
 
 function Signup() {
-  const [userName, setUserName] = useState(''); // Keep this state for the input field
+  const [userName, setLocalUserName] = useState(''); // Keep this state for the input field
   const navigate = useNavigate(); // Hook for programmatic navigation
+  const { setUserName } = useUser();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    navigate('/ChildSelect', { state: { userName: userName } }); // Navigate with conditional userName
+    setUserName(userName);
+    navigate('/ChildSelect');
   };
 
   return (
@@ -35,7 +38,7 @@ function Signup() {
                   id="name"
                   placeholder="What's your child's name?"
                   value={userName} // Controlled component
-                  onChange={(e) => setUserName(e.target.value)} // Update state on change
+                  onChange={(e) => setLocalUserName(e.target.value)} // Update state on change
                 />
               </div>
               <button type="submit" className="button">Start</button>

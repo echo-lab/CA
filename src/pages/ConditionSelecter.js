@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import { useUser } from "../utils/UserContext";
 
 const CONDITIONS = [
   {
@@ -21,25 +22,33 @@ const CONDITIONS = [
 export default function ConditionSelecter() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { id, name } = location.state || {};
+  const { id } = location.state || {};
+  const { userName } = useUser();
   const [selected, setSelected] = useState(null);
 
   const BASE_URL = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 
   const handleNext = () => {
-    if (!selected) return;
+    console.log('[ConditionSelecter] handleNext fired', { selected, userName, id, BASE_URL });
+    if (!selected) {
+      console.warn('[ConditionSelecter] no condition selected, aborting');
+      return;
+    }
+    console.log('[ConditionSelecter] POST /api/log-session →', `${BASE_URL}/api/log-session`);
     fetch(`${BASE_URL}/api/log-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, book: id, condition: selected }),
-    }).catch(err => console.error('Failed to log session:', err));
-    navigate("/Character", { state: { id, name, condition: selected } });
+      body: JSON.stringify({ name: userName, book: id, condition: selected }),
+    })
+      .then(res => res.json().then(data => console.log('[ConditionSelecter] log-session response', res.status, data)))
+      .catch(err => console.error('[ConditionSelecter] Failed to log session:', err));
+    navigate("/Character", { state: { id, condition: selected } });
   };
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f5", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", background: "#fff", borderBottom: "1px solid #ddd" }}>
-        <button className="btn btn-primary" onClick={() => navigate("/Home", { state: { userName: name } })}>
+        <button className="btn btn-primary" onClick={() => navigate("/Home")}>
           <KeyboardDoubleArrowLeftIcon fontSize="large" />
         </button>
         <div style={{ textAlign: "center" }}>

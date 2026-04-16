@@ -1012,6 +1012,7 @@ app.post('/api/log-session', (req, res) => {
     if (!name || !book || !condition) {
         return res.status(400).json({ message: 'Missing name, book, or condition' });
     }
+    console.log('Logging session:', { name, book, condition });
     const csvPath = path.join(__dirname, 'session-log.csv');
     const timestamp = new Date().toISOString();
     const header = 'timestamp,name,book,condition\n';
@@ -1034,6 +1035,41 @@ app.get('/api/log-session/download', (req, res) => {
     }
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=session-log.csv');
+    res.sendFile(csvPath);
+});
+
+// Log user experience survey to CSV
+app.post('/api/log-survey', (req, res) => {
+    const { name, book, condition, answers } = req.body;
+    if (!name || !book || !condition || !answers) {
+        return res.status(400).json({ message: 'Missing name, book, condition, or answers' });
+    }
+    console.log('Logging survey:', { name, book, condition, answers });
+    const csvPath = path.join(__dirname, 'survey-log.csv');
+    const timestamp = new Date().toISOString();
+    const qCount = 9;
+    const header = 'timestamp,name,book,condition,' +
+        Array.from({ length: qCount }, (_, i) => `q${i + 1}`).join(',') + '\n';
+    const row = [timestamp, name, book, condition,
+        ...Array.from({ length: qCount }, (_, i) => answers[i] ?? '')].join(',') + '\n';
+
+    if (!fs.existsSync(csvPath)) {
+        fs.writeFileSync(csvPath, header + row);
+    } else {
+        fs.appendFileSync(csvPath, row);
+    }
+    console.log(`[survey-log] ${name}, book ${book}, ${condition}`);
+    res.json({ success: true });
+});
+
+// Download survey log CSV
+app.get('/api/log-survey/download', (req, res) => {
+    const csvPath = path.join(__dirname, 'survey-log.csv');
+    if (!fs.existsSync(csvPath)) {
+        return res.status(404).json({ message: 'No survey log found' });
+    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=survey-log.csv');
     res.sendFile(csvPath);
 });
 
