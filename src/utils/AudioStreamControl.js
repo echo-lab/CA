@@ -243,10 +243,11 @@ export function AudioStreamControlProvider({ children }) {
       const clientSecret = tokenJson?.value;
       
       const pc = new RTCPeerConnection();
+      pc.addTransceiver("audio", { direction: "recvonly" });
+
       pcRef.current = pc;
 
       pc.ontrack = (e) => {
-        console.log("ontrack event received! Streams:", e.streams);
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = e.streams[0];
           // Set initial muted state
@@ -291,17 +292,13 @@ export function AudioStreamControlProvider({ children }) {
         const sessionUpdate = {
           type: "session.update",
           session: {
-            // turn_detection: {
-            //   type: "server_vad",
-            //   threshold: 0.5,
-            //   prefix_padding_ms: 300,
-            //   silence_duration_ms: 500
-            // },
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500
+            },
             modalities: ["audio"],
-
-            // input_audio_transcription: {
-            //   model: "gpt-4o-transcribe",
-            // }
           }
         };
         dc.send(JSON.stringify(sessionUpdate));
@@ -387,7 +384,8 @@ export function AudioStreamControlProvider({ children }) {
       const offer = await pc.createOffer({ offerToReceiveAudio: true });
       await pc.setLocalDescription(offer);
 
-      // Exchange SDP with OpenAI
+      // Exchange SDP directly with OpenAI Realtime. The ephemeral client_secret already
+      // carries the session config (model, voice), so /v1/realtime/calls takes no query params.
       const sdpResp = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         body: offer.sdp,
@@ -398,7 +396,9 @@ export function AudioStreamControlProvider({ children }) {
       });
 
       if (!sdpResp.ok) {
-        throw new Error(`SDP exchange failed: ${sdpResp.status}`);
+        const errBody = await sdpResp.text();
+        console.error(`SDP exchange failed (${sdpResp.status}):`, errBody);
+        throw new Error(`SDP exchange failed: ${sdpResp.status} — ${errBody.slice(0, 300)}`);
       }
 
       const answer = { type: "answer", sdp: await sdpResp.text() };
@@ -470,8 +470,8 @@ export function AudioStreamControlProvider({ children }) {
   };
 
   // Send content-based message to ask questions
-  const sendContentMessage = (content, instruction = `Generate an educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver based on the provided contents. 
-    Here are two examples of educational question generate a new question based on the provided example. Example Questions: 1. Describe the pattern on the sleeping bags. 2. What color would the next bunch of flowers be if there was one more?`) => {
+  const sendContentMessage = (question, reply, instruction = `Generate reinforcement feedback for the child's response. Make it brief and encouraging.`) => {
+    const dc = dataChannelRef.current;
     const message = {
       type: "conversation.item.create",
       item: {
@@ -480,21 +480,24 @@ export function AudioStreamControlProvider({ children }) {
         content: [
           {
             type: "input_text",
-            text: `${instruction}\n\nContent: ${JSON.stringify(content)}`,
+            text: `Last question: ${question}\n\nReply: ${reply}\n\nInstruction: ${instruction}`,
           },
         ],
       },
     };
+    const responseCreate = { type: "response.create" };
 
-    // Send the message using the existing sendMessage function
-    sendMessage(message);
-
-    // Immediately trigger response
-    setIsAIResponding(true);
-    const responseCreate = {
-      type: "response.create",
-    };
-    sendMessage(responseCreate);
+    if (dc && dc.readyState === 'open') {
+      dc.send(JSON.stringify(message));
+      setIsAIResponding(true);
+      dc.send(JSON.stringify(responseCreate));
+    } else if (dc && dc.readyState === 'connecting') {
+      // Channel still handshaking — queue both; dc.onopen flushes them in order.
+      messageQueueRef.current.push(message, responseCreate);
+      setIsAIResponding(true);
+    } else {
+      console.warn("Cannot send content message: data channel not available (state:", dc?.readyState, ")");
+    }
   };
 
   // Toggle mute/unmute for AI audio

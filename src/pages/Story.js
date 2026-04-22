@@ -19,8 +19,6 @@ import { processUserUtterance, sendOffScriptLog, abortCurrentCategorization, set
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
 
-const REINFORCEMENT_PHRASES = ["I see.", "Mhmm.", "Okay.", "Interesting!", "That's nice."];
-
 class Book {
   constructor(data) {
     this.name = data.Book.Name;
@@ -47,7 +45,7 @@ function Reader() {
   // How many warm requests to run in parallel
   const PRELOAD_CONCURRENCY = 1;
   // Hardcoded feature flags
-  const REALTIME_ENABLED = false;
+  const REALTIME_ENABLED = true;
   const DEEPGRAM_ENABLED = true;
   const QUESTION_GEN_ENABLED = true;
 
@@ -123,6 +121,8 @@ function Reader() {
   const userAttentionRef = useRef(null);
   const pagesWithoutPageQuestionRef = useRef(0);
   const pendingPageQuestionFlag = useRef(false);
+  const lastAskedQuestionRef = useRef(null);
+  const isPageQuestionPlayingRef = useRef(false);
 
 
   let lastSpokenText = "";
@@ -355,8 +355,11 @@ const playSound = () => {
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
   const voiceName = narratorRole?.VA || "kore";
   const role = narratorRole?.role || null;
+  const question = state.pagesValues[state.page].question;
   setIsPageQuestionPlaying(true);
-  speak(state.pagesValues[state.page].question, voiceName, "neutral", role);
+  isPageQuestionPlayingRef.current = true;
+  lastAskedQuestionRef.current = question;
+  speak(question, voiceName, "neutral", role);
 };
 
 // Pre-fetch TTS audio when a generated question arrives (without auto-playing)
@@ -402,6 +405,7 @@ useEffect(() => {
 const clearQuestionUI = () => {
   abortCurrentCategorization();
   setAwaitingQuestionAnswer(false);
+  lastAskedQuestionRef.current = null;
   setGeneratedQuestion(null);
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
@@ -413,12 +417,12 @@ const clearQuestionUI = () => {
   }
 };
 
-const playReinforcement = () => {
-  const phrase = REINFORCEMENT_PHRASES[Math.floor(Math.random() * REINFORCEMENT_PHRASES.length)];
-  const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
-  const voiceName = narratorRole?.VA || "kore";
-  const role = narratorRole?.role || null;
-  speak(phrase, voiceName, "neutral", role).catch(() => {});
+const playReinforcement = async (reply) => {
+  const question = lastAskedQuestionRef.current;
+  lastAskedQuestionRef.current = null;
+  console.log("Playing reinforcement. Question:", question, "Reply:", reply);
+  if (remoteAudioRef.current) remoteAudioRef.current.muted = false;
+  sendContentMessage(question, reply);
 };
 
 const speakGenerated = () => {
@@ -450,7 +454,7 @@ const speakGenerated = () => {
 
   if (cachedAudio) {
     setIsGeneratedQuestionPlaying(true);
-    cachedAudio.addEventListener("ended", () => { unmute(); setIsGeneratedQuestionPlaying(false); setAwaitingQuestionAnswer(true); }, { once: true });
+    cachedAudio.addEventListener("ended", () => { unmute(); setIsGeneratedQuestionPlaying(false); lastAskedQuestionRef.current = cachedQuestion; setAwaitingQuestionAnswer(true); }, { once: true });
     cachedAudio.currentTime = 0;
     cachedAudio.play();
   } else if (cachedQuestion) {
@@ -459,7 +463,7 @@ const speakGenerated = () => {
     const role = narratorRole?.role || null;
     setIsGeneratedQuestionPlaying(true);
     speak(cachedQuestion, voiceName, "neutral", role)
-      .then(() => { unmute(); setIsGeneratedQuestionPlaying(false); setAwaitingQuestionAnswer(true); })
+      .then(() => { unmute(); setIsGeneratedQuestionPlaying(false); lastAskedQuestionRef.current = cachedQuestion; setAwaitingQuestionAnswer(true); })
       .catch(() => { unmute(); setIsGeneratedQuestionPlaying(false); });
   }
 };
@@ -524,6 +528,13 @@ async function speak(text, voiceName = "kore", emotion = "neutral", role = null)
 
     if (audio) {
         audio.removeEventListener("ended", audioEnded);
+    }
+
+    // If the scripted page question just finished, arm reinforcement so the next
+    // user utterance routes through playReinforcement (same path as generated questions).
+    if (isPageQuestionPlayingRef.current) {
+      setAwaitingQuestionAnswer(true);
+      isPageQuestionPlayingRef.current = false;
     }
 
     setIsAudioPlaying(false);

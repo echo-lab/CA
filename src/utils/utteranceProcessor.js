@@ -340,13 +340,22 @@ export async function processUserUtterance({
   const wasAwaiting = awaitingQuestionAnswer;
   awaitingQuestionAnswer = false;
 
+  // If we just asked a generated follow-up question, treat this utterance purely as the
+  // reply — route it to reinforcement and skip categorization so it doesn't seed another
+  // question.
+  if (wasAwaiting) {
+    lastProcessedUtteranceRef.current = userUtterance;
+    debugLog({ type: 'question_reply_captured', utterance: userUtterance });
+    onQuestionAnswered?.(userUtterance);
+    return;
+  }
+
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
     captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
-    if (wasAwaiting) onQuestionAnswered?.();
     return;
   }
 
@@ -451,6 +460,5 @@ export async function processUserUtterance({
     const removed = utteranceQueuesRef.current[0].shift();
     utteranceQueuesRef.current[1].shift();
     debugLog({ type: 'queue_slide', removed });
-    if (wasAwaiting) onQuestionAnswered?.();
   }
 }

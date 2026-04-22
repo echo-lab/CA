@@ -461,17 +461,18 @@ ${formattedUtterances}
             ]
         });
 
+// Use one of these strategies (vary across calls):
+// - Open-ended: Ask the child to describe or explain ("What's happening here?")
+// - Wh-question: Who, what, where, why about the story or illustration
+// - Recall: Ask about something earlier in the story
+// - Completion: Leave a blank for the child to fill in (for repetitive/rhyming text)
+
         const questionPromise = openai.chat.completions.create({
             model: "gpt-5-mini",
             messages: [
                 {
                     role: "developer",
                     content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging follow-up question for a toddler based on what they just said, the book content, and the image (if provided).
-Use one of these strategies (vary across calls):
-- Open-ended: Ask the child to describe or explain ("What's happening here?")
-- Wh-question: Who, what, where, why about the story or illustration
-- Recall: Ask about something earlier in the story
-- Completion: Leave a blank for the child to fill in (for repetitive/rhyming text)
 Guidelines:
 - Build on the provided contexts utterance, user attention, and page information— respond to what THEY noticed
 - Keep it short and natural (how a parent would talk)
@@ -553,73 +554,73 @@ ${formattedUtterances}
     }
 });
 
-app.post('/api/categorize-realtime', async (req, res) => {
-    try {
-        const { formattedUtterances, bookPageText, currentPageQuestion, bookText } = req.body;
+// app.post('/api/categorize-realtime', async (req, res) => {
+//     try {
+//         const { formattedUtterances, bookPageText, currentPageQuestion, bookText } = req.body;
 
-        if (!formattedUtterances) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['formattedUtterances']
-            });
-        }
+//         if (!formattedUtterances) {
+//             return res.status(400).json({
+//                 error: 'Missing required fields',
+//                 required: ['formattedUtterances']
+//             });
+//         }
 
-        const fetch = (await import('node-fetch')).default;
+//         const fetch = (await import('node-fetch')).default;
 
-        const instructions = `You are a reading interaction analyst and educator for a parent-child co-reading session about patterns.
+//         const instructions = `You are a reading interaction analyst and educator for a parent-child co-reading session about patterns.
 
-You will receive off-script utterances from a reading session along with the book context. You must do two things:
+// You will receive off-script utterances from a reading session along with the book context. You must do two things:
 
-1. CLASSIFY each utterance as ON_TOPIC or OFF_TOPIC:
-   - ON_TOPIC: Related to the book's overall content — characters, plot, themes, predictions, or connections to the child's life inspired by the story.
-   - OFF_TOPIC: Unrelated to the book or reading activity (e.g., "What's for dinner?", attention prompts like "Pay attention").
+// 1. CLASSIFY each utterance as ON_TOPIC or OFF_TOPIC:
+//    - ON_TOPIC: Related to the book's overall content — characters, plot, themes, predictions, or connections to the child's life inspired by the story.
+//    - OFF_TOPIC: Unrelated to the book or reading activity (e.g., "What's for dinner?", attention prompts like "Pay attention").
 
-2. Based ONLY on utterances that are ON_TOPIC, immediately ask ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, say nothing.
+// 2. Based ONLY on utterances that are ON_TOPIC, immediately ask ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, say nothing.
 
-Book context:
-${bookText ? 'Full book text:\n' + bookText + '\n\n' : ''}Current page (Page ${req.body.currentPageNumber || ''}):
-Text: "${bookPageText}"
-Question: "${currentPageQuestion}"
+// Book context:
+// ${bookText ? 'Full book text:\n' + bookText + '\n\n' : ''}Current page (Page ${req.body.currentPageNumber || ''}):
+// Text: "${bookPageText}"
+// Question: "${currentPageQuestion}"
 
-Off-script utterances:
-${formattedUtterances}
+// Off-script utterances:
+// ${formattedUtterances}
 
-When you respond, first briefly state your classifications (e.g., "line1 is on-topic, line3 is off-topic"), then immediately ask your follow-up question. Keep it conversational and warm — you are speaking to a toddler and their caregiver.`;
+// When you respond, first briefly state your classifications (e.g., "line1 is on-topic, line3 is off-topic"), then immediately ask your follow-up question. Keep it conversational and warm — you are speaking to a toddler and their caregiver.`;
 
-        const tokenResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${OPENAI_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-realtime-preview-2024-12-17",
-                voice: "alloy",
-                instructions,
-            })
-        });
+//         const tokenResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
+//             method: "POST",
+//             headers: {
+//                 Authorization: `Bearer ${OPENAI_API_KEY}`,
+//                 "Content-Type": "application/json",
+//             },
+//             body: JSON.stringify({
+//                 model: "gpt-4o-realtime-preview-2024-12-17",
+//                 voice: "alloy",
+//                 instructions,
+//             })
+//         });
 
-        if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            console.error(`Realtime session error (${tokenResponse.status}):`, errorText);
-            throw new Error(`Failed to create realtime session: ${errorText}`);
-        }
+//         if (!tokenResponse.ok) {
+//             const errorText = await tokenResponse.text();
+//             console.error(`Realtime session error (${tokenResponse.status}):`, errorText);
+//             throw new Error(`Failed to create realtime session: ${errorText}`);
+//         }
 
-        const { client_secret } = await tokenResponse.json();
+//         const { client_secret } = await tokenResponse.json();
 
-        res.json({
-            success: true,
-            client_secret,
-        });
+//         res.json({
+//             success: true,
+//             client_secret,
+//         });
 
-    } catch (error) {
-        console.error('Error creating realtime categorization session:', error);
-        res.status(500).json({
-            error: 'Failed to create realtime session',
-            detail: error.message
-        });
-    }
-});
+//     } catch (error) {
+//         console.error('Error creating realtime categorization session:', error);
+//         res.status(500).json({
+//             error: 'Failed to create realtime session',
+//             detail: error.message
+//         });
+//     }
+// });
 
 // --- Book data loader for test page ---
 function loadBookData(bookId) {
