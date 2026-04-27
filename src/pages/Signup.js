@@ -1,6 +1,6 @@
 import React from 'react';
 import '../styles/signup.css';
-import image2 from '../Pictures/Mates-05.png'
+import image2 from '../Pictures/Mate05/Mates-05.png'
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
 import  { useState } from 'react';
 import { useNavigate } from 'react-router-dom';

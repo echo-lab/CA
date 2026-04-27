@@ -8,9 +8,6 @@ import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import virtualCompany from "../Pictures/Virtual.png";
-import virtualComany2 from "../Pictures/Virtual-U.png";
-import virtualCompany3 from "../Pictures/Virtual-O.png";
 import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
@@ -47,15 +44,61 @@ function Reader() {
   // Hardcoded feature flags
   const REALTIME_ENABLED = true;
   const DEEPGRAM_ENABLED = true;
+  const GEMINI_Enabled = true;
   const QUESTION_GEN_ENABLED = true;
 
-  const frames = [virtualCompany, virtualComany2, virtualCompany3];
+  const mateFrames = {
+    "Green Grant": [
+      require("../Pictures/Mate01/Mates-01.png"),
+      require("../Pictures/Mate01/Mates-01-1.png"),
+      require("../Pictures/Mate01/Mates-01-2.png"),
+      require("../Pictures/Mate01/Mates-01-3.png"),
+    ],
+    "Yellow Yancey": [
+      require("../Pictures/Mate02/Mates-02.png"),
+      require("../Pictures/Mate02/Mates-02-1.png"),
+      require("../Pictures/Mate02/Mates-02-2.png"),
+      require("../Pictures/Mate02/Mates-02-3.png"),
+    ],
+    "Violet Victor": [
+      require("../Pictures/Mate03/Mates-03.png"),
+      require("../Pictures/Mate03/Mates-03-1.png"),
+      require("../Pictures/Mate03/Mates-03-2.png"),
+      require("../Pictures/Mate03/Mates-03-3.png"),
+    ],
+    "Blue Beatrice": [
+      require("../Pictures/Mate04/Mates-04.png"),
+      require("../Pictures/Mate04/Mates-04-1.png"),
+      require("../Pictures/Mate04/Mates-04-2.png"),
+      require("../Pictures/Mate04/Mates-04-3.png"),
+    ],
+    "Ruby Randy": [
+      require("../Pictures/Mate06/Mates-06.png"),
+      require("../Pictures/Mate06/Mates-06-1.png"),
+      require("../Pictures/Mate06/Mates-06-2.png"),
+      require("../Pictures/Mate06/Mates-06-3.png"),
+    ],
+    "Coral Carly": [
+      require("../Pictures/Mate05/Mates-05.png"),
+      require("../Pictures/Mate05/Mates-05-1.png"),
+      require("../Pictures/Mate05/Mates-05-2.png"),
+      require("../Pictures/Mate05/Mates-05-3.png"),
+    ],
+  };
+  const narratorRole = Array.isArray(selectedOptions)
+    ? selectedOptions.find(o => mateFrames[o.role])
+    : null;
+  const narratorImage = narratorRole?.img;
+  const frames = narratorRole ? mateFrames[narratorRole.role] : [narratorImage];
 
   const {
     // connected,
     connect,
     disconnect,
+    geminiLiveConnect,
+    geminiLiveDisconnect,
     sendContentMessage,
+    sendContentMessageGemini,
     isMuted,
     userUtterance,
     speakerLabels,
@@ -177,9 +220,11 @@ function Reader() {
   useEffect(() => {
     if (DEEPGRAM_ENABLED) connectToDeepgram();
     if (REALTIME_ENABLED) connect();
+    if (GEMINI_Enabled) geminiLiveConnect({ voiceName: narratorRole?.VA });
     return () => {
       disconnectDeepgram();
       disconnect();
+      geminiLiveDisconnect();
     };
   }, []);
 
@@ -188,6 +233,9 @@ function Reader() {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
     userAttentionRef.current = null;
+    // Default the "last asked question" to this page's question so reinforcement
+    // has context even before playSound runs or after a follow-up was consumed.
+    lastAskedQuestionRef.current = state.pagesValues[state.page]?.question || null;
     setImageTags([]);
     if (state.page > 0) {
       imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
@@ -405,7 +453,9 @@ useEffect(() => {
 const clearQuestionUI = () => {
   abortCurrentCategorization();
   setAwaitingQuestionAnswer(false);
-  lastAskedQuestionRef.current = null;
+  // Don't null lastAskedQuestionRef here — it gets reseeded with the new
+  // page's question by the page-change effect, so reinforcement always has
+  // context even if the user never explicitly played the page question.
   setGeneratedQuestion(null);
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
@@ -422,7 +472,7 @@ const playReinforcement = async (reply) => {
   lastAskedQuestionRef.current = null;
   console.log("Playing reinforcement. Question:", question, "Reply:", reply);
   if (remoteAudioRef.current) remoteAudioRef.current.muted = false;
-  sendContentMessage(question, reply);
+  sendContentMessageGemini(question, reply);
 };
 
 const speakGenerated = () => {
@@ -840,6 +890,7 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
     condition,
     speakerLabels,
     sendContentMessage,
+    sendContentMessageGemini,
     gotoNextPage,
     jumpToLine,
     setAudioHasEnded,
@@ -1001,8 +1052,8 @@ function stripSSMLTags(text) {
                   <div className="role-image-container">
                     <img
                       id="role-image"
-                      src={virtualCompany}
-                      alt="Parent"
+                      src={narratorImage}
+                      alt="Narrator"
                       onClick={handleClick}
                       style={{ width: '200px', cursor: 'pointer' }}
                       className={isSlidingBack ? 'slide-back' : imageChecker ? (hasSlidCloserRef.current ? 'slide-closer-hold' : 'slide-closer') : ''}
@@ -1023,7 +1074,7 @@ function stripSSMLTags(text) {
                       }}
                     />
                   </div>
-                  <div className="question-dialogue d-flex justify-content-between align-items-center" onClick={handleClick} style={{ cursor: 'pointer' }}>
+                  <div className="question-dialogue d-flex justify-content-center align-items-center" onClick={handleClick} style={{ cursor: 'pointer' }}>
                       <div className="storyTitle m-0"></div>
                       {questionText}
                   </div>

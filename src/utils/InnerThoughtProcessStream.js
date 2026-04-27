@@ -6,6 +6,10 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
     const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/categorize-utterances-stream', payload });
 
+    const t0 = performance.now();
+    let tFirstItem = null;
+    let tLastItem = null;
+
     try {
         const response = await fetch(`${BASE_URL}/api/categorize-utterances-stream`, {
             method: 'POST',
@@ -39,6 +43,8 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
                 try {
                     const parsed = JSON.parse(dataLine.slice(6));
                     if (parsed.type === 'item') {
+                        if (tFirstItem === null) tFirstItem = performance.now();
+                        tLastItem = performance.now();
                         items.push(parsed.item);
                     } else if (parsed.type === 'done') {
                         generatedQuestion = parsed.generatedQuestion;
@@ -52,8 +58,21 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
             }
         }
 
+        const tDone = performance.now();
+        const ms = (a, b) => a == null || b == null ? null : Math.round(b - a);
+        const timings = {
+            requestToFirstItemMs: ms(t0, tFirstItem),
+            requestToLastItemMs: ms(t0, tLastItem),
+            categorizationItemsMs: ms(tFirstItem, tLastItem),
+            requestToDoneMs: ms(t0, tDone),
+            lastItemToQuestionMs: ms(tLastItem, tDone),
+            itemCount: items.length,
+            generatedQuestion: !!generatedQuestion,
+        };
+        console.log('[categorize-stream] timings (ms):', timings);
+
         const result = { items, generatedQuestion };
-        gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream', data: result });
+        gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream', data: { ...result, timings } });
         return result;
     } catch (error) {
         if (error.name === 'AbortError') {

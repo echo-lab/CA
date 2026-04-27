@@ -93,19 +93,29 @@ img {
 }
 
 .question-dialogue {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  border: 1px solid #ccc;
+  /* triangle dimension */
+  --b: 1em; /* base */
+  --h: 1em; /* height */
+  --p: 50%; /* triangle position (0%:top 100%:bottom) */
+  --r: 1.2em; /* the radius */
+  --c: #6ac26a;
+
   position: relative;
-  border-radius: 20px;
-  background-color: #97d597;
+  width: 100%;
+  color: #fff;
   font-size: 22px;
   text-align: center;
-  padding: 20px; /* Add padding to ensure the text doesn't touch the edges */
-  overflow: auto; /* Ensures the content is scrollable if it overflows */
-  width: 100%; /* Take up the remaining width */
+  padding: 1em;
+  margin-left: var(--h);
+  border-radius: var(--r)/min(var(--r), var(--p) - var(--b)/2) var(--r) var(--r) min(var(--r), 100% - var(--p) - var(--b)/2);
+  clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 0,
+    0 max(0%, var(--p) - var(--b)/2),
+    calc(-1 * var(--h)) var(--p),
+    0 min(100%, var(--p) + var(--b)/2));
+  background: var(--c);
+  border-image: conic-gradient(var(--c) 0 0) fill 0/
+    calc(var(--p) - var(--b)/2) var(--r) calc(100% - var(--p) - var(--b)/2) 0/
+    0 0 0 var(--h);
 }
 
 .row1 {

@@ -1,12 +1,9 @@
 import nlp from "compromise";
-import { categorizeOffScriptUtterances } from "./InnerThoughtProcess";
 import { categorizeOffScriptUtterancesStreaming } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
 
-const USE_STREAMING = true;
-const categorize = USE_STREAMING ? categorizeOffScriptUtterancesStreaming : categorizeOffScriptUtterances;
 const VARIANT_SLOT_COUNT = 2;
 const MID_SENTENCE_TAGS = new Set([
   'Determiner',      // "the", "a", "this"
@@ -204,7 +201,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, controller.signal);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, controller.signal);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {

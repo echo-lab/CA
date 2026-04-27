@@ -23,6 +23,9 @@ export function AudioStreamControlProvider({ children }) {
   const deepgramSocketRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const deepgramStreamRef = useRef(null);
+  const geminiSocketRef = useRef(null);
+  const geminiPlaybackRef = useRef({ ctx: null, nextStart: 0 });
+  const geminiMessageQueueRef = useRef([]);
 
   const connectToDeepgram = async () => {
     try {
@@ -217,6 +220,189 @@ export function AudioStreamControlProvider({ children }) {
     setDeepgramConnected(false);
     setDeepgramTranscript("");
     console.log("Disconnected from Deepgram");
+  };
+
+  const geminiLiveConnect = async ({
+    systemInstructionText = "You are an educator engaging in a conversation with users about educational content. Your goal is to ask relevant and thought-provoking questions based on their discussion to facilitate learning.",
+    model = "gemini-3.1-flash-live-preview",
+    voiceName = "Puck",
+  } = {}) => {
+    try {
+      setError(null);
+
+      const base = new URL(BASE_URL);
+      const wsProtocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${base.host}/api/gemini-live-proxy`;
+      const ws = new WebSocket(wsUrl);
+      geminiSocketRef.current = ws;
+
+      // 24 kHz playback matches Gemini Live audio output rate.
+      const playbackCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+      geminiPlaybackRef.current = { ctx: playbackCtx, nextStart: playbackCtx.currentTime };
+
+      const normalizedVoice = voiceName
+        ? voiceName.charAt(0).toUpperCase() + voiceName.slice(1).toLowerCase()
+        : "Puck";
+
+      ws.onopen = () => {
+        console.log('Connected to Gemini Live');
+        setConnected(true);
+
+        const setupMsg = {
+          setup: {
+            model: model.startsWith('models/') ? model : `models/${model}`,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: normalizedVoice } },
+              },
+            },
+            systemInstruction: {
+              parts: [{ text: systemInstructionText }],
+            },
+          },
+        };
+        console.log('Gemini Live setup →', setupMsg.setup);
+        ws.send(JSON.stringify(setupMsg));
+
+        if (geminiMessageQueueRef.current.length > 0) {
+          console.log(`Flushing ${geminiMessageQueueRef.current.length} queued Gemini messages`);
+          geminiMessageQueueRef.current.forEach(msg => ws.send(JSON.stringify(msg)));
+          geminiMessageQueueRef.current = [];
+        }
+      };
+
+      ws.onmessage = async (evt) => {
+        try {
+          // Proxy forwards upstream frames as Buffers, which arrive as Blobs in
+          // the browser. Decode to text before JSON.parse.
+          let raw;
+          if (evt.data instanceof Blob) raw = await evt.data.text();
+          else if (evt.data instanceof ArrayBuffer) raw = new TextDecoder().decode(evt.data);
+          else raw = evt.data;
+          const data = JSON.parse(raw);
+
+          if (data.setupComplete) {
+            console.log('Gemini Live setup complete');
+            return;
+          }
+
+          const sc = data.serverContent;
+          if (sc) {
+            const parts = sc.modelTurn?.parts || [];
+            for (const part of parts) {
+              const inline = part.inlineData;
+              if (inline?.mimeType?.startsWith("audio/pcm")) {
+                const binary = atob(inline.data);
+                const raw = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) raw[i] = binary.charCodeAt(i);
+                const int16 = new Int16Array(raw.buffer);
+                const float32 = new Float32Array(int16.length);
+                for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 0x8000;
+
+                const { ctx } = geminiPlaybackRef.current;
+                // Browser autoplay policy starts AudioContext suspended; resume
+                // on first audio chunk (silently no-ops if no user gesture).
+                if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+                console.log(`Gemini audio chunk: ${int16.length} samples, ctx.state=${ctx.state}`);
+                const buffer = ctx.createBuffer(1, float32.length, ctx.sampleRate);
+                buffer.getChannelData(0).set(float32);
+                const src = ctx.createBufferSource();
+                src.buffer = buffer;
+                src.connect(ctx.destination);
+                const startAt = Math.max(geminiPlaybackRef.current.nextStart, ctx.currentTime);
+                src.start(startAt);
+                geminiPlaybackRef.current.nextStart = startAt + buffer.duration;
+                setIsAIResponding(true);
+              } else if (part.text) {
+                console.log('Gemini text response (audio expected!):', part.text);
+              }
+            }
+
+            // Flush queued playback on barge-in so we don't keep playing stale audio.
+            if (sc.interrupted) {
+              geminiPlaybackRef.current.nextStart = geminiPlaybackRef.current.ctx.currentTime;
+              setIsAIResponding(false);
+            }
+            if (sc.turnComplete) {
+              setIsAIResponding(false);
+            }
+          }
+
+          if (data.toolCall) {
+            console.log('Gemini toolCall:', data.toolCall);
+          }
+        } catch (err) {
+          console.warn('Failed to parse Gemini Live message:', err);
+        }
+      };
+
+      ws.onerror = (e) => {
+        console.error('Gemini Live WebSocket error:', e);
+        setError('Gemini Live WebSocket error');
+      };
+
+      ws.onclose = (evt) => {
+        console.log(
+          `Gemini Live WebSocket closed — code=${evt.code} reason="${evt.reason}" wasClean=${evt.wasClean}`
+        );
+        setConnected(false);
+      };
+    } catch (err) {
+      console.error('geminiLiveConnect failed:', err);
+      setError(err?.message || String(err));
+    }
+  };
+
+  const geminiLiveDisconnect = () => {
+    if (geminiPlaybackRef.current?.ctx) {
+      try {
+        if (geminiPlaybackRef.current.ctx.state !== 'closed') {
+          geminiPlaybackRef.current.ctx.close();
+        }
+      } catch (err) {
+        console.warn('Error closing Gemini playback context:', err);
+      }
+      geminiPlaybackRef.current = { ctx: null, nextStart: 0 };
+    }
+    if (geminiSocketRef.current) {
+      try {
+        if (geminiSocketRef.current.readyState === WebSocket.OPEN ||
+            geminiSocketRef.current.readyState === WebSocket.CONNECTING) {
+          geminiSocketRef.current.close();
+        }
+      } catch (err) {
+        console.warn('Error closing Gemini WebSocket:', err);
+      }
+      geminiSocketRef.current = null;
+    }
+    geminiMessageQueueRef.current = [];
+    setConnected(false);
+  };
+
+  const sendContentMessageGemini = (question, reply, instruction = `Generate reinforcement feedback for the child's response. Make it brief and encouraging.`) => {
+    console.log('Sending content message to Gemini Live');
+    const ws = geminiSocketRef.current;
+    // Use realtimeInput.text — the reference repo's surface for triggering an
+    // audio response from a text prompt. clientContent + turnComplete:true was
+    // accepted by the API but produced no response on this model.
+    const message = {
+      realtimeInput: {
+        text: `Last question: ${question}\n\nReply: ${reply}\n\nInstruction: ${instruction}`,
+      },
+    };
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log('WebSocket is open, sending message:', message);
+      ws.send(JSON.stringify(message));
+      setIsAIResponding(true);
+    } else if (ws && ws.readyState === WebSocket.CONNECTING) {
+      console.log('WebSocket is connecting, queuing message:', message);
+      geminiMessageQueueRef.current.push(message);
+      setIsAIResponding(true);
+    } else {
+      console.warn("Cannot send Gemini content message: WebSocket not available (state:", ws?.readyState, ")");
+    }
   };
 
   const connect = async () => {
@@ -500,6 +686,8 @@ export function AudioStreamControlProvider({ children }) {
     }
   };
 
+  
+
   // Toggle mute/unmute for AI audio
   const toggleMute = () => {
     setIsMuted(prev => {
@@ -534,8 +722,11 @@ export function AudioStreamControlProvider({ children }) {
     disconnectDeepgram,
     connect,
     disconnect,
+    geminiLiveConnect,
+    geminiLiveDisconnect,
     sendMessage,
     sendContentMessage,
+    sendContentMessageGemini,
     toggleMute,
     remoteAudioRef,
   };

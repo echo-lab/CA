@@ -353,12 +353,6 @@ export default function CharaterSelecter() {
                 ))}
               </div>
             </main>
-            {/* <button className="btn realtime-connect-button" onClick={connect} disabled={connected}>
-              Connect
-            </button>
-            <button className="btn realtime-disconnect-button" onClick={disconnect} disabled={!connected}>
-              Disconnect
-            </button> */}
           </div>
         </div>
       </DragDropContext>
