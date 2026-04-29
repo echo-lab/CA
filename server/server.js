@@ -604,11 +604,46 @@ app.post('/synthesize', async (req, res) => {
     }
 });
 
-// Log session info (name, book, condition) to CSV
+// Two payload shapes share this endpoint:
+//   1. {name, book, condition}     — single-row session metadata (study setup)
+//                                    appended to server/session-log.csv
+//   2. {sessionId, rows}           — full event log for a session (from
+//                                    src/logGeneration.js); overwrites
+//                                    server/logs/session_<sessionId>.csv
 app.post('/api/log-session', (req, res) => {
-    const { name, book, condition } = req.body;
+    const { name, book, condition, sessionId, rows } = req.body || {};
+
+    // Shape 2: per-session event log
+    if (sessionId && Array.isArray(rows)) {
+        if (rows.length === 0) {
+            return res.status(400).json({ message: 'rows must be non-empty' });
+        }
+        const headers = [
+            'session_id', 'user_id', 'book_id', 'condition', 'event_type', 'timestamp',
+            'page_number', 'latency_ms', 'manual_interventions',
+            'line_index', 'direction', 'trigger'
+        ];
+        const escape = (v) => {
+            const s = v === null || v === undefined ? '' : String(v);
+            return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const csvRows = rows.map((r) => headers.map((h) => escape(r[h])).join(','));
+        const csv = headers.join(',') + '\n' + csvRows.join('\n') + '\n';
+
+        const logsDir = path.join(__dirname, 'logs');
+        fs.mkdirSync(logsDir, { recursive: true });
+        const csvPath = path.join(logsDir, `session_${sessionId}.csv`);
+        fs.writeFileSync(csvPath, csv);
+
+        console.log(`[log-session events] wrote ${rows.length} rows → ${csvPath}`);
+        return res.json({ success: true, count: rows.length, path: `logs/session_${sessionId}.csv` });
+    }
+
+    // Shape 1: study-setup metadata row
     if (!name || !book || !condition) {
-        return res.status(400).json({ message: 'Missing name, book, or condition' });
+        return res.status(400).json({
+            message: 'Provide either {name, book, condition} or {sessionId, rows}'
+        });
     }
     const csvPath = path.join(__dirname, 'session-log.csv');
     const timestamp = new Date().toISOString();
@@ -633,6 +668,40 @@ app.get('/api/log-session/download', (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=session-log.csv');
     res.sendFile(csvPath);
+});
+
+// Download all per-session event logs concatenated into one CSV.
+// Each row carries session_id so they can be unambiguously grouped at analysis.
+app.get('/api/log-events/download', (req, res) => {
+    const logsDir = path.join(__dirname, 'logs');
+    if (!fs.existsSync(logsDir)) {
+        return res.status(404).json({ message: 'No event logs found' });
+    }
+    const files = fs.readdirSync(logsDir)
+        .filter((f) => f.startsWith('session_') && f.endsWith('.csv'))
+        .sort();
+    if (files.length === 0) {
+        return res.status(404).json({ message: 'No event logs found' });
+    }
+
+    let header = null;
+    const bodies = [];
+    for (const f of files) {
+        const content = fs.readFileSync(path.join(logsDir, f), 'utf8');
+        const newlineIdx = content.indexOf('\n');
+        if (newlineIdx === -1) continue;
+        const fileHeader = content.slice(0, newlineIdx);
+        const fileBody = content.slice(newlineIdx + 1);
+        if (header === null) header = fileHeader;
+        if (fileBody.trim()) bodies.push(fileBody.endsWith('\n') ? fileBody : fileBody + '\n');
+    }
+    if (!header) {
+        return res.status(404).json({ message: 'No event log content' });
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=event-logs.csv');
+    res.send(header + '\n' + bodies.join(''));
 });
 
 if(process.env.DEVMODE){

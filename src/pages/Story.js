@@ -15,6 +15,7 @@ import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { processUserUtterance, sendOffScriptLog, abortCurrentCategorization, setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
+import { lineChange } from "../logGeneration";
 
 class Book {
   constructor(data) {
@@ -166,6 +167,13 @@ function Reader() {
   const pendingPageQuestionFlag = useRef(false);
   const lastAskedQuestionRef = useRef(null);
   const isPageQuestionPlayingRef = useRef(false);
+  const pendingLineTriggerRef = useRef(null);
+  const markNextLineChangeManual = useCallback(() => {
+    pendingLineTriggerRef.current = "manual";
+  }, []);
+  const markNextLineChangeAutomatic = useCallback(() => {
+    pendingLineTriggerRef.current = "auto";
+  }, []);
 
 
   let lastSpokenText = "";
@@ -316,6 +324,7 @@ function Reader() {
 
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
+  markNextLineChangeManual();
 
   clearQuestionUI();
 
@@ -382,6 +391,7 @@ const gotoNextPage = () => {
 
 
 const gotoPreviousPage = () => {
+  markNextLineChangeManual();
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
   clearQuestionUI();
 
@@ -691,7 +701,11 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
 * This function determines if we should continue reading from the current page
 * or move to the next page.
 */
-const handleNextClick = React.useCallback(() => {
+const handleNextClick = React.useCallback((trigger = "manual") => {
+ markNextLineChangeManual();
+ if (trigger === "auto") {
+   markNextLineChangeAutomatic();
+ }
 
  // Check if there's more text on the current page to read
  if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
@@ -743,7 +757,6 @@ const handleNextClick = React.useCallback(() => {
            }
          }
          if (questionGenEnabledRef.current) {
-           console.log("sendOffScriptLog called from handleNextClick, page:", state.page);
            sendOffScriptLog(offScriptLogRef, state.page, state, hasOffScript ? (result) => {
              setIsCategorizationPending(false);
 
@@ -816,12 +829,11 @@ const handleNextClick = React.useCallback(() => {
          block: "center",
      });
  }
- }, [state, isPlaying, dialogueRefs, continueReading]);
+ }, [state, isPlaying, dialogueRefs, continueReading, markNextLineChangeAutomatic, markNextLineChangeManual]);
 const prevStates = useRef({ audioHasEnded, isPlaying, handleNextClick });
 
 React.useEffect(() => {
 
-  // Update the ref with the current state values after logging changes
   prevStates.current = {
     audioHasEnded,
     isPlaying,
@@ -829,8 +841,10 @@ React.useEffect(() => {
   };
 
   if (audioHasEnded && isPlaying) {
-      handleNextClick();
-      setAudioHasEnded(false);  // Reset the flag
+      // audioHasEnded becomes true via either natural audio-end OR the
+      // utterance matcher's advanceToNextLine — never via a user click.
+      handleNextClick("auto");
+      setAudioHasEnded(false);
   }
 }, [audioHasEnded, isPlaying, handleNextClick]);
 
@@ -844,40 +858,43 @@ const offScriptLogRef = useRef([]); // Log of off-script words by line, sent to 
 const currentPageRef = useRef(state.page); // Always holds latest page for async callbacks
 React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
-// Mirror of state for processUserUtterance — lets the effect read current
-// state.index / state.page without depending on them, breaking the
-// match → advanceToNextLine → state.index change → re-fire cycle.
+React.useEffect(() => {
+  // No explicit trigger set means the change wasn't driven by a user click —
+  // typically a page-turn-induced line reset. Default to auto.
+  const trigger = pendingLineTriggerRef.current || "auto";
+  pendingLineTriggerRef.current = null;
+  lineChange(state.page, state.index, { trigger });
+}, [state.page, state.index]);
+
 const stateRef = useRef(state);
 React.useEffect(() => { stateRef.current = state; });
 
 // Jump to a specific line index
 const jumpToLine = useCallback((lineIndex) => {
   setAudioHasEnded(false);
+  markNextLineChangeAutomatic();
   setState(prevState => {
     const page = prevState.pagesValues[prevState.page];
     const isLastLine = lineIndex === page.text.length;
 
-    // Clear Reading flag on the current line (the one we're jumping FROM)
     const currentIdx = prevState.index - 1;
     if (currentIdx >= 0 && page.text[currentIdx]) {
       page.text[currentIdx].Reading = false;
     }
 
-    // Also clear any lines between current and target (in case of multi-line jump)
     for (let i = currentIdx + 1; i < lineIndex - 1; i++) {
       if (page.text[i]) {
         page.text[i].Reading = false;
       }
     }
 
-    // Call continueReading to properly set up the new line (Reading flags, audio, etc.)
     continueReading(page, lineIndex - 1, prevState.CharacterRoles, isLastLine);
 
     return { ...prevState, index: lineIndex };
   });
-}, [continueReading]);
+}, [continueReading, markNextLineChangeAutomatic]);
 
-React.useEffect(() => { // Whenever userUtterance changes, process it to check for matches with current line and handle off-script categorization
+React.useEffect(() => {
   processUserUtterance({
     userUtterance,
     lastProcessedUtteranceRef,
@@ -895,12 +912,9 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
     jumpToLine,
     setAudioHasEnded,
     setIsPlaying,
+    onAutoLineAdvance: markNextLineChangeAutomatic,
     onCategorizationStart: () => setIsCategorizationPending(true),
     onCategorizationResult: (result) => {
-      // Belt-and-suspenders: ignore results from a page the user already left.
-      // abortCurrentCategorization() should prevent this, but if the fetch
-      // had already started draining bytes when the abort fired, the callback
-      // may still arrive — discard it.
       if (result?.sourcePage !== stateRef.current.page) return;
       setIsCategorizationPending(false);
 
@@ -912,7 +926,6 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
         pagesWithoutPageQuestionRef.current += 1;
       }
 
-      // If 4+ pages without PAGE_QUESTION, defer the page's built-in question until reading finishes
       if (pagesWithoutPageQuestionRef.current >= 4) {
         const pageQuestion = stateRef.current.pagesValues[result.sourcePage]?.question;
         if (pageQuestion) {
@@ -922,7 +935,6 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
         }
       }
 
-      // Otherwise use the AI-generated question as usual
       if (result?.generatedQuestion) {
         setGeneratedQuestion(result.generatedQuestion);
       }
@@ -932,7 +944,6 @@ React.useEffect(() => { // Whenever userUtterance changes, process it to check f
     questionGenEnabledRef,
     onQuestionAnswered: playReinforcement
   });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [userUtterance]);
 
 
@@ -1139,18 +1150,10 @@ function stripSSMLTags(text) {
       return;
     }
 
-    // Check if it's child's turn and they haven't played yet
     const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
     const currentRoleCheck = currentLine ? state.CharacterRoles.find(
       (option) => option.Character === currentLine.Character
     ) : null;
-    // const isChildTurn = currentRoleCheck?.role === "Child" && currentLine?.Reading;
-
-    // // If it's child's turn and they haven't played, don't allow advancement
-    // if (isChildTurn && !childHasPlayed) {
-    //   console.log("Child must play their line first!");
-    //   return;
-    // }
 
     if (state.hasReachedEnd) {
       navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
@@ -1176,7 +1179,7 @@ function stripSSMLTags(text) {
       console.log("current index", state.index);
       if (state.index === 0 || state.pagesValues[state.page]?.text?.length === state.index) {
         console.log("start reading");
-        handleNextClick();
+        handleNextClick("manual");
       } else {
         console.log("resume reading");
         var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index - 1].Character);
@@ -1185,7 +1188,7 @@ function stripSSMLTags(text) {
             currentCharacter[0].role === "Parent" ||
             currentCharacter[0].role === "Child" ||
             currentCharacter[0].role === "Dummy") {
-          handleNextClick();
+          handleNextClick("manual");
         }
       }
     } else {

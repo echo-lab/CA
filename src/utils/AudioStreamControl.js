@@ -133,19 +133,6 @@ export function AudioStreamControlProvider({ children }) {
             }
           }
 
-          // // Handle other message types
-          // if (data.type === 'Metadata') {
-          //   console.log('Deepgram metadata:', data);
-          // }
-
-          // if (data.type === 'UtteranceEnd') {
-          //   console.log('Utterance ended');
-          // }
-
-          // if (data.type === 'SpeechStarted') {
-          //   console.log('Speech started');
-          // }
-
           if (data.type === 'error') {
             console.error('Deepgram error from server:', data.message);
           }

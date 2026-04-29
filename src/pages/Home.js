@@ -41,6 +41,13 @@ function Home() {
       window.open(`${BASE_URL}/api/log-session/download`, '_blank');
     }}
   >Download Session Log</button>
+  <button
+    className="btn btn-outline-secondary"
+    onClick={() => {
+      const BASE_URL = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
+      window.open(`${BASE_URL}/api/log-events/download`, '_blank');
+    }}
+  >Download Event Logs</button>
 </div>
     
     <div className='home'>
