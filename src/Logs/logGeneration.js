@@ -214,7 +214,7 @@ function getLogsDirectory() {
 
 //writes all current session logs to one csv file
 function saveCSVToFile() {
-  if (!fs || !path || !sessionLogs.length) {
+  if (!sessionLogs.length) {
     return;
   }
 
@@ -241,6 +241,15 @@ function saveCSVToFile() {
 
   //combine headers and rows into one csv string
   const csv = [headers.join(","), ...rows].join("\n");
+
+  //send csv to server so it can save the file
+  saveCSVToServer(csv);
+
+  if (!fs || !path) {
+    hasPendingCSVFlush = false;
+    return;
+  }
+
   const logsDir = getLogsDirectory();
 
   if (!logsDir) return;
@@ -252,6 +261,29 @@ function saveCSVToFile() {
   const filePath = path.join(logsDir, `session_${sessionId}.csv`);
   fs.writeFileSync(filePath, csv);
   hasPendingCSVFlush = false;
+}
+
+function saveCSVToServer(csv) {
+  //browser sends csv to backend because browser cannot write files itself
+  const win = getWindow();
+  if (!win) return;
+
+  const baseUrl = process.env.REACT_APP_API_BASE || "http://localhost:5001";
+  const url = `${baseUrl}/api/log-generation-session`;
+  const payload = JSON.stringify({ sessionId, csv });
+
+  if (win.navigator?.sendBeacon) {
+    const blob = new Blob([payload], { type: "application/json" });
+    if (win.navigator.sendBeacon(url, blob)) return;
+  }
+
+  fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+    keepalive: true
+  }).catch(() => {
+  });
 }
 
 //checks if user is currently on story page
