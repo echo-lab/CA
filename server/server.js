@@ -9,9 +9,12 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 const { registerLiveTtsRoutes } = require('./liveTTS');
 const { setupEducationalQuestionRoutes } = require('./ModelsCommunication');
+const { setupGeminiLiveProxy } = require('./geminiLiveProxy');
 
 const { startPruner } = require('./cache/prune');
 startPruner();
+
+const imageCache = require('./cache/imageCache');
 
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -88,9 +91,18 @@ app.get('/api/rt-connection', async (req, res) => {
 
 // WebSocket proxy endpoint for Deepgram using SDK - keeps API key on server
 function setupDeepgramProxy(server) {
-    const ws = new WebSocket.Server({
-        server,
-        path: '/api/deepgram-proxy'
+    // noServer + manual upgrade routing so this WS server coexists with others
+    // (e.g. /api/gemini-live-proxy) on the same HTTP server. `{ server, path }`
+    // would cause ws to abortHandshake on any non-matching path and destroy
+    // sockets meant for other proxies.
+    const DEEPGRAM_PATH = '/api/deepgram-proxy';
+    const ws = new WebSocket.Server({ noServer: true });
+    server.on('upgrade', (req, socket, head) => {
+        const pathname = req.url.split('?')[0];
+        if (pathname !== DEEPGRAM_PATH) return;
+        ws.handleUpgrade(req, socket, head, (client) => {
+            ws.emit('connection', client, req);
+        });
     });
 
     ws.on('connection', (clientWs) => {
@@ -199,7 +211,7 @@ function setupDeepgramProxy(server) {
         });
     });
 
-    console.log('Deepgram WebSocket proxy ready at /api/deepgram-proxy (using nova-3 with diarization)');
+    console.log(`Deepgram WebSocket proxy ready at ${DEEPGRAM_PATH} (using nova-3 with diarization)`);
 }
 
 app.post('/analyze-image', async (req, res) => {
@@ -207,6 +219,24 @@ app.post('/analyze-image', async (req, res) => {
     const { book, page, question, pageText } = req.body;
     if (!book || !page || !question) {
       return res.status(400).json({ message: 'Provide book, page, and question' });
+    }
+
+    const MODEL = 'gemini-2.5-flash';
+    const bypass = req.headers[imageCache.CFG.bypassHeader] === '1';
+    const { base } = imageCache.buildKey({
+      kind: 'analyze',
+      book: String(book),
+      page: String(page),
+      model: MODEL,
+      pageText,
+      question,
+    });
+    if (!bypass) {
+      const cached = await imageCache.readIfFresh(base);
+      if (cached.state === 'HIT') {
+        res.setHeader('x-cache', 'HIT');
+        return res.json(cached.data);
+      }
     }
 
     const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
@@ -229,7 +259,7 @@ app.post('/analyze-image', async (req, res) => {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: MODEL,
       contents: [{
         role: 'user',
         parts: [
@@ -247,7 +277,10 @@ Give a SHORT answer of 1 sentence. Be similar to a parent answering a question t
       },
     });
 
-    res.json({ answer: response.text ?? '' });
+    const payload = { answer: response.text ?? '' };
+    imageCache.write(base, payload).catch(err => console.warn('[image cache] analyze write failed', err));
+    res.setHeader('x-cache', 'MISS');
+    res.json(payload);
   } catch (error) {
     console.error('Error in /analyze-image:', error);
     res.status(500).json({ message: error.toString() });
@@ -259,6 +292,23 @@ app.post('/tag-image', async (req, res) => {
     const { book, page, pageText } = req.body;
     if (!book || !page) {
       return res.status(400).json({ message: 'Provide book and page' });
+    }
+
+    const MODEL = 'gemini-2.5-flash';
+    const bypass = req.headers[imageCache.CFG.bypassHeader] === '1';
+    const { base } = imageCache.buildKey({
+      kind: 'tag',
+      book: String(book),
+      page: String(page),
+      model: MODEL,
+      pageText,
+    });
+    if (!bypass) {
+      const cached = await imageCache.readIfFresh(base);
+      if (cached.state === 'HIT') {
+        res.setHeader('x-cache', 'HIT');
+        return res.json(cached.data);
+      }
     }
 
     const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
@@ -310,101 +360,28 @@ app.post('/tag-image', async (req, res) => {
     });
 
     const tags = JSON.parse(response.text ?? '[]');
-    res.json({ tags });
+    const payload = { tags };
+    imageCache.write(base, payload).catch(err => console.warn('[image cache] tag write failed', err));
+    res.setHeader('x-cache', 'MISS');
+    res.json(payload);
   } catch (error) {
     console.error('Error in /tag-image:', error);
     res.status(500).json({ message: error.toString() });
   }
 });
 
-app.post('/api/categorize-utterances', async (req, res) => {
-    try {
-        const { formattedUtterances, currentPageQuestion, bookText, imageDescription, userAttention } = req.body;
-
-        if (!formattedUtterances) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['formattedUtterances']
-            });
-        }
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-5-mini",
-            messages: [
-                {
-                    role: "developer",
-                    content: `You are a reading interaction analyst and educator for a parent-child co-reading system. You have two tasks:
-
-TASK 1 — CLASSIFY each off-script utterance (words spoken beyond the expected book text).
-
-Categories:
-- ON_TOPIC: Related to the book's content, characters, story, illustrations, or the current page's question. Includes answering comprehension questions, describing illustrations, discussing characters, referencing earlier events, or making story-prompted personal connections.
-- OFF_TOPIC: Unrelated to the book. Includes daily life chat, attention redirections (example: "sit still", "pay attention"), comments about the physical book, or unprompted tangential stories.
-
-TASK 2 — ONLY if there is at least one ON_TOPIC utterance, GENERATE ONE short, engaging educational question based on the user's ON_TOPIC utterance(s), the book content, and the image description (if provided). The question should teach toddlers about patterns and provoke further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, do NOT generate a question.`
-                },
-                {
-                    role: "user",
-                    content: `<current_page>
-Page: ${req.body.currentPageNumber || ''}
-Book Text: ${bookText}
-Question: "${currentPageQuestion}"
-</current_page>
-${(imageDescription || userAttention) ? `
-<image_context>
-${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User's Attention: "${userAttention}"` : ''}
-</image_context>` : ''}
-<off_script_utterances>
-${formattedUtterances}
-</off_script_utterances>
-Classify each utterance, then generate one follow-up question from on-topic ones.${imageDescription ? ' Reference visible details from the image.' : ''}`
-                }
-            ],
-            response_format: {
-                type: "json_schema",
-                json_schema: {
-                    name: "utterance_categorization",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            items: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        line: { type: "string" },
-                                        category: { type: "string", enum: ["ON_TOPIC", "OFF_TOPIC"] },
-                                    },
-                                    required: ["line", "category"],
-                                    additionalProperties: false
-                                }
-                            },
-                            generatedQuestion: { type: ["string", "null"] }
-                        },
-                        required: ["items", "generatedQuestion"],
-                        additionalProperties: false
-                    }
-                }
-            }
-        });
-
-        const result = JSON.parse(completion.choices[0].message.content);
-        res.json(result);
-
-    } catch (error) {
-        console.error('Error categorizing utterances:', error);
-        res.status(500).json({
-            error: 'Failed to categorize utterances',
-            detail: error.message
-        });
-    }
-});
-
 app.post('/api/categorize-utterances-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    // Send headers immediately so the browser starts parsing SSE before any data.
+    res.flushHeaders();
+
+    const t0 = Date.now();
+    const tlog = (label) => console.log(`[cat-stream] +${Date.now() - t0}ms ${label}`);
+    let tFirstChunk = null;
+    let tFirstItem = null;
+    let tLastItem = null;
 
     const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention } = req.body;
 
@@ -415,6 +392,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
 
     try {
         const questionAbortController = new AbortController();
+        tlog('handler start, both OpenAI calls about to launch');
 
         // Start categorization and question generation simultaneously
         const categorizationStreamPromise = openai.chat.completions.create({
@@ -461,17 +439,18 @@ ${formattedUtterances}
             ]
         });
 
+// Use one of these strategies (vary across calls):
+// - Open-ended: Ask the child to describe or explain ("What's happening here?")
+// - Wh-question: Who, what, where, why about the story or illustration
+// - Recall: Ask about something earlier in the story
+// - Completion: Leave a blank for the child to fill in (for repetitive/rhyming text)
+
         const questionPromise = openai.chat.completions.create({
             model: "gpt-5-mini",
             messages: [
                 {
                     role: "developer",
                     content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging follow-up question for a toddler based on what they just said, the book content, and the image (if provided).
-Use one of these strategies (vary across calls):
-- Open-ended: Ask the child to describe or explain ("What's happening here?")
-- Wh-question: Who, what, where, why about the story or illustration
-- Recall: Ask about something earlier in the story
-- Completion: Leave a blank for the child to fill in (for repetitive/rhyming text)
 Guidelines:
 - Build on the provided contexts utterance, user attention, and page information— respond to what THEY noticed
 - Keep it short and natural (how a parent would talk)
@@ -497,12 +476,17 @@ ${formattedUtterances}
 
         // Stream categorization items
         const categorizationStream = await categorizationStreamPromise;
+        tlog('categorization stream object received (request sent to OpenAI)');
         const items = [];
         let buffer = '';
         let hasOnTopic = false;
 
         // To-Do - optimize by starting to parse stream and abort question as soon as we see an ON_TOPIC, instead of waiting for whole categorization to finish
         for await (const chunk of categorizationStream) {
+            if (tFirstChunk === null) {
+                tFirstChunk = Date.now();
+                tlog('first chunk arrived from OpenAI');
+            }
             const token = chunk.choices[0]?.delta?.content || '';
             buffer += token;
 
@@ -514,16 +498,25 @@ ${formattedUtterances}
                 if (!trimmed) continue;
                 try {
                     const item = JSON.parse(trimmed);
+                    if (tFirstItem === null) {
+                        tFirstItem = Date.now();
+                        tlog('first parsed item written to client');
+                    }
+                    tLastItem = Date.now();
                     items.push(item);
                     res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
+                    if (item.category === 'ON_TOPIC') hasOnTopic = true;
                 } catch (e) {}
             }
         }
+        tlog(`categorization stream complete (${items.length} items, hasOnTopic=${hasOnTopic})`);
 
         // Flush remaining buffer
         if (buffer.trim()) {
             try {
                 const item = JSON.parse(buffer.trim());
+                if (tFirstItem === null) tFirstItem = Date.now();
+                tLastItem = Date.now();
                 items.push(item);
                 res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
                 console.log('Categorization item (from flush):', item);
@@ -538,86 +531,29 @@ ${formattedUtterances}
         if (hasOnTopic) {
             console.log("Generating question based on ON_TOPIC utterance(s)");
             const qResult = await questionPromise;
+            tlog('question generation complete');
             generatedQuestion = qResult?.choices[0]?.message?.content?.trim() || null;
         } else {
             questionAbortController.abort();
+            tlog('question generation aborted (no ON_TOPIC)');
         }
 
         res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
         res.end();
+        const ms = (a, b) => a == null || b == null ? null : b - a;
+        console.log('[cat-stream] summary (ms):', {
+            firstChunk: ms(t0, tFirstChunk),
+            firstItem: ms(t0, tFirstItem),
+            lastItem: ms(t0, tLastItem),
+            total: Date.now() - t0,
+            itemCount: items.length,
+            generatedQuestion: !!generatedQuestion,
+        });
 
     } catch (error) {
         console.error('Error in streaming categorization:', error);
         res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
         res.end();
-    }
-});
-
-app.post('/api/categorize-realtime', async (req, res) => {
-    try {
-        const { formattedUtterances, bookPageText, currentPageQuestion, bookText } = req.body;
-
-        if (!formattedUtterances) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['formattedUtterances']
-            });
-        }
-
-        const fetch = (await import('node-fetch')).default;
-
-        const instructions = `You are a reading interaction analyst and educator for a parent-child co-reading session about patterns.
-
-You will receive off-script utterances from a reading session along with the book context. You must do two things:
-
-1. CLASSIFY each utterance as ON_TOPIC or OFF_TOPIC:
-   - ON_TOPIC: Related to the book's overall content — characters, plot, themes, predictions, or connections to the child's life inspired by the story.
-   - OFF_TOPIC: Unrelated to the book or reading activity (e.g., "What's for dinner?", attention prompts like "Pay attention").
-
-2. Based ONLY on utterances that are ON_TOPIC, immediately ask ONE short, engaging educational question that teaches toddlers about patterns and provokes further discussion between toddler and caregiver. If all utterances are OFF_TOPIC, say nothing.
-
-Book context:
-${bookText ? 'Full book text:\n' + bookText + '\n\n' : ''}Current page (Page ${req.body.currentPageNumber || ''}):
-Text: "${bookPageText}"
-Question: "${currentPageQuestion}"
-
-Off-script utterances:
-${formattedUtterances}
-
-When you respond, first briefly state your classifications (e.g., "line1 is on-topic, line3 is off-topic"), then immediately ask your follow-up question. Keep it conversational and warm — you are speaking to a toddler and their caregiver.`;
-
-        const tokenResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${OPENAI_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-realtime-preview-2024-12-17",
-                voice: "alloy",
-                instructions,
-            })
-        });
-
-        if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            console.error(`Realtime session error (${tokenResponse.status}):`, errorText);
-            throw new Error(`Failed to create realtime session: ${errorText}`);
-        }
-
-        const { client_secret } = await tokenResponse.json();
-
-        res.json({
-            success: true,
-            client_secret,
-        });
-
-    } catch (error) {
-        console.error('Error creating realtime categorization session:', error);
-        res.status(500).json({
-            error: 'Failed to create realtime session',
-            detail: error.message
-        });
     }
 });
 
@@ -658,312 +594,6 @@ app.get('/api/book-data/:bookId', (req, res) => {
     }));
 
     res.json({ name: book.Name, pages: pageEntries });
-});
-
-// Test page: select book + page, type utterances, send to /api/categorize-utterances
-app.get('/test-categorize', (req, res) => {
-    res.send(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Test Categorize Utterances</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Menlo', 'Consolas', monospace; font-size: 13px; background: #1e1e1e; color: #d4d4d4; padding: 20px; max-width: 800px; }
-    h2 { color: #c586c0; margin-bottom: 16px; }
-    label { display: block; color: #9cdcfe; margin: 10px 0 4px; }
-    select, textarea, input {
-      width: 100%; background: #2d2d2d; color: #d4d4d4; border: 1px solid #3c3c3c;
-      padding: 8px; border-radius: 4px; font-family: inherit; font-size: 12px;
-    }
-    select { cursor: pointer; }
-    textarea { height: 120px; resize: vertical; }
-    .context-box {
-      margin-top: 8px; padding: 10px; background: #252526; border: 1px solid #3c3c3c;
-      border-radius: 4px; font-size: 11px; line-height: 1.6; max-height: 200px; overflow-y: auto;
-    }
-    .context-box .page-q { color: #c586c0; margin-bottom: 4px; }
-    .context-box .line { color: #808080; }
-    .context-box .char { color: #569cd6; }
-    button {
-      margin-top: 14px; padding: 10px 24px; background: #569cd6; color: #fff;
-      border: none; border-radius: 4px; cursor: pointer; font-size: 13px;
-    }
-    button:hover { background: #4a8abf; }
-    button:disabled { background: #555; cursor: not-allowed; }
-    #result {
-      margin-top: 20px; padding: 12px; background: #252526; border: 1px solid #3c3c3c;
-      border-radius: 4px; white-space: pre-wrap; display: none; max-height: 500px; overflow-y: auto;
-    }
-    .q-label { color: #4caf50; font-weight: bold; }
-    .cat-label { color: #569cd6; font-weight: bold; }
-    .error { color: #f44747; }
-    .row { display: flex; gap: 12px; }
-    .row > div { flex: 1; }
-  </style>
-</head>
-<body>
-  <h2>Test: Categorize Utterances + Question Generation</h2>
-
-  <div class="row">
-    <div>
-      <label>Book</label>
-      <select id="bookSelect" onchange="loadBook()">
-        <option value="">-- Select a book --</option>
-        <option value="1">Book 1: Birthday Beeps and Boops</option>
-        <option value="2">Book 2: Sleepover Similarities</option>
-        <option value="3">Book 3: Levels in the Library</option>
-      </select>
-    </div>
-    <div>
-      <label>Page</label>
-      <select id="pageSelect" onchange="selectPage()" disabled>
-        <option value="">-- Select book first --</option>
-      </select>
-    </div>
-  </div>
-
-  <div id="pageContext" class="context-box" style="display:none">
-    <div class="page-q" id="ctxQuestion"></div>
-    <div id="ctxLines"></div>
-  </div>
-
-  <label>Off-script utterances (one per line)</label>
-  <textarea id="utterances" placeholder="line1: Look at the pretty flowers!&#10;line2: I like the blue one&#10;line3: Can we have lunch?"></textarea>
-
-  <div class="row" style="margin-top:14px;">
-    <div><button id="sendBtn" onclick="send()" disabled>Send (Text)</button></div>
-    <div><button id="realtimeBtn" onclick="sendRealtime()" disabled style="background:#4caf50;">Send (Realtime Audio)</button></div>
-    <div><button id="stopBtn" onclick="stopRealtime()" style="background:#f44747;display:none;">Stop Audio</button></div>
-  </div>
-  <div id="result"></div>
-  <audio id="remoteAudio" autoplay></audio>
-
-  <script>
-    let bookData = null;
-    let rtcPc = null;
-
-    async function loadBook() {
-      const bookId = document.getElementById('bookSelect').value;
-      const pageSel = document.getElementById('pageSelect');
-      const ctx = document.getElementById('pageContext');
-      bookData = null;
-      pageSel.disabled = true;
-      pageSel.innerHTML = '<option value="">Loading...</option>';
-      ctx.style.display = 'none';
-      document.getElementById('sendBtn').disabled = true;
-      document.getElementById('realtimeBtn').disabled = true;
-
-      if (!bookId) { pageSel.innerHTML = '<option value="">-- Select book first --</option>'; return; }
-
-      try {
-        const res = await fetch('/api/book-data/' + bookId);
-        bookData = await res.json();
-        pageSel.innerHTML = bookData.pages.map((p, i) =>
-          '<option value="' + i + '">' + p.key + '</option>'
-        ).join('');
-        pageSel.disabled = false;
-        selectPage();
-      } catch (err) {
-        pageSel.innerHTML = '<option value="">Error loading book</option>';
-      }
-    }
-
-    function selectPage() {
-      const idx = parseInt(document.getElementById('pageSelect').value);
-      const ctx = document.getElementById('pageContext');
-      if (!bookData || isNaN(idx)) { ctx.style.display = 'none'; setBtns(false); return; }
-
-      const page = bookData.pages[idx];
-      document.getElementById('ctxQuestion').textContent = 'Question: ' + (page.question || '(none)');
-      document.getElementById('ctxLines').innerHTML = page.text.map(l =>
-        '<div class="line"><span class="char">' + l.Character + ':</span> ' + l.Dialogue + '</div>'
-      ).join('');
-      ctx.style.display = 'block';
-      setBtns(true);
-    }
-
-    function setBtns(enabled) {
-      document.getElementById('sendBtn').disabled = !enabled;
-      document.getElementById('realtimeBtn').disabled = !enabled;
-    }
-
-    function getFullBookText() {
-      if (!bookData) return '';
-      return bookData.pages.map((p, i) =>
-        'Page ' + (i + 1) + ':\\n' + p.text.map(l => l.Character + ': ' + l.Dialogue).join('\\n')
-      ).join('\\n\\n');
-    }
-
-    function getCurrentPageText() {
-      const idx = parseInt(document.getElementById('pageSelect').value);
-      if (!bookData || isNaN(idx)) return '';
-      return bookData.pages[idx].text.map(l => l.Dialogue).join(' ');
-    }
-
-    function getCurrentPageQuestion() {
-      const idx = parseInt(document.getElementById('pageSelect').value);
-      if (!bookData || isNaN(idx)) return '';
-      return bookData.pages[idx].question;
-    }
-
-    function getRequestBody() {
-      const pageIdx = parseInt(document.getElementById('pageSelect').value);
-      return {
-        formattedUtterances: document.getElementById('utterances').value,
-        bookPageText: getCurrentPageText(),
-        currentPageQuestion: getCurrentPageQuestion(),
-        bookText: getFullBookText(),
-        currentPageNumber: pageIdx + 1
-      };
-    }
-
-    // --- Text mode (gpt-5) ---
-    async function send() {
-      const btn = document.getElementById('sendBtn');
-      const resultDiv = document.getElementById('result');
-      btn.disabled = true;
-      btn.textContent = 'Processing...';
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<span style="color:#888">Sending to /api/categorize-utterances-stream...</span>';
-
-      try {
-        const res = await fetch('/api/categorize-utterances-stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(getRequestBody())
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Request failed');
-
-        let html = '<div><span class="cat-label">Categorization:</span></div>';
-        if (data.items) {
-          data.items.forEach(item => {
-            const color = item.category.startsWith('ON_TOPIC') ? '#4caf50' : '#f44747';
-            html += '<div style="margin:4px 0 4px 12px;">'
-              + '<span style="color:' + color + '">[' + item.category + ']</span> '
-              + item.text
-              + '<span style="color:#888"> &mdash; ' + '</span>'
-              + '</div>';
-          });
-        }
-        if (data.summary) {
-          html += '<div style="margin:8px 0 4px 12px;color:#888">Summary: ' + data.summary + '</div>';
-        }
-        html += '<div style="margin-top:14px;border-top:1px solid #3c3c3c;padding-top:10px;">'
-          + '<span class="q-label">Generated Question:</span> '
-          + (data.generatedQuestion || '<span style="color:#888">None (no ON_TOPIC utterances)</span>')
-          + '</div>';
-        resultDiv.innerHTML = html;
-      } catch (err) {
-        resultDiv.innerHTML = '<span class="error">Error: ' + err.message + '</span>';
-      }
-      btn.disabled = false;
-      btn.textContent = 'Send (Text)';
-    }
-
-    // --- Realtime Audio mode (WebRTC) ---
-    async function sendRealtime() {
-      const btn = document.getElementById('realtimeBtn');
-      const stopBtn = document.getElementById('stopBtn');
-      const resultDiv = document.getElementById('result');
-      btn.disabled = true;
-      btn.textContent = 'Connecting...';
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = '<span style="color:#888">Creating Realtime session...</span>';
-
-      try {
-        // 1. Get session token from server
-        const tokenRes = await fetch('/api/categorize-realtime', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(getRequestBody())
-        });
-        const tokenData = await tokenRes.json();
-        if (!tokenRes.ok) throw new Error(tokenData.error || 'Failed to get session');
-
-        resultDiv.innerHTML = '<span style="color:#888">Establishing WebRTC connection...</span>';
-
-        // 2. Create WebRTC peer connection
-        const pc = new RTCPeerConnection();
-        rtcPc = pc;
-        const audioEl = document.getElementById('remoteAudio');
-
-        pc.ontrack = (e) => {
-          audioEl.srcObject = e.streams[0];
-        };
-
-        // Add silent audio track (required by Realtime API)
-        const silentCtx = new AudioContext();
-        const dest = silentCtx.createMediaStreamDestination();
-        const osc = silentCtx.createOscillator();
-        osc.frequency.value = 0;
-        const gain = silentCtx.createGain();
-        gain.gain.value = 0;
-        osc.connect(gain);
-        gain.connect(dest);
-        osc.start();
-        dest.stream.getTracks().forEach(track => pc.addTrack(track, dest.stream));
-
-        // Data channel for events
-        const dc = pc.createDataChannel('oai-events');
-        let transcript = '';
-
-        dc.onmessage = (e) => {
-          const ev = JSON.parse(e.data);
-          if (ev.type === 'response.audio_transcript.delta') {
-            transcript += ev.delta;
-            resultDiv.innerHTML = '<div><span class="q-label">AI (audio):</span></div>'
-              + '<div style="margin:8px 0 4px 12px;">' + transcript + '</div>';
-          } else if (ev.type === 'response.audio_transcript.done') {
-            transcript = ev.transcript || transcript;
-            resultDiv.innerHTML = '<div><span class="q-label">AI Response:</span></div>'
-              + '<div style="margin:8px 0 4px 12px;">' + transcript + '</div>';
-          } else if (ev.type === 'session.created') {
-            resultDiv.innerHTML = '<span style="color:#888">Session ready, waiting for response...</span>';
-            // Trigger immediate response
-            dc.send(JSON.stringify({ type: 'response.create' }));
-          }
-        };
-
-        // 3. Create offer and connect
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        const sdpRes = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17', {
-          method: 'POST',
-          headers: {
-            Authorization: 'Bearer ' + tokenData.client_secret.value,
-            'Content-Type': 'application/sdp',
-          },
-          body: offer.sdp,
-        });
-
-        const answerSdp = await sdpRes.text();
-        await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
-
-        stopBtn.style.display = '';
-        btn.textContent = 'Send (Realtime Audio)';
-        btn.disabled = false;
-
-      } catch (err) {
-        resultDiv.innerHTML = '<span class="error">Error: ' + err.message + '</span>';
-        btn.textContent = 'Send (Realtime Audio)';
-        btn.disabled = false;
-      }
-    }
-
-    function stopRealtime() {
-      if (rtcPc) {
-        rtcPc.close();
-        rtcPc = null;
-      }
-      document.getElementById('remoteAudio').srcObject = null;
-      document.getElementById('stopBtn').style.display = 'none';
-    }
-  </script>
-</body>
-</html>`);
 });
 
 app.post('/synthesize', async (req, res) => {
@@ -1017,11 +647,46 @@ app.post('/synthesize', async (req, res) => {
     }
 });
 
-// Log session info (name, book, condition) to CSV
+// Two payload shapes share this endpoint:
+//   1. {name, book, condition}     — single-row session metadata (study setup)
+//                                    appended to server/session-log.csv
+//   2. {sessionId, rows}           — full event log for a session (from
+//                                    src/logGeneration.js); overwrites
+//                                    server/logs/session_<sessionId>.csv
 app.post('/api/log-session', (req, res) => {
-    const { name, book, condition } = req.body;
+    const { name, book, condition, sessionId, rows } = req.body || {};
+
+    // Shape 2: per-session event log
+    if (sessionId && Array.isArray(rows)) {
+        if (rows.length === 0) {
+            return res.status(400).json({ message: 'rows must be non-empty' });
+        }
+        const headers = [
+            'session_id', 'user_id', 'book_id', 'condition', 'event_type', 'timestamp',
+            'page_number', 'latency_ms', 'manual_interventions',
+            'line_index', 'direction', 'trigger'
+        ];
+        const escape = (v) => {
+            const s = v === null || v === undefined ? '' : String(v);
+            return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const csvRows = rows.map((r) => headers.map((h) => escape(r[h])).join(','));
+        const csv = headers.join(',') + '\n' + csvRows.join('\n') + '\n';
+
+        const logsDir = path.join(__dirname, 'logs');
+        fs.mkdirSync(logsDir, { recursive: true });
+        const csvPath = path.join(logsDir, `session_${sessionId}.csv`);
+        fs.writeFileSync(csvPath, csv);
+
+        console.log(`[log-session events] wrote ${rows.length} rows → ${csvPath}`);
+        return res.json({ success: true, count: rows.length, path: `logs/session_${sessionId}.csv` });
+    }
+
+    // Shape 1: study-setup metadata row
     if (!name || !book || !condition) {
-        return res.status(400).json({ message: 'Missing name, book, or condition' });
+        return res.status(400).json({
+            message: 'Provide either {name, book, condition} or {sessionId, rows}'
+        });
     }
     const csvPath = path.join(__dirname, 'session-log.csv');
     const timestamp = new Date().toISOString();
@@ -1048,12 +713,47 @@ app.get('/api/log-session/download', (req, res) => {
     res.sendFile(csvPath);
 });
 
+// Download all per-session event logs concatenated into one CSV.
+// Each row carries session_id so they can be unambiguously grouped at analysis.
+app.get('/api/log-events/download', (req, res) => {
+    const logsDir = path.join(__dirname, 'logs');
+    if (!fs.existsSync(logsDir)) {
+        return res.status(404).json({ message: 'No event logs found' });
+    }
+    const files = fs.readdirSync(logsDir)
+        .filter((f) => f.startsWith('session_') && f.endsWith('.csv'))
+        .sort();
+    if (files.length === 0) {
+        return res.status(404).json({ message: 'No event logs found' });
+    }
+
+    let header = null;
+    const bodies = [];
+    for (const f of files) {
+        const content = fs.readFileSync(path.join(logsDir, f), 'utf8');
+        const newlineIdx = content.indexOf('\n');
+        if (newlineIdx === -1) continue;
+        const fileHeader = content.slice(0, newlineIdx);
+        const fileBody = content.slice(newlineIdx + 1);
+        if (header === null) header = fileHeader;
+        if (fileBody.trim()) bodies.push(fileBody.endsWith('\n') ? fileBody : fileBody + '\n');
+    }
+    if (!header) {
+        return res.status(404).json({ message: 'No event log content' });
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=event-logs.csv');
+    res.send(header + '\n' + bodies.join(''));
+});
+
 if(process.env.DEVMODE){
     const port = process.env.REACT_APP_PORT || 5001;
     const server = app.listen(port, () => console.log(`Server started on port ${port}`));
 
     // Setup WebSocket proxy for Deepgram
     setupDeepgramProxy(server);
+    setupGeminiLiveProxy(server);
 }
 else{
 
@@ -1070,4 +770,5 @@ else{
 
     // Setup WebSocket proxy for Deepgram
     setupDeepgramProxy(server);
+    setupGeminiLiveProxy(server);
 }

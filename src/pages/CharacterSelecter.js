@@ -173,6 +173,7 @@ export default function CharaterSelecter() {
   const id = location.state?.id;
   const userName = location.state?.name;
   const condition = location.state?.condition;
+  const training = location.state?.training === true;
   const navigate = useNavigate();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -280,7 +281,7 @@ export default function CharaterSelecter() {
         img: role.img,
       })
     );
-    navigate("/story", { state: { selectedOptions, id, condition } });
+    navigate("/story", { state: { selectedOptions, id, condition, name: userName, training } });
   };
 
 
@@ -353,12 +354,6 @@ export default function CharaterSelecter() {
                 ))}
               </div>
             </main>
-            {/* <button className="btn realtime-connect-button" onClick={connect} disabled={connected}>
-              Connect
-            </button>
-            <button className="btn realtime-disconnect-button" onClick={disconnect} disabled={!connected}>
-              Disconnect
-            </button> */}
           </div>
         </div>
       </DragDropContext>

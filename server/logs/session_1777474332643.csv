@@ -1,0 +1,5 @@
+session_id,user_id,book_id,condition,event_type,timestamp,page_number,latency_ms,manual_interventions,line_index,direction,trigger
+1777474332643,,1,C1,session_start,1777474332660,1,,0,,,
+1777474332643,,1,C1,line_change,1777474332660,0,,0,0,,auto
+1777474332643,,1,C1,line_change,1777474337342,1,,0,0,forward,manual
+1777474332643,,1,C1,session_end,1777475059579,1,,0,,,

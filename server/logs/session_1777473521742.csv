@@ -1,0 +1,13 @@
+session_id,user_id,book_id,condition,event_type,timestamp,page_number,latency_ms,manual_interventions,line_index,direction,trigger
+1777473521742,,1,C1,session_start,1777473521934,1,,0,,,
+1777473521742,,1,C1,line_change,1777473521934,0,,0,0,,auto
+1777473521742,,1,C1,line_change,1777473553426,0,,0,1,forward,manual
+1777473521742,,1,C1,line_change,1777473571339,1,,0,1,forward,manual
+1777473521742,,1,C1,page_turn,1777473576832,2,,0,,,
+1777473521742,,1,C1,line_change,1777473576834,1,,0,2,forward,auto
+1777473521742,,1,C1,line_change,1777473580898,1,,0,3,forward,auto
+1777473521742,,1,C1,line_change,1777473582181,1,,0,4,forward,auto
+1777473521742,,1,C1,line_change,1777473831650,1,,0,5,forward,auto
+1777473521742,,1,C1,line_change,1777473832970,1,,0,6,forward,auto
+1777473521742,,1,C1,line_change,1777474320265,0,,0,0,back,manual
+1777473521742,,1,C1,session_end,1777474322544,2,,0,,,

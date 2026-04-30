@@ -1,12 +1,9 @@
 import nlp from "compromise";
-import { categorizeOffScriptUtterances } from "./InnerThoughtProcess";
 import { categorizeOffScriptUtterancesStreaming } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
 
-const USE_STREAMING = true;
-const categorize = USE_STREAMING ? categorizeOffScriptUtterancesStreaming : categorizeOffScriptUtterances;
 const VARIANT_SLOT_COUNT = 2;
 const MID_SENTENCE_TAGS = new Set([
   'Determiner',      // "the", "a", "this"
@@ -204,7 +201,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorize(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, controller.signal);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, controller.signal);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -239,18 +236,22 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   }
 }
 
-function advanceToNextLine(setAudioHasEnded, setIsPlaying) {
+function advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance) {
+  onAutoLineAdvance?.();
   setAudioHasEnded(true);
   setIsPlaying(true);
 }
 
-function jumpToFutureLine(jumpToLine, checkIndex, totalLines) {
+function jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance) {
   if (!jumpToLine) return;
-  setTimeout(() => jumpToLine(Math.min(checkIndex + 2, totalLines)), 100);
+  setTimeout(() => {
+    onAutoLineAdvance?.();
+    jumpToLine(Math.min(checkIndex + 2, totalLines));
+  }, 100);
 }
 
 // Forward search uses slot 0 (expanded form) only — best-effort lookahead, simpler is fine.
-function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext }) {
+function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance }) {
   const allSpokenWords = utteranceQueuesRef.current[0] || [];
   const allSpokenWordCount = allSpokenWords.length;
 
@@ -273,7 +274,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
         debugLog({ type: 'forward_exact_match', label: variant.label, lineIndex: checkIndex, startIdx: exactMatch.startIdx });
         captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx), categorizationContext); // 
         clearMatchState(refs, exactMatch.endIdx);
-        jumpToFutureLine(jumpToLine, checkIndex, totalLines);
+        jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance);
         return true;
       }
 
@@ -286,7 +287,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
             debugLog({ type: 'forward_hybrid_match', label: variant.label, lineIndex: checkIndex, confidence: (fwdDetail.confidence * 100).toFixed(1), fuzzyScore: ((1 - fwdDetail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - fwdDetail.phoneticScore) * 100).toFixed(1) });
             captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + variant.wordCount);
-            jumpToFutureLine(jumpToLine, checkIndex, totalLines);
+            jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance);
             return true;
           }
         }
@@ -294,7 +295,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
         if (calculateConfidence(allSpokenWords, variant.text) >= 0.6) {
           captureOffScriptWords(offScriptLogRef, checkIndex, [], categorizationContext); // 
           clearMatchState(refs, allSpokenWordCount);
-          jumpToFutureLine(jumpToLine, checkIndex, totalLines);
+          jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance);
           return true;
         }
       }
@@ -317,6 +318,7 @@ export async function processUserUtterance({
   jumpToLine,
   setAudioHasEnded,
   setIsPlaying,
+  onAutoLineAdvance,
   onCategorizationResult,
   onCategorizationStart,
   imageDescriptionRef,
@@ -340,13 +342,22 @@ export async function processUserUtterance({
   const wasAwaiting = awaitingQuestionAnswer;
   awaitingQuestionAnswer = false;
 
+  // If we just asked a generated follow-up question, treat this utterance purely as the
+  // reply — route it to reinforcement and skip categorization so it doesn't seed another
+  // question.
+  if (wasAwaiting) {
+    lastProcessedUtteranceRef.current = userUtterance;
+    debugLog({ type: 'question_reply_captured', utterance: userUtterance });
+    onQuestionAnswered?.(userUtterance);
+    return;
+  }
+
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
     captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
-    if (wasAwaiting) onQuestionAnswered?.();
     return;
   }
 
@@ -402,7 +413,7 @@ export async function processUserUtterance({
         captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx));
         clearMatchState(refs, exactMatch.endIdx);
         if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
-        advanceToNextLine(setAudioHasEnded, setIsPlaying);
+        advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
         return;
       }
 
@@ -419,7 +430,7 @@ export async function processUserUtterance({
             captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + divSentence.wordCount);
             if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
-            advanceToNextLine(setAudioHasEnded, setIsPlaying);
+            advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
             return;
           }
           if (detail.confidence > bestDetail.confidence) bestDetail = detail;
@@ -441,7 +452,7 @@ export async function processUserUtterance({
   // Step 3: Check if user skipped ahead (next 3 lines)
   let foundMatch;
   if (condition === "C1") {
-    foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext });
+    foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance });
   }
 
   // Step 4: Slide queue if no match found — remove 1 word from front, add to pending buffer
@@ -451,6 +462,5 @@ export async function processUserUtterance({
     const removed = utteranceQueuesRef.current[0].shift();
     utteranceQueuesRef.current[1].shift();
     debugLog({ type: 'queue_slide', removed });
-    if (wasAwaiting) onQuestionAnswered?.();
   }
 }
