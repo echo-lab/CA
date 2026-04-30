@@ -702,6 +702,45 @@ app.post('/api/log-session', (req, res) => {
     res.json({ success: true });
 });
 
+// Survey responses — appended to server/survey-log.csv
+// Payload: { name, book, condition, answers }
+// answers: { "0": 1..5, "1": 1..5, ... } (one entry per question index)
+app.post('/api/log-survey', (req, res) => {
+    const { name, book, condition, answers } = req.body || {};
+    if (!name || !book || !condition || !answers || typeof answers !== 'object') {
+        return res.status(400).json({ message: 'Provide {name, book, condition, answers}' });
+    }
+
+    const NUM_QUESTIONS = 9;
+    const csvPath = path.join(__dirname, 'survey-log.csv');
+    const timestamp = new Date().toISOString();
+
+    const qHeaders = Array.from({ length: NUM_QUESTIONS }, (_, i) => `q${i + 1}`).join(',');
+    const header = `timestamp,name,book,condition,${qHeaders}\n`;
+
+    const qValues = Array.from({ length: NUM_QUESTIONS }, (_, i) => answers[i] ?? '').join(',');
+    const row = `${timestamp},${name},${book},${condition},${qValues}\n`;
+
+    if (!fs.existsSync(csvPath)) {
+        fs.writeFileSync(csvPath, header + row);
+    } else {
+        fs.appendFileSync(csvPath, row);
+    }
+    console.log(`[survey-log] ${name}, book ${book}, ${condition}`);
+    res.json({ success: true });
+});
+
+// Download survey log CSV
+app.get('/api/log-survey/download', (req, res) => {
+    const csvPath = path.join(__dirname, 'survey-log.csv');
+    if (!fs.existsSync(csvPath)) {
+        return res.status(404).json({ message: 'No survey log found' });
+    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=survey-log.csv');
+    res.sendFile(csvPath);
+});
+
 // Download session log CSV
 app.get('/api/log-session/download', (req, res) => {
     const csvPath = path.join(__dirname, 'session-log.csv');
