@@ -159,10 +159,6 @@ function Reader() {
   const [showAvatar, setShowAvatar] = useState(false);
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
-  const [questionHistory, setQuestionHistory] = useState([]);
-  const [showAvatar, setShowAvatar] = useState(false);
-  const showAvatarRef = useRef(false);
-  useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const [isSlidingBack, setIsSlidingBack] = useState(false);
   // Tracks whether slide-closer has already played. Prevents re-triggering
@@ -485,7 +481,6 @@ const clearQuestionUI = () => {
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
   setShowAvatar(false);
-  setShowAvatar(false);
   hasSlidCloserRef.current = false;
   dismissingQuestionRef.current = null;
   if (generatedQuestionAudioRef.current) {
@@ -499,10 +494,6 @@ const playReinforcement = async (reply) => {
   lastAskedQuestionRef.current = null;
   console.log("Playing reinforcement. Question:", question, "Reply:", reply);
   if (remoteAudioRef.current) remoteAudioRef.current.muted = false;
-  if (showAvatarRef.current) {
-    dismissingQuestionRef.current = question;
-    setIsSlidingBack(true);
-  }
   if (showAvatarRef.current) {
     dismissingQuestionRef.current = question;
     setIsSlidingBack(true);
@@ -1000,64 +991,8 @@ function stripSSMLTags(text) {
       if (latest.type === 'generated') speakGenerated();
       else playSound();
     };
-    if (questionHistory.length === 0) return null;
-    const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying;
-    const latestIdx = questionHistory.length - 1;
-    const latest = questionHistory[latestIdx];
-
-    const handleLatestClick = () => {
-      if (latest.type === 'generated') speakGenerated();
-      else playSound();
-    };
 
     return (
-      <div className="question-area">
-        {showAvatar && (
-          <div className="role-image-container">
-            <img
-              id="role-image"
-              src={narratorImage}
-              alt="Narrator"
-              onClick={handleLatestClick}
-              style={{ width: '200px', cursor: 'pointer' }}
-              className={isSlidingBack ? 'slide-back' : (hasSlidCloserRef.current ? 'slide-closer-hold' : 'slide-closer')}
-              onAnimationEnd={(e) => {
-                if (e.animationName === 'slide-closer') {
-                  hasSlidCloserRef.current = true;
-                } else if (e.animationName === 'slide-back') {
-                  dismissingQuestionRef.current = null;
-                  setIsSlidingBack(false);
-                  setShowAvatar(false);
-                  hasSlidCloserRef.current = false;
-                }
-              }}
-            />
-          </div>
-        )}
-        <div className="question-history">
-          {questionHistory.map((msg, i) => {
-            const isLatest = i === latestIdx;
-            const age = Math.min(latestIdx - i, 3);
-            const classes = [
-              'question-message',
-              msg.type,
-              isLatest ? 'latest' : `older age-${age}`,
-              isLatest && isSpeaking ? 'speaking' : '',
-            ].filter(Boolean).join(' ');
-            return (
-              <div
-                key={msg.id}
-                className={classes}
-                onClick={isLatest ? handleLatestClick : undefined}
-                style={{ cursor: isLatest ? 'pointer' : 'default' }}
-              >
-                {msg.text}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
       <div className="question-area">
         {showAvatar && (
           <div className="role-image-container">
