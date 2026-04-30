@@ -172,13 +172,26 @@ function Reader() {
   const userAttentionRef = useRef(null);
   const lastAskedQuestionRef = useRef(null);
   const isPageQuestionPlayingRef = useRef(false);
-  const pendingLineTriggerRef = useRef(null);
-  const markNextLineChangeManual = useCallback(() => {
-    pendingLineTriggerRef.current = "manual";
+  const pendingLineTriggersRef = useRef(new Map());
+  const pendingUntargetedLineTriggerRef = useRef(null);
+  const markLineChangeTrigger = useCallback((trigger, target) => {
+    if (target && Number.isFinite(target.page) && Number.isFinite(target.index)) {
+      const key = `${target.page}:${target.index}`;
+      const existing = pendingLineTriggersRef.current.get(key);
+      if (existing === "manual" && trigger === "auto") return;
+      pendingLineTriggersRef.current.set(key, trigger);
+      return;
+    }
+
+    if (pendingUntargetedLineTriggerRef.current === "manual" && trigger === "auto") return;
+    pendingUntargetedLineTriggerRef.current = trigger;
   }, []);
-  const markNextLineChangeAutomatic = useCallback(() => {
-    pendingLineTriggerRef.current = "auto";
-  }, []);
+  const markNextLineChangeManual = useCallback((target) => {
+    markLineChangeTrigger("manual", target);
+  }, [markLineChangeTrigger]);
+  const markNextLineChangeAutomatic = useCallback((target) => {
+    markLineChangeTrigger("auto", target);
+  }, [markLineChangeTrigger]);
 
 
   let lastSpokenText = "";
@@ -335,7 +348,6 @@ function Reader() {
 
 const gotoNextPage = () => {
   console.log("go to next page button pressed");
-  markNextLineChangeManual();
 
   clearQuestionUI();
 
@@ -365,7 +377,9 @@ const gotoNextPage = () => {
       state.pagesValues[state.page].text[i].Reading=false;
     }
     setState(prevState => {
-      return { ...prevState, page: prevState.page + 1, index: 0 };
+      const nextState = { ...prevState, page: prevState.page + 1, index: 0 };
+      markNextLineChangeManual({ page: nextState.page, index: nextState.index });
+      return nextState;
     });
   } else {
     if (isTraining) navigate('/Home', { state: { name } });
@@ -375,7 +389,6 @@ const gotoNextPage = () => {
 
 
 const gotoPreviousPage = () => {
-  markNextLineChangeManual();
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
   clearQuestionUI();
 
@@ -387,7 +400,11 @@ const gotoPreviousPage = () => {
   }
   state.hasReachedEnd = false;
   if (state.page > 0) {
-    setState(prevState => ({ ...prevState, page: prevState.page - 1, index: 0 }));
+    setState(prevState => {
+      const nextState = { ...prevState, page: prevState.page - 1, index: 0 };
+      markNextLineChangeManual({ page: nextState.page, index: nextState.index });
+      return nextState;
+    });
     // Add any other state resets or logic needed when changing pages here
   }
 };
@@ -696,10 +713,9 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
 * or move to the next page.
 */
 const handleNextClick = React.useCallback((trigger = "manual") => {
- markNextLineChangeManual();
- if (trigger === "auto") {
-   markNextLineChangeAutomatic();
- }
+ const markLineChange = trigger === "auto"
+   ? markNextLineChangeAutomatic
+   : markNextLineChangeManual;
 
  // Check if there's more text on the current page to read
  if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
@@ -714,6 +730,7 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
          isLastLine
        );
        const newState = {...prevState, index: prevState.index+1};
+       markLineChange({ page: newState.page, index: newState.index });
        return newState;
      });
  } else {
@@ -745,7 +762,9 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
            const nextPage = prevState.pagesValues[prevState.page + 1];
            const isLastLine = nextPage.text.length === 1;
            continueReading(nextPage, 0, state.CharacterRoles, isLastLine);
-           return {...prevState, page: prevState.page + 1, index: 1};
+           const nextState = {...prevState, page: prevState.page + 1, index: 1};
+           markLineChange({ page: nextState.page, index: nextState.index });
+           return nextState;
          });
           if (tableContainerRef.current) {
             tableContainerRef.current.scrollIntoView({
@@ -807,10 +826,18 @@ const currentPageRef = useRef(state.page);
 React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
 React.useEffect(() => {
-  // No explicit trigger set means the change wasn't driven by a user click —
-  // typically a page-turn-induced line reset. Default to auto.
-  const trigger = pendingLineTriggerRef.current || "auto";
-  pendingLineTriggerRef.current = null;
+  // No explicit trigger set means the change wasn't driven by a user click.
+  // Targeted triggers prevent a later auto advance from overwriting a manual
+  // trigger that was queued for a different page/index.
+  const key = `${state.page}:${state.index}`;
+  const targetedTrigger = pendingLineTriggersRef.current.get(key);
+  if (targetedTrigger) {
+    pendingLineTriggersRef.current.delete(key);
+  }
+  const trigger = targetedTrigger || pendingUntargetedLineTriggerRef.current || "auto";
+  if (!targetedTrigger) {
+    pendingUntargetedLineTriggerRef.current = null;
+  }
   lineChange(state.page, state.index, { trigger });
 }, [state.page, state.index]);
 
@@ -820,7 +847,6 @@ React.useEffect(() => { stateRef.current = state; });
 // Jump to a specific line index
 const jumpToLine = useCallback((lineIndex) => {
   setAudioHasEnded(false);
-  markNextLineChangeAutomatic();
   setState(prevState => {
     const page = prevState.pagesValues[prevState.page];
     const isLastLine = lineIndex === page.text.length;
@@ -838,7 +864,9 @@ const jumpToLine = useCallback((lineIndex) => {
 
     continueReading(page, lineIndex - 1, prevState.CharacterRoles, isLastLine);
 
-    return { ...prevState, index: lineIndex };
+    const nextState = { ...prevState, index: lineIndex };
+    markNextLineChangeAutomatic({ page: nextState.page, index: nextState.index });
+    return nextState;
   });
 }, [continueReading, markNextLineChangeAutomatic]);
 

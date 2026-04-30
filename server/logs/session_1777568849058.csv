@@ -1,8 +1,0 @@
-session_id,user_id,book_id,condition,event_type,timestamp,page_number,latency_ms,manual_interventions,line_index,direction,trigger
-1777568849058,,1,C1,session_start,1777568849080,1,,0,,,
-1777568849058,,1,C1,line_change,1777568849080,0,,0,0,,auto
-1777568849058,,1,C1,line_change,1777568859748,0,,0,1,forward,manual
-1777568849058,,1,C1,line_change,1777568864414,1,,0,1,forward,manual
-1777568849058,,1,C1,page_turn,1777568864419,2,,0,,,
-1777568849058,,1,C1,line_change,1777568869953,1,,0,2,forward,auto
-1777568849058,,1,C1,session_end,1777568892231,2,,0,,,
