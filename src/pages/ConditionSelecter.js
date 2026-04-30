@@ -12,10 +12,6 @@ const CONDITIONS = [
     id: "C2",
     label: "C2",
   },
-  {
-    id: "C3",
-    label: "C3",
-  },
 ];
 
 export default function ConditionSelecter() {

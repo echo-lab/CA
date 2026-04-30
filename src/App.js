@@ -6,6 +6,7 @@ import Signup from './pages/Signup';
 import ChildrenAvatarSelecter from './pages/ChildrenAvatarSelecter';
 import CharacterSelecter from './pages/CharacterSelecter';
 import ConditionSelecter from './pages/ConditionSelecter';
+import Survey from './pages/Survey';
 import AvatarSelecter from './pages/AvatarSelecter';
 import LandingPage from './pages/LandingPage';
 import { AudioStreamControlProvider } from './utils/AudioStreamControl';
@@ -24,6 +25,8 @@ function App() {
             <Route path='/Home' element={<Home />}/>
             <Route path='/Story' element={<Story />}/>
             <Route path='/Character' element={<CharacterSelecter />}/>
+            <Route path='/ConditionSelect' element={<ConditionSelecter />}/>
+            <Route path='/Survey' element={<Survey />}/>
           </Routes>
         </Router>
       </AudioStreamControlProvider>

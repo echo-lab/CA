@@ -14,6 +14,8 @@ const { setupGeminiLiveProxy } = require('./geminiLiveProxy');
 const { startPruner } = require('./cache/prune');
 startPruner();
 
+const imageCache = require('./cache/imageCache');
+
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
@@ -219,6 +221,24 @@ app.post('/analyze-image', async (req, res) => {
       return res.status(400).json({ message: 'Provide book, page, and question' });
     }
 
+    const MODEL = 'gemini-2.5-flash';
+    const bypass = req.headers[imageCache.CFG.bypassHeader] === '1';
+    const { base } = imageCache.buildKey({
+      kind: 'analyze',
+      book: String(book),
+      page: String(page),
+      model: MODEL,
+      pageText,
+      question,
+    });
+    if (!bypass) {
+      const cached = await imageCache.readIfFresh(base);
+      if (cached.state === 'HIT') {
+        res.setHeader('x-cache', 'HIT');
+        return res.json(cached.data);
+      }
+    }
+
     const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
     const LOCATION = process.env.VERTEX_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
     if (!PROJECT_ID) {
@@ -239,7 +259,7 @@ app.post('/analyze-image', async (req, res) => {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: MODEL,
       contents: [{
         role: 'user',
         parts: [
@@ -257,7 +277,10 @@ Give a SHORT answer of 1 sentence. Be similar to a parent answering a question t
       },
     });
 
-    res.json({ answer: response.text ?? '' });
+    const payload = { answer: response.text ?? '' };
+    imageCache.write(base, payload).catch(err => console.warn('[image cache] analyze write failed', err));
+    res.setHeader('x-cache', 'MISS');
+    res.json(payload);
   } catch (error) {
     console.error('Error in /analyze-image:', error);
     res.status(500).json({ message: error.toString() });
@@ -269,6 +292,23 @@ app.post('/tag-image', async (req, res) => {
     const { book, page, pageText } = req.body;
     if (!book || !page) {
       return res.status(400).json({ message: 'Provide book and page' });
+    }
+
+    const MODEL = 'gemini-2.5-flash';
+    const bypass = req.headers[imageCache.CFG.bypassHeader] === '1';
+    const { base } = imageCache.buildKey({
+      kind: 'tag',
+      book: String(book),
+      page: String(page),
+      model: MODEL,
+      pageText,
+    });
+    if (!bypass) {
+      const cached = await imageCache.readIfFresh(base);
+      if (cached.state === 'HIT') {
+        res.setHeader('x-cache', 'HIT');
+        return res.json(cached.data);
+      }
     }
 
     const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
@@ -320,7 +360,10 @@ app.post('/tag-image', async (req, res) => {
     });
 
     const tags = JSON.parse(response.text ?? '[]');
-    res.json({ tags });
+    const payload = { tags };
+    imageCache.write(base, payload).catch(err => console.warn('[image cache] tag write failed', err));
+    res.setHeader('x-cache', 'MISS');
+    res.json(payload);
   } catch (error) {
     console.error('Error in /tag-image:', error);
     res.status(500).json({ message: error.toString() });

@@ -1,7 +1,7 @@
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 
-// Flip to false to re-enable image tagging + analysis (and their prefetch).
-const IMAGE_PIPELINE_ENABLED = false;
+// Flip to false to disable image tagging + analysis (and their prefetch).
+const IMAGE_PIPELINE_ENABLED = true;
 
 const analysisCache = new Map();
 const taggingCache = new Map();

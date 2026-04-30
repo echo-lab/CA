@@ -10,6 +10,12 @@ function Home() {
   const { name } = location.state || {};
 
   const renderCard = (card, index) =>{
+    // Book 3 ("Levels in the Library") is the training book — skip condition select & survey.
+    const isTraining = card.id === 3;
+    const linkTo = isTraining ? "/Character" : "/ConditionSelect";
+    const linkState = isTraining
+      ? { id: card.id, name, condition: null, training: true }
+      : { id: card.id, name };
     return (
         <div className="m-3" key={index}>
           <div className="shadow p-3 mb-5 bg-white rounded">
@@ -17,7 +23,7 @@ function Home() {
             <img className="card-img-top h-50" src={card.img} alt="Card" />
             <div className="card-body">
               <h5 className="card-title">{card.title}</h5>
-              <Link to="/Character" state={{ id: card.id, name, condition: 'C1' }}><button className="btn btn-primary">Start Reading</button></Link>
+              <Link to={linkTo} state={linkState}><button className="btn btn-primary">Start Reading</button></Link>
             </div>
           </div>
           </div>
