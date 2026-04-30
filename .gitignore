@@ -9,6 +9,7 @@
 /coverage
 cache/tts/
 cache/image/
+logs/
 
 # production
 /build
