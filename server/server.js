@@ -143,6 +143,32 @@ function parseCategorizationLine(line) {
     }
 }
 
+function parseJsonFromModelText(text, fallback) {
+    const raw = String(text || '').trim();
+    if (!raw) return fallback;
+    const jsonish = raw
+        .replace(/^```(?:json)?/i, '')
+        .replace(/```$/i, '')
+        .trim();
+    try {
+        return JSON.parse(jsonish);
+    } catch {
+        const arrayMatch = jsonish.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+            try {
+                return JSON.parse(arrayMatch[0]);
+            } catch {}
+        }
+        const objectMatch = jsonish.match(/\{[\s\S]*\}/);
+        if (objectMatch) {
+            try {
+                return JSON.parse(objectMatch[0]);
+            } catch {}
+        }
+        return fallback;
+    }
+}
+
 function normalizePageTextForCache(pageText) {
     return String(pageText || '').replace(/\s+/g, ' ').trim();
 }
@@ -170,7 +196,11 @@ async function getGeminiImageContextCache({ ai, model, book, page, pageText, ima
         role: 'user',
         parts: [
             { inlineData: { mimeType: 'image/jpeg', data: imageData } },
-            { text: pageText ? `Page text:\n${pageText}` : 'No page text provided.' },
+            {
+                text: `${GEMINI_IMAGE_CHARACTER_RULES}
+Shared page context for later image analysis and tagging requests.
+${pageText ? `Page text:\n${pageText}` : 'No page text provided.'}`,
+            },
         ],
     }];
     const promise = ai.caches.create({
@@ -448,10 +478,12 @@ app.post('/analyze-image', async (req, res) => {
     const request = contextCache
       ? {
           model: MODEL,
-          contents: [{ role: 'user', parts: [{ text: question }] }],
+          contents: [{
+            role: 'user',
+            parts: [{ text: `${GEMINI_IMAGE_ANALYSIS_PROMPT}\n\nQuestion:\n${question}` }],
+          }],
           config: {
             cachedContent: contextCache.name,
-            systemInstruction: GEMINI_IMAGE_ANALYSIS_PROMPT,
           },
         }
       : {
@@ -525,26 +557,17 @@ app.post('/tag-image', async (req, res) => {
     const request = contextCache
       ? {
           model: MODEL,
-          contents: [{ role: 'user', parts: [{ text: 'Tag this image using the required JSON schema.' }] }],
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `${GEMINI_IMAGE_TAGGING_PROMPT}
+
+Return a JSON array only. Each item must be:
+{"label":"object name","box_2d":[y_min,x_min,y_max,x_max]}`,
+            }],
+          }],
           config: {
             cachedContent: contextCache.name,
-            systemInstruction: GEMINI_IMAGE_TAGGING_PROMPT,
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  label: { type: 'string' },
-                  box_2d: {
-                    type: 'array',
-                    items: { type: 'integer' },
-                    description: '[y_min, x_min, y_max, x_max] normalized 0-1000',
-                  },
-                },
-                required: ['label', 'box_2d'],
-              },
-            },
           },
         }
       : {
@@ -581,7 +604,7 @@ app.post('/tag-image', async (req, res) => {
       console.log('[image-tagging] Gemini usage', response.usageMetadata || response.usage_metadata);
     }
 
-    const tags = JSON.parse(response.text ?? '[]');
+    const tags = parseJsonFromModelText(response.text, []);
     const payload = { tags };
     imageCache.write(base, payload).catch(err => console.warn('[image cache] tag write failed', err));
     res.setHeader('x-cache', 'MISS');
@@ -654,7 +677,10 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
             model: OPENAI_OFFSCRIPT_MODEL,
             stream: true,
             stream_options: { include_usage: true },
-            max_completion_tokens: 160,
+            max_completion_tokens: 512,
+            reasoning_effort: 'minimal',
+            verbosity: 'low',
+            response_format: { type: 'json_object' },
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: categorizationMessages,
@@ -663,6 +689,8 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
         const questionPromise = openai.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
             max_completion_tokens: 48,
+            reasoning_effort: 'minimal',
+            verbosity: 'low',
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: questionMessages,
@@ -677,12 +705,16 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
         const items = [];
         let buffer = '';
         let rawCategorizationText = '';
+        let categorizationFinishReason = null;
         let hasOnTopic = false;
 
         for await (const chunk of categorizationStream) {
             if (chunk.usage) {
                 categorizationUsage = chunk.usage;
                 continue;
+            }
+            if (chunk.choices?.[0]?.finish_reason) {
+                categorizationFinishReason = chunk.choices[0].finish_reason;
             }
             if (tFirstChunk === null) {
                 tFirstChunk = Date.now();
@@ -731,7 +763,37 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
             console.warn('[cat-stream] no categorization item parsed', {
                 rawText: rawCategorizationText.slice(0, 500),
                 rawLength: rawCategorizationText.length,
+                finishReason: categorizationFinishReason,
             });
+            tlog('retrying categorization without streaming');
+            const retryResult = await openai.chat.completions.create({
+                model: OPENAI_OFFSCRIPT_MODEL,
+                max_completion_tokens: 512,
+                reasoning_effort: 'minimal',
+                verbosity: 'low',
+                response_format: { type: 'json_object' },
+                prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
+                prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
+                messages: categorizationMessages,
+            });
+            logOpenAIUsage('cat-stream/categorization-retry', retryResult?.usage);
+            const retryText = retryResult?.choices?.[0]?.message?.content || '';
+            const retryItem = parseCategorizationLine(retryText);
+            if (retryItem) {
+                if (tFirstItem === null) tFirstItem = Date.now();
+                tLastItem = Date.now();
+                items.push(retryItem);
+                res.write(`data: ${JSON.stringify({ type: 'item', item: retryItem })}\n\n`);
+                if (retryItem.category === 'ON_TOPIC') hasOnTopic = true;
+                else questionAbortController.abort();
+                tlog('categorization retry parsed one item');
+            } else {
+                console.warn('[cat-stream] categorization retry also produced no parseable item', {
+                    rawText: retryText.slice(0, 500),
+                    rawLength: retryText.length,
+                    finishReason: retryResult?.choices?.[0]?.finish_reason,
+                });
+            }
         }
 
         // Categorization done — decide whether to use or cancel question generation
