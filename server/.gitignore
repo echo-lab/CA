@@ -4,5 +4,4 @@ node_modules/
 cache/tts/
 cache/image/
 logs/
-survey-log.csv
-session-log.csv
+*.csv
