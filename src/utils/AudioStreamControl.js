@@ -18,6 +18,7 @@ export function AudioStreamControlProvider({ children }) {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [isAIResponding, setIsAIResponding] = useState(false);
+  const [isGeminiAudioPlaying, setIsGeminiAudioPlaying] = useState(false);
   const [userUtterance, setUserUtterance] = useState("");
   const [deepgramTranscript, setDeepgramTranscript] = useState("");
   const [speakerLabels, setSpeakerLabels] = useState([]);
@@ -35,6 +36,26 @@ export function AudioStreamControlProvider({ children }) {
   const geminiSocketRef = useRef(null);
   const geminiPlaybackRef = useRef({ ctx: null, nextStart: 0 });
   const geminiMessageQueueRef = useRef([]);
+  const geminiActiveAudioSourcesRef = useRef(0);
+  const geminiTurnCompleteRef = useRef(false);
+
+  const finishGeminiPlaybackIfDone = () => {
+    if (geminiTurnCompleteRef.current && geminiActiveAudioSourcesRef.current <= 0) {
+      geminiActiveAudioSourcesRef.current = 0;
+      setIsGeminiAudioPlaying(false);
+      setIsAIResponding(false);
+    }
+  };
+
+  const resetGeminiPlaybackState = () => {
+    geminiActiveAudioSourcesRef.current = 0;
+    geminiTurnCompleteRef.current = false;
+    if (geminiPlaybackRef.current?.ctx) {
+      geminiPlaybackRef.current.nextStart = geminiPlaybackRef.current.ctx.currentTime;
+    }
+    setIsGeminiAudioPlaying(false);
+    setIsAIResponding(false);
+  };
 
   const connectToDeepgram = async () => {
     try {
@@ -57,11 +78,9 @@ export function AudioStreamControlProvider({ children }) {
         setDeepgramConnected(true);
         deepgramStreamRef.current = stream;
 
-        // Use AudioWorklet for raw PCM audio (non-deprecated alternative)
         const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
         const source = audioContext.createMediaStreamSource(stream);
 
-        // Create an AudioWorkletProcessor inline
         const processorCode = `
           class AudioProcessor extends AudioWorkletProcessor {
             process(inputs, outputs, parameters) {
@@ -288,7 +307,7 @@ export function AudioStreamControlProvider({ children }) {
             const parts = sc.modelTurn?.parts || [];
             for (const part of parts) {
               const inline = part.inlineData;
-              if (inline?.mimeType?.startsWith("audio/pcm")) {
+              if (inline?.mimeType?.startsWith("audio/pcm")) { 
                 const binary = atob(inline.data);
                 const raw = new Uint8Array(binary.length);
                 for (let i = 0; i < binary.length; i++) raw[i] = binary.charCodeAt(i);
@@ -307,9 +326,15 @@ export function AudioStreamControlProvider({ children }) {
                 src.buffer = buffer;
                 src.connect(ctx.destination);
                 const startAt = Math.max(geminiPlaybackRef.current.nextStart, ctx.currentTime);
+                geminiActiveAudioSourcesRef.current += 1;
+                setIsAIResponding(true);
+                setIsGeminiAudioPlaying(true);
+                src.onended = () => {
+                  geminiActiveAudioSourcesRef.current = Math.max(0, geminiActiveAudioSourcesRef.current - 1);
+                  finishGeminiPlaybackIfDone();
+                };
                 src.start(startAt);
                 geminiPlaybackRef.current.nextStart = startAt + buffer.duration;
-                setIsAIResponding(true);
               } else if (part.text) {
                 console.log('Gemini text response (audio expected!):', part.text);
               }
@@ -317,11 +342,11 @@ export function AudioStreamControlProvider({ children }) {
 
             // Flush queued playback on barge-in so we don't keep playing stale audio.
             if (sc.interrupted) {
-              geminiPlaybackRef.current.nextStart = geminiPlaybackRef.current.ctx.currentTime;
-              setIsAIResponding(false);
+              resetGeminiPlaybackState();
             }
             if (sc.turnComplete) {
-              setIsAIResponding(false);
+              geminiTurnCompleteRef.current = true;
+              finishGeminiPlaybackIfDone();
             }
           }
 
@@ -335,6 +360,7 @@ export function AudioStreamControlProvider({ children }) {
 
       ws.onerror = (e) => {
         console.error('Gemini Live WebSocket error:', e);
+        resetGeminiPlaybackState();
         setError('Gemini Live WebSocket error');
       };
 
@@ -342,6 +368,7 @@ export function AudioStreamControlProvider({ children }) {
         console.log(
           `Gemini Live WebSocket closed — code=${evt.code} reason="${evt.reason}" wasClean=${evt.wasClean}`
         );
+        resetGeminiPlaybackState();
         setConnected(false);
       };
     } catch (err) {
@@ -372,6 +399,7 @@ export function AudioStreamControlProvider({ children }) {
       }
       geminiSocketRef.current = null;
     }
+    resetGeminiPlaybackState();
     geminiMessageQueueRef.current = [];
     setConnected(false);
   };
@@ -379,6 +407,8 @@ export function AudioStreamControlProvider({ children }) {
   const sendContentMessageGemini = (question, reply, bookText, imageDescription) => {
     console.log('Sending content message to Gemini Live');
     const ws = geminiSocketRef.current;
+    geminiTurnCompleteRef.current = false;
+    geminiActiveAudioSourcesRef.current = 0;
     const message = {
       realtimeInput: {
         text: `<reinforcement_context>
@@ -711,6 +741,7 @@ Image description: ${imageDescription || ''}
     connected,
     error,
     isAIResponding,
+    isGeminiAudioPlaying,
     isMuted,
     userUtterance,
     speakerLabels,

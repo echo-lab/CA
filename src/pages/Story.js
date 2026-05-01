@@ -111,6 +111,7 @@ function Reader() {
     deepgramTranscript,
     connectToDeepgram,
     disconnectDeepgram,
+    isGeminiAudioPlaying,
   } = useAudioStreamControl();
 
   let bookData
@@ -168,6 +169,7 @@ function Reader() {
   const generatedQuestionAudioRef = useRef(null);
   const generatedQuestionAudioUrlRef = useRef(null);
   const dismissingQuestionRef = useRef(null);
+  const wasGeminiAudioPlayingRef = useRef(false);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
   const userAttentionRef = useRef(null);
@@ -223,10 +225,9 @@ function Reader() {
     imgElement.src = frames[frameIndexRef.current];
   }
 
-  // Animate the role-image when generated question is playing
   useEffect(() => {
     let intervalId = null;
-    if (isGeneratedQuestionPlaying || isPageQuestionPlaying) {
+    if (isGeneratedQuestionPlaying || isPageQuestionPlaying || isGeminiAudioPlaying) {
       intervalId = setInterval(changeFrame, 250);
     }
     return () => {
@@ -236,7 +237,7 @@ function Reader() {
       const imgElement = document.getElementById("role-image");
       if (imgElement) imgElement.src = frames[0];
     };
-  }, [isGeneratedQuestionPlaying, isPageQuestionPlaying]);
+  }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying]);
 
   function canon(text) {
     return stripSSMLTags(String(text || ""))
@@ -491,14 +492,9 @@ useEffect(() => {
 
 }, [generatedQuestion]);
 
-// Wipe both the displayed question and any in-flight categorization.
-// Called on every page transition so stale state can't leak across pages.
 const clearQuestionUI = () => {
   abortCurrentCategorization();
   setAwaitingQuestionAnswer(false);
-  // Don't null lastAskedQuestionRef here — it gets reseeded with the new
-  // page's question by the page-change effect, so reinforcement always has
-  // context even if the user never explicitly played the page question.
   setGeneratedQuestion(null);
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
@@ -522,10 +518,17 @@ const playReinforcement = async (reply) => {
   if (remoteAudioRef.current) remoteAudioRef.current.muted = false;
   if (showAvatarRef.current) {
     dismissingQuestionRef.current = question;
-    setIsSlidingBack(true);
   }
   sendContentMessageGemini(question, reply, state.page, imageDescriptionRef.current);
 };
+
+useEffect(() => {
+  const wasPlaying = wasGeminiAudioPlayingRef.current;
+  if (wasPlaying && !isGeminiAudioPlaying && dismissingQuestionRef.current) {
+    setIsSlidingBack(true);
+  }
+  wasGeminiAudioPlayingRef.current = isGeminiAudioPlaying;
+}, [isGeminiAudioPlaying]);
 
 const speakGenerated = () => {
   if (isGeneratedQuestionPlaying) return;
@@ -1074,7 +1077,7 @@ function stripSSMLTags(text) {
     };
 
     return (
-      <div className={`question-area ${showAvatar ? 'has-avatar' : ''}`}>
+      <div className={`question-area ${showAvatar ? 'has-avatar' : ''} ${isSlidingBack ? 'avatar-dismissing' : ''}`}>
         {showAvatar && (
           <div className="role-image-container">
             <img
@@ -1170,8 +1173,6 @@ function stripSSMLTags(text) {
     );
   }
 
-
-
   function handlePlayClick() {
     console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
 
@@ -1248,6 +1249,13 @@ function stripSSMLTags(text) {
       </div>
 
     <div className="navigation-buttons-container">
+
+      <button
+        onClick={setGeneratedQuestion.bind(null, state.pagesValues[state.page].question)}
+        className="btn btn-outline-secondary"
+        disabled={process.env.NODE_ENV !== 'development'}
+        style={{ fontSize: '12px', padding: '4px 10px', marginRight: '10px' }}
+      >Test Question</button>
 
       <button
         onClick={openDebugMonitor}
