@@ -512,6 +512,11 @@ const clearQuestionUI = () => {
 };
 
 const playReinforcement = async (reply) => {
+  if (!questionGenEnabledRef.current) {
+    console.log("Skipping reinforcement because question generation is disabled for this condition.");
+    return;
+  }
+
   const question = lastAskedQuestionRef.current;
   lastAskedQuestionRef.current = null;
   console.log("Playing reinforcement. Question:", question, "Reply:", reply);
@@ -659,8 +664,11 @@ async function speak(text, voiceName = "kore", emotion = "neutral", role = null)
         audio.removeEventListener("ended", audioEnded);
     }
 
-    if (isPageQuestionPlayingRef.current) {
+    if (isPageQuestionPlayingRef.current && questionGenEnabledRef.current) {
       setAwaitingQuestionAnswer(true);
+      isPageQuestionPlayingRef.current = false;
+    } else if (isPageQuestionPlayingRef.current) {
+      setAwaitingQuestionAnswer(false);
       isPageQuestionPlayingRef.current = false;
     }
 
@@ -950,6 +958,7 @@ React.useEffect(() => {
     onAutoLineAdvance: markNextLineChangeAutomatic,
     onCategorizationStart: () => setIsCategorizationPending(true),
     onCategorizationResult: (result) => {
+      if (!questionGenEnabledRef.current) return;
       if (result?.sourcePage !== stateRef.current.page) return;
       setIsCategorizationPending(false);
 
@@ -960,7 +969,7 @@ React.useEffect(() => {
     imageDescriptionRef,
     userAttentionRef,
     questionGenEnabledRef,
-    onQuestionAnswered: playReinforcement
+    onQuestionAnswered: questionGenEnabledRef.current ? playReinforcement : undefined
   });
 }, [userUtterance]);
 

@@ -116,6 +116,7 @@ export function getIsCategorizationPending() {
 
 // Capture off-script words into pending buffer, flush when POS says sentence is complete
 function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, context) {
+  if (context?.questionGenEnabledRef?.current === false) return;
   if (!offScriptLogRef || leftoverWords.length === 0) return;
 
   // Always append to offScriptLogRef for page-change flushes from Story.js
@@ -329,7 +330,8 @@ export async function processUserUtterance({
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
   const currentLine = state.pagesValues[state.page]?.text?.[currentLineIndex];
-  const categorizationContext = { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef };
+  const questionGenEnabled = questionGenEnabledRef?.current === true;
+  const categorizationContext = { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, questionGenEnabledRef };
 
   if (currentLineTrackingRef.current.page !== state.page) {
     accumulatedUtterancesRef.current = [];
@@ -348,7 +350,11 @@ export async function processUserUtterance({
   if (wasAwaiting) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'question_reply_captured', utterance: userUtterance });
-    onQuestionAnswered?.(userUtterance);
+    if (questionGenEnabled) {
+      onQuestionAnswered?.(userUtterance);
+    } else {
+      debugLog({ type: 'question_reply_ignored', reason: 'question_generation_disabled' });
+    }
     return;
   }
 
