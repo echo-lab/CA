@@ -62,8 +62,9 @@ function updateSessionMetadata() {
     condition = String(routeState.condition);
   }
 
-  if (routeState.userName !== undefined && routeState.userName !== null && routeState.userName !== "") {
-    userId = String(routeState.userName);
+  const routeUserId = routeState.userName || routeState.name;
+  if (routeUserId !== undefined && routeUserId !== null && routeUserId !== "") {
+    userId = String(routeUserId);
   }
 }
 

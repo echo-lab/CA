@@ -367,15 +367,12 @@ export function AudioStreamControlProvider({ children }) {
     setConnected(false);
   };
 
-  const sendContentMessageGemini = (question, reply, instruction = `Generate reinforcement feedback for the child's response. Make it brief and encouraging.`) => {
+  const sendContentMessageGemini = (question, reply, bookText, imageDescription, instruction = `Generate acknowledging response based on the user's input and the provided context.`) => {
     console.log('Sending content message to Gemini Live');
     const ws = geminiSocketRef.current;
-    // Use realtimeInput.text — the reference repo's surface for triggering an
-    // audio response from a text prompt. clientContent + turnComplete:true was
-    // accepted by the API but produced no response on this model.
     const message = {
       realtimeInput: {
-        text: `Last question: ${question}\n\nReply: ${reply}\n\nInstruction: ${instruction}`,
+        text: `Last question: ${question}\n\nReply: ${reply}\n\nBook Text: ${bookText}\n\nImage Description: ${imageDescription}\n\nInstruction: ${instruction}`,
       },
     };
 

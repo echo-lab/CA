@@ -51,9 +51,12 @@ export default function Survey() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, book: id, condition, answers }),
     })
-      .then(res => res.json().then(data => console.log('[Survey] log-survey response', res.status, data)))
+      .then(res => res.json().then(data => {
+        console.log('[Survey] log-survey response', res.status, data);
+        if (!res.ok) throw new Error(data?.message || `Survey log failed with ${res.status}`);
+        setSubmitted(true);
+      }))
       .catch((err) => console.error("[Survey] Failed to log survey:", err));
-    setSubmitted(true);
   };
 
   return (

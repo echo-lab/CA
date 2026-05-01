@@ -7,15 +7,16 @@ import NavigationBar from '../components/NavigationBar';
 
 function Home() {
   const location = useLocation();
-  const { name } = location.state || {};
+  const { name, userName } = location.state || {};
+  const participantName = name || userName;
 
   const renderCard = (card, index) =>{
     // Book 3 ("Levels in the Library") is the training book — skip condition select & survey.
     const isTraining = card.id === 3;
     const linkTo = isTraining ? "/Character" : "/ConditionSelect";
     const linkState = isTraining
-      ? { id: card.id, name, condition: null, training: true }
-      : { id: card.id, name };
+      ? { id: card.id, name: participantName, condition: null, training: true }
+      : { id: card.id, name: participantName };
     return (
         <div className="m-3" key={index}>
           <div className="shadow p-3 mb-5 bg-white rounded">

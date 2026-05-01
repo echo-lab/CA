@@ -515,7 +515,7 @@ const playReinforcement = async (reply) => {
     dismissingQuestionRef.current = question;
     setIsSlidingBack(true);
   }
-  sendContentMessageGemini(question, reply);
+  sendContentMessageGemini(question, reply, state.page, imageDescriptionRef.current);
 };
 
 const speakGenerated = () => {

@@ -171,7 +171,7 @@ function Book(data) {
 export default function CharaterSelecter() {
   const location = useLocation();
   const id = location.state?.id;
-  const userName = location.state?.name;
+  const userName = location.state?.name || location.state?.userName || "";
   const condition = location.state?.condition;
   const training = location.state?.training === true;
   const navigate = useNavigate();
