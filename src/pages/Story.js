@@ -524,7 +524,10 @@ const playReinforcement = async (reply) => {
     dismissingQuestionRef.current = question;
     setIsSlidingBack(true);
   }
-  sendContentMessageGemini(question, reply, state.page, imageDescriptionRef.current);
+  const pageText = stateRef.current.pagesValues[stateRef.current.page]?.text
+    ?.map(line => `${line.Character}: ${line.Text}`)
+    .join(" ") || "";
+  sendContentMessageGemini(question, reply, pageText, imageDescriptionRef.current);
 };
 
 const speakGenerated = () => {

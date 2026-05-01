@@ -33,6 +33,7 @@ export function AudioStreamControlProvider({ children }) {
   const mediaRecorderRef = useRef(null);
   const deepgramStreamRef = useRef(null);
   const geminiSocketRef = useRef(null);
+  const geminiSetupCompleteRef = useRef(false);
   const geminiPlaybackRef = useRef({ ctx: null, nextStart: 0 });
   const geminiMessageQueueRef = useRef([]);
 
@@ -231,6 +232,7 @@ export function AudioStreamControlProvider({ children }) {
       const wsUrl = `${wsProtocol}//${base.host}/api/gemini-live-proxy`;
       const ws = new WebSocket(wsUrl);
       geminiSocketRef.current = ws;
+      geminiSetupCompleteRef.current = false;
 
       // 24 kHz playback matches Gemini Live audio output rate.
       const playbackCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -260,12 +262,6 @@ export function AudioStreamControlProvider({ children }) {
         };
         console.log('Gemini Live setup →', setupMsg.setup);
         ws.send(JSON.stringify(setupMsg));
-
-        if (geminiMessageQueueRef.current.length > 0) {
-          console.log(`Flushing ${geminiMessageQueueRef.current.length} queued Gemini messages`);
-          geminiMessageQueueRef.current.forEach(msg => ws.send(JSON.stringify(msg)));
-          geminiMessageQueueRef.current = [];
-        }
       };
 
       ws.onmessage = async (evt) => {
@@ -280,6 +276,12 @@ export function AudioStreamControlProvider({ children }) {
 
           if (data.setupComplete) {
             console.log('Gemini Live setup complete');
+            geminiSetupCompleteRef.current = true;
+            if (geminiMessageQueueRef.current.length > 0) {
+              console.log(`Flushing ${geminiMessageQueueRef.current.length} queued Gemini messages`);
+              geminiMessageQueueRef.current.forEach(msg => ws.send(JSON.stringify(msg)));
+              geminiMessageQueueRef.current = [];
+            }
             return;
           }
 
@@ -372,6 +374,7 @@ export function AudioStreamControlProvider({ children }) {
       }
       geminiSocketRef.current = null;
     }
+    geminiSetupCompleteRef.current = false;
     geminiMessageQueueRef.current = [];
     setConnected(false);
   };
@@ -379,23 +382,28 @@ export function AudioStreamControlProvider({ children }) {
   const sendContentMessageGemini = (question, reply, bookText, imageDescription) => {
     console.log('Sending content message to Gemini Live');
     const ws = geminiSocketRef.current;
-    const message = {
-      realtimeInput: {
-        text: `<reinforcement_context>
+    const reinforcementPrompt = `<reinforcement_context>
 Last question: ${question || ''}
 Reply: ${reply || ''}
 Book/page context: ${bookText || ''}
 Image description: ${imageDescription || ''}
-</reinforcement_context>`,
+</reinforcement_context>`;
+    const message = {
+      clientContent: {
+        turns: [{
+          role: "user",
+          parts: [{ text: reinforcementPrompt }],
+        }],
+        turnComplete: true,
       },
     };
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if (ws && ws.readyState === WebSocket.OPEN && geminiSetupCompleteRef.current) {
       console.log('WebSocket is open, sending message:', message);
       ws.send(JSON.stringify(message));
       setIsAIResponding(true);
-    } else if (ws && ws.readyState === WebSocket.CONNECTING) {
-      console.log('WebSocket is connecting, queuing message:', message);
+    } else if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+      console.log('Gemini Live setup is not ready, queuing message:', message);
       geminiMessageQueueRef.current.push(message);
       setIsAIResponding(true);
     } else {
