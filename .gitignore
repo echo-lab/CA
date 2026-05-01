@@ -7,8 +7,9 @@
 
 # testing
 /coverage
-cache/tts/
-cache/image/
+/cache/
+server/cache/tts/
+server/cache/image/
 logs/
 
 # production

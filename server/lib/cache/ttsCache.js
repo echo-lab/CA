@@ -5,7 +5,7 @@ const crypto = require('crypto');
 
 // DEFAULTS
 const CFG = {
-  dir: path.join(process.cwd(), 'cache', 'tts'),
+  dir: path.join(__dirname, '..', '..', 'cache', 'tts'),
   ttlSec: 30 * 24 * 60 * 60,        // 30 days
   maxBytes: 5 * 1024 * 1024 * 1024, // 5 GiB
   bypassHeader: 'x-bypass-cache',

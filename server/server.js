@@ -6,15 +6,16 @@ const https = require('https');
 const WebSocket = require('ws');
 const OpenAI = require('openai');
 const path = require('path');
+const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 const { registerLiveTtsRoutes } = require('./liveTTS');
 const { setupEducationalQuestionRoutes } = require('./ModelsCommunication');
 const { setupGeminiLiveProxy } = require('./geminiLiveProxy');
 
-const { startPruner } = require('./cache/prune');
+const { startPruner } = require('./lib/cache/prune');
 startPruner();
 
-const imageCache = require('./cache/imageCache');
+const imageCache = require('./lib/cache/imageCache');
 
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -26,6 +27,168 @@ const certPath = process.env.CERTPATH;
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
 });
+
+const PROMPT_VERSION = 'talemate-offscript-v1';
+const OPENAI_PROMPT_CACHE_KEY = PROMPT_VERSION;
+const OPENAI_PROMPT_CACHE_RETENTION = '24h';
+const OPENAI_OFFSCRIPT_MODEL = 'gpt-5-mini';
+const TALEMATE_SHARED_PROMPT_PREFIX = `TaleMate is a parent-child co-reading system for children's picture books.
+Audience: toddlers and young children, roughly ages 3-6, reading with a caregiver.
+Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
+Style requirements:
+- Use concrete, child-friendly language.
+- Prefer short responses.
+- Do not invent story facts, objects, names, or emotions not supported by the provided text or image context.
+- Character grounding: Zoe is the bird. Clara is the chameleon. Use character names when known.
+Prompt version: ${PROMPT_VERSION}`;
+const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page.
+
+Output one JSON object as one NDJSON line, with no extra text.
+
+Categories:
+1. ON_TOPIC
+- Directly addresses the current page's narrative, character emotions, or visual details.
+- Shows accurate comprehension of the story, including correct character names/genders.
+- Must be substantive. Do not use for one-word fillers.
+
+2. PAGE_QUESTION
+- The utterance is a literal or near-literal restatement of the prompt question.
+
+3. OFF_TOPIC
+- CONTEXT_DRIFT: References topics or objects from previous pages not present now.
+- HALLUCINATION: Mentions objects or actions not in the provided image analysis or text.
+- FACTUAL_ERROR: Uses incorrect genders or names for characters.
+- NON_SUBSTANTIVE: Fillers, presence signals, or empty reactions.
+- EXTERNAL: Daily chat or physical environment comments.
+
+Output schema:
+{"category":"ON_TOPIC"|"PAGE_QUESTION"|"OFF_TOPIC"}`;
+const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a toddler.
+
+Use the child's/caregiver's utterance, the current page text, the page question, and image context when available.
+Build on what the user noticed. Keep it natural, like a parent would ask. Prefer concrete "who/what/where/why" questions, description prompts, simple recall, or completion-style prompts.
+
+Output only the question. No explanation, no preface.`;
+const GEMINI_IMAGE_CHARACTER_RULES = `You are working with TaleMate children's picture book illustrations.
+Character rules:
+- Zoe is the bird. Any bird you see is always Zoe.
+- Clara is the chameleon. Any chameleon or lizard you see is always Clara.
+- Always call them by name when referring to those characters.`;
+const GEMINI_IMAGE_ANALYSIS_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
+Answer as a parent speaking to a child.
+Give a SHORT answer of 1 sentence.`;
+const GEMINI_IMAGE_TAGGING_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
+Detect the characters and key story objects: props, clothing, and held items visible in this illustration.
+Do not tag walls, floors, ceilings, sky, ground, or generic background scenery.
+Keep bounding boxes tight.
+If an object appears multiple times, give each a unique label.
+Limit to 20 objects.
+Return just box_2d ([y_min, x_min, y_max, x_max] normalized 0-1000) and label for each. No additional text.`;
+const GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC = Number(process.env.GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC || 60 * 60);
+const geminiImageContextCache = new Map();
+
+function buildOpenAIDynamicPagePayload({
+    currentPageQuestion,
+    bookText,
+    currentPageNumber,
+    imageDescription,
+    userAttention,
+    utteranceTag,
+    formattedUtterances,
+}) {
+    return `<current_page>
+Page: ${currentPageNumber || ''}
+Book Text: ${bookText || ''}
+Question: "${currentPageQuestion || ''}"
+</current_page>
+${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<${utteranceTag}>
+${formattedUtterances}
+</${utteranceTag}>`;
+}
+
+function getCachedPromptTokens(usage) {
+    return usage?.prompt_tokens_details?.cached_tokens ?? usage?.promptTokensDetails?.cachedTokens ?? null;
+}
+
+function logOpenAIUsage(label, usage) {
+    if (!usage) return;
+    console.log(`[${label}] OpenAI usage`, {
+        promptTokens: usage.prompt_tokens,
+        completionTokens: usage.completion_tokens,
+        totalTokens: usage.total_tokens,
+        cachedTokens: getCachedPromptTokens(usage),
+    });
+}
+
+function normalizePageTextForCache(pageText) {
+    return String(pageText || '').replace(/\s+/g, ' ').trim();
+}
+
+function buildGeminiImageContextKey({ book, page, model, pageText, imageData }) {
+    return JSON.stringify({
+        v: imageCache.CFG.version,
+        book: String(book),
+        page: String(page),
+        model,
+        pageText: normalizePageTextForCache(pageText),
+        imageHash: crypto.createHash('sha256').update(imageData).digest('hex'),
+    });
+}
+
+async function getGeminiImageContextCache({ ai, model, book, page, pageText, imageData }) {
+    const key = buildGeminiImageContextKey({ book, page, model, pageText, imageData });
+    const now = Date.now();
+    const existing = geminiImageContextCache.get(key);
+    if (existing && existing.expiresAt > now) {
+        return existing.promise;
+    }
+
+    const contents = [{
+        role: 'user',
+        parts: [
+            { inlineData: { mimeType: 'image/jpeg', data: imageData } },
+            { text: pageText ? `Page text:\n${pageText}` : 'No page text provided.' },
+        ],
+    }];
+    const promise = ai.caches.create({
+        model,
+        config: {
+            displayName: `talemate-image-context-book-${book}-page-${page}`,
+            contents,
+            ttl: `${GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC}s`,
+        },
+    }).then(cache => {
+        console.log('[image-context-cache] READY', {
+            book,
+            page,
+            model,
+            cacheName: cache.name,
+            usageMetadata: cache.usageMetadata || cache.usage_metadata,
+        });
+        return cache;
+    }).catch(err => {
+        geminiImageContextCache.delete(key);
+        console.warn('[image-context-cache] unavailable, falling back to inline image:', err?.message || err);
+        return null;
+    });
+
+    geminiImageContextCache.set(key, {
+        expiresAt: now + (GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC * 1000),
+        promise,
+    });
+    return promise;
+}
+
+function buildInlineImageContents({ imageData, pageText, taskText }) {
+    return [{
+        role: 'user',
+        parts: [
+            { inlineData: { mimeType: 'image/jpeg', data: imageData } },
+            { text: `${taskText}${pageText ? `\n\nPage text:\n${pageText}` : ''}` },
+        ],
+    }];
+}
+
 console.log(keyPath);
 console.log(certPath);
 const corsOptions = {
@@ -258,24 +421,29 @@ app.post('/analyze-image', async (req, res) => {
 
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
+    const contextCache = await getGeminiImageContextCache({ ai, model: MODEL, book, page, pageText, imageData });
+    const request = contextCache
+      ? {
+          model: MODEL,
+          contents: [{ role: 'user', parts: [{ text: question }] }],
+          config: {
+            cachedContent: contextCache.name,
+            systemInstruction: GEMINI_IMAGE_ANALYSIS_PROMPT,
+          },
+        }
+      : {
+          model: MODEL,
+          contents: buildInlineImageContents({ imageData, pageText, taskText: question }),
+          config: {
+            systemInstruction: GEMINI_IMAGE_ANALYSIS_PROMPT,
+          },
+        };
     const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: imageData } },
-          { text: question },
-        ],
-      }],
-      config: {
-        systemInstruction: `You are a narrator for a children's picture book.
-The two characters in every image are:
-- Zoe: the bird (any bird you see is always Zoe)
-- Clara: the chameleon (any chameleon or lizard you see is always Clara)
-Always call them by name — never say "the bird" or "the chameleon".
-Give a SHORT answer of 1 sentence. Be similar to a parent answering a question to their kid. ${pageText ? `\n\nThe text on this page reads:\n${pageText}` : ''}`,
-      },
+      ...request,
     });
+    if (response.usageMetadata || response.usage_metadata) {
+      console.log('[image-analysis] Gemini usage', response.usageMetadata || response.usage_metadata);
+    }
 
     const payload = { answer: response.text ?? '' };
     imageCache.write(base, payload).catch(err => console.warn('[image cache] analyze write failed', err));
@@ -330,34 +498,65 @@ app.post('/tag-image', async (req, res) => {
 
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: imageData } },
-          { text: `${pageText ? `Page text: "${pageText}"\n\n` : ''}Detect the characters (Zoe: Parrot, Clara: Chameleon) and key story objects (props, clothing, held items) visible in this illustration. Do NOT tag walls, floors, ceilings, sky, ground, or generic background scenery. Keep bounding boxes tight. If an object appears multiple times, give each a unique label. Limit to 20 objects. Return just box_2d ([y_min, x_min, y_max, x_max] normalized 0-1000) and label for each. No additional text.` },
-        ],
-      }],
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              label: { type: 'string' },
-              box_2d: {
-                type: 'array',
-                items: { type: 'integer' },
-                description: '[y_min, x_min, y_max, x_max] normalized 0-1000',
+    const contextCache = await getGeminiImageContextCache({ ai, model: MODEL, book, page, pageText, imageData });
+    const request = contextCache
+      ? {
+          model: MODEL,
+          contents: [{ role: 'user', parts: [{ text: 'Tag this image using the required JSON schema.' }] }],
+          config: {
+            cachedContent: contextCache.name,
+            systemInstruction: GEMINI_IMAGE_TAGGING_PROMPT,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  label: { type: 'string' },
+                  box_2d: {
+                    type: 'array',
+                    items: { type: 'integer' },
+                    description: '[y_min, x_min, y_max, x_max] normalized 0-1000',
+                  },
+                },
+                required: ['label', 'box_2d'],
               },
             },
-            required: ['label', 'box_2d'],
           },
-        },
-      },
+        }
+      : {
+          model: MODEL,
+          contents: buildInlineImageContents({
+            imageData,
+            pageText,
+            taskText: 'Tag this image using the required JSON schema.',
+          }),
+          config: {
+            systemInstruction: GEMINI_IMAGE_TAGGING_PROMPT,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  label: { type: 'string' },
+                  box_2d: {
+                    type: 'array',
+                    items: { type: 'integer' },
+                    description: '[y_min, x_min, y_max, x_max] normalized 0-1000',
+                  },
+                },
+                required: ['label', 'box_2d'],
+              },
+            },
+          },
+        };
+    const response = await ai.models.generateContent({
+      ...request,
     });
+    if (response.usageMetadata || response.usage_metadata) {
+      console.log('[image-tagging] Gemini usage', response.usageMetadata || response.usage_metadata);
+    }
 
     const tags = JSON.parse(response.text ?? '[]');
     const payload = { tags };
@@ -382,6 +581,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
     let tFirstChunk = null;
     let tFirstItem = null;
     let tLastItem = null;
+    let categorizationUsage = null;
 
     const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention } = req.body;
 
@@ -392,83 +592,57 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
 
     try {
         const questionAbortController = new AbortController();
-        tlog('handler start, both OpenAI calls about to launch');
+        tlog(`handler start, both OpenAI calls about to launch promptVersion=${PROMPT_VERSION} cacheKey=${OPENAI_PROMPT_CACHE_KEY}`);
+        const categorizationMessages = [
+            { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
+            { role: "developer", content: OFFSCRIPT_CATEGORIZATION_PROMPT },
+            {
+                role: "user",
+                content: buildOpenAIDynamicPagePayload({
+                    currentPageQuestion,
+                    bookText,
+                    currentPageNumber,
+                    imageDescription,
+                    userAttention,
+                    utteranceTag: 'off_script_utterances',
+                    formattedUtterances,
+                }),
+            },
+        ];
+        const questionMessages = [
+            { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
+            { role: "developer", content: FOLLOWUP_QUESTION_PROMPT },
+            {
+                role: "user",
+                content: buildOpenAIDynamicPagePayload({
+                    currentPageQuestion,
+                    bookText,
+                    currentPageNumber,
+                    imageDescription,
+                    userAttention,
+                    utteranceTag: 'utterances',
+                    formattedUtterances,
+                }),
+            },
+        ];
 
         // Start categorization and question generation simultaneously
         const categorizationStreamPromise = openai.chat.completions.create({
-            model: "gpt-5-mini",
+            model: OPENAI_OFFSCRIPT_MODEL,
             stream: true,
-            // Got rid of rationale for speed and simplicity, can add back if needed {"category":"ON_TOPIC or OFF_TOPIC","rationale":"<one sentence>"}
-            messages: [
-                {
-                    role: "developer",
-                    content: `You are a reading interaction analyst for a parent-child co-reading system.
-
-CLASSIFY each off-script utterance. Output one JSON object per line (NDJSON), no extra text.
-
-1. ON_TOPIC: 
-   - Directly addresses the current page's narrative, character emotions, or visual details.
-   - Shows accurate comprehension of the story (e.g., correct character names/genders).
-   - Must be substantive. Do not use for one-word fillers.
-
-2. PAGE_QUESTION: 
-   - The utterance is a literal or near-literal restatement of the prompt question.
-
-3. OFF_TOPIC: 
-   - CONTEXT DRIFT: References topics/objects from previous pages not present now (e.g., talking about 'cake' on a 'streamer' page).
-   - HALLUCINATION: Mentioning objects or actions not in the provided Image Analysis or Text (e.g., calling a party hat a 'nest').
-   - FACTUAL ERROR: Using incorrect genders or names for characters (e.g., calling Zoe 'he').
-   - NON-SUBSTANTIVE: Fillers, signals of presence, or empty reactions (e.g., 'so', 'oh', 'um').
-   - EXTERNAL: Daily chat or physical environment comments.
-
-OUTPUT REQUIREMENT:
-- Output exactly ONE JSON line per request: {"category":"ON_TOPIC", "PAGE_QUESTION", or "OFF_TOPIC"}
-- Output ONLY the NDJSON lines. No conversational filler.`
-                },
-                {
-                    role: "user",
-                    content: `<current_page>
-Page: ${currentPageNumber || ''}
-Book Text: ${bookText}
-Question: "${currentPageQuestion}"
-</current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User's Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<off_script_utterances>
-${formattedUtterances}
-</off_script_utterances>`
-                }
-            ]
+            stream_options: { include_usage: true },
+            max_completion_tokens: 40,
+            prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
+            prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
+            messages: categorizationMessages,
         });
 
-// Use one of these strategies (vary across calls):
-// - Open-ended: Ask the child to describe or explain ("What's happening here?")
-// - Wh-question: Who, what, where, why about the story or illustration
-// - Recall: Ask about something earlier in the story
-// - Completion: Leave a blank for the child to fill in (for repetitive/rhyming text)
-
         const questionPromise = openai.chat.completions.create({
-            model: "gpt-5-mini",
-            messages: [
-                {
-                    role: "developer",
-                    content: `You are an educator for a parent-child co-reading system. Generate ONE short, engaging follow-up question for a toddler based on what they just said, the book content, and the image (if provided).
-Guidelines:
-- Build on the provided contexts utterance, user attention, and page information— respond to what THEY noticed
-- Keep it short and natural (how a parent would talk)
-- For ages 3-6: prefer concrete, simple language
-- Reply with only the question, no extra text.`
-                },
-                {
-                    role: "user",
-                    content: `<current_page>
-Page: ${currentPageNumber || ''}
-Book Text: ${bookText}
-Question: "${currentPageQuestion}"
-</current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User's attention is on "${userAttention}"` : ''}\n</image_context>\n` : ''}<utterances>
-${formattedUtterances}
-</utterances>`
-                }
-            ]
+            model: OPENAI_OFFSCRIPT_MODEL,
+            max_completion_tokens: 48,
+            prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
+            prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
+            messages: questionMessages,
         }, { signal: questionAbortController.signal }).catch(err => {
             if (err.name === 'AbortError' || err instanceof OpenAI.APIUserAbortError || err.code === 'ERR_CANCELED') return null;
             throw err;
@@ -481,13 +655,16 @@ ${formattedUtterances}
         let buffer = '';
         let hasOnTopic = false;
 
-        // To-Do - optimize by starting to parse stream and abort question as soon as we see an ON_TOPIC, instead of waiting for whole categorization to finish
         for await (const chunk of categorizationStream) {
+            if (chunk.usage) {
+                categorizationUsage = chunk.usage;
+                continue;
+            }
             if (tFirstChunk === null) {
                 tFirstChunk = Date.now();
                 tlog('first chunk arrived from OpenAI');
             }
-            const token = chunk.choices[0]?.delta?.content || '';
+            const token = chunk.choices?.[0]?.delta?.content || '';
             buffer += token;
 
             const lines = buffer.split('\n');
@@ -506,10 +683,12 @@ ${formattedUtterances}
                     items.push(item);
                     res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
                     if (item.category === 'ON_TOPIC') hasOnTopic = true;
+                    else questionAbortController.abort();
                 } catch (e) {}
             }
         }
         tlog(`categorization stream complete (${items.length} items, hasOnTopic=${hasOnTopic})`);
+        logOpenAIUsage('cat-stream/categorization', categorizationUsage);
 
         // Flush remaining buffer
         if (buffer.trim()) {
@@ -521,6 +700,7 @@ ${formattedUtterances}
                 res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
                 console.log('Categorization item (from flush):', item);
                 if (item.category === 'ON_TOPIC') hasOnTopic = true;
+                else questionAbortController.abort();
             } catch (e) {}
         }
 
@@ -532,6 +712,7 @@ ${formattedUtterances}
             console.log("Generating question based on ON_TOPIC utterance(s)");
             const qResult = await questionPromise;
             tlog('question generation complete');
+            logOpenAIUsage('cat-stream/question', qResult?.usage);
             generatedQuestion = qResult?.choices[0]?.message?.content?.trim() || null;
         } else {
             questionAbortController.abort();

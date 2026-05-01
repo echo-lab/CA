@@ -41,8 +41,8 @@ async function withRetries(fn, { attempts = 2, delayMs = 300 } = {}) {
   throw lastErr;
 }
 
-const { CFG, buildKey, readIfFresh, writeAtomically, normalizeText, normEmotion } = require('./cache/ttsCache');
-const { oncePerKey } = require('./cache/inflight');
+const { CFG, buildKey, readIfFresh, writeAtomically, normalizeText, normEmotion } = require('./lib/cache/ttsCache');
+const { oncePerKey } = require('./lib/cache/inflight');
 
 async function liveSayHandler(req, res) {
   try {

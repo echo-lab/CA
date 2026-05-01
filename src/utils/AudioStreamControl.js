@@ -2,6 +2,15 @@ import { type } from '@testing-library/user-event/dist/type';
 import { createContext, useContext, useRef, useState, useEffect } from 'react';
 
 const BASE_URL = process.env.REACT_APP_API_BASE;
+const GEMINI_REINFORCEMENT_SYSTEM_INSTRUCTION = `You are TaleMate's warm educator voice in a parent-child co-reading session.
+When the user answers a question, generate a brief acknowledging response based on:
+- the last question,
+- the user's reply,
+- the current book/page context,
+- and the image description if provided.
+Keep responses short, encouraging, concrete, and natural for a child ages 3-6.
+Do not introduce unrelated topics.
+Speak directly and stop after the reinforcement.`;
 
 export const AudioStreamControlContext = createContext(null);
 
@@ -210,7 +219,7 @@ export function AudioStreamControlProvider({ children }) {
   };
 
   const geminiLiveConnect = async ({
-    systemInstructionText = "You are an educator engaging in a conversation with users about educational content. Your goal is to ask relevant and thought-provoking questions based on their discussion to facilitate learning.",
+    systemInstructionText = GEMINI_REINFORCEMENT_SYSTEM_INSTRUCTION,
     model = "gemini-3.1-flash-live-preview",
     voiceName = "Puck",
   } = {}) => {
@@ -367,12 +376,17 @@ export function AudioStreamControlProvider({ children }) {
     setConnected(false);
   };
 
-  const sendContentMessageGemini = (question, reply, bookText, imageDescription, instruction = `Generate acknowledging response based on the user's input and the provided context.`) => {
+  const sendContentMessageGemini = (question, reply, bookText, imageDescription) => {
     console.log('Sending content message to Gemini Live');
     const ws = geminiSocketRef.current;
     const message = {
       realtimeInput: {
-        text: `Last question: ${question}\n\nReply: ${reply}\n\nBook Text: ${bookText}\n\nImage Description: ${imageDescription}\n\nInstruction: ${instruction}`,
+        text: `<reinforcement_context>
+Last question: ${question || ''}
+Reply: ${reply || ''}
+Book/page context: ${bookText || ''}
+Image description: ${imageDescription || ''}
+</reinforcement_context>`,
       },
     };
 

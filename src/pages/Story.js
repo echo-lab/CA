@@ -166,6 +166,7 @@ function Reader() {
   // the image stays in place, only the question text/audio updates.
   const hasSlidCloserRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
+  const generatedQuestionAudioUrlRef = useRef(null);
   const dismissingQuestionRef = useRef(null);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
@@ -430,6 +431,10 @@ useEffect(() => {
     generatedQuestionAudioRef.current.pause();
     generatedQuestionAudioRef.current = null;
   }
+  if (generatedQuestionAudioUrlRef.current) {
+    URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
+    generatedQuestionAudioUrlRef.current = null;
+  }
 
   let cancelled = false;
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
@@ -450,8 +455,8 @@ useEffect(() => {
       if (cancelled) { URL.revokeObjectURL(URL.createObjectURL(blob)); return; }
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.addEventListener("ended", () => URL.revokeObjectURL(url));
       audio.addEventListener("error", () => URL.revokeObjectURL(url));
+      generatedQuestionAudioUrlRef.current = url;
       generatedQuestionAudioRef.current = audio;
     })
     .catch(err => console.error('TTS pre-fetch error:', err));
@@ -504,6 +509,10 @@ const clearQuestionUI = () => {
     generatedQuestionAudioRef.current.pause();
     generatedQuestionAudioRef.current = null;
   }
+  if (generatedQuestionAudioUrlRef.current) {
+    URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
+    generatedQuestionAudioUrlRef.current = null;
+  }
 };
 
 const playReinforcement = async (reply) => {
@@ -519,8 +528,8 @@ const playReinforcement = async (reply) => {
 };
 
 const speakGenerated = () => {
-  const cachedAudio = generatedQuestionAudioRef.current;
-  generatedQuestionAudioRef.current = null;
+  if (isGeneratedQuestionPlaying) return;
+
   const cachedQuestion = generatedQuestion;
 
   if (remoteAudioRef.current) {
@@ -531,20 +540,54 @@ const speakGenerated = () => {
       remoteAudioRef.current.muted = false;
     }
   };
+  const finishGeneratedPlayback = () => {
+    unmute();
+    setIsGeneratedQuestionPlaying(false);
+    lastAskedQuestionRef.current = cachedQuestion;
+    setAwaitingQuestionAnswer(true);
+  };
 
-  if (cachedAudio) {
+  if (generatedQuestionAudioRef.current) {
+    const cachedAudio = generatedQuestionAudioRef.current;
+    cachedAudio.pause();
     setIsGeneratedQuestionPlaying(true);
-    cachedAudio.addEventListener("ended", () => { unmute(); setIsGeneratedQuestionPlaying(false); lastAskedQuestionRef.current = cachedQuestion; setAwaitingQuestionAnswer(true); }, { once: true });
+    cachedAudio.addEventListener("ended", finishGeneratedPlayback, { once: true });
     cachedAudio.currentTime = 0;
-    cachedAudio.play();
+    cachedAudio.play().catch((err) => {
+      console.error("Generated question audio playback error:", err);
+      finishGeneratedPlayback();
+    });
   } else if (cachedQuestion) {
     const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
     const voiceName = narratorRole?.VA || "kore";
     const role = narratorRole?.role || null;
+    const BASE_URL = process.env.REACT_APP_API_BASE;
     setIsGeneratedQuestionPlaying(true);
-    speak(cachedQuestion, voiceName, "neutral", role)
-      .then(() => { unmute(); setIsGeneratedQuestionPlaying(false); lastAskedQuestionRef.current = cachedQuestion; setAwaitingQuestionAnswer(true); })
-      .catch(() => { unmute(); setIsGeneratedQuestionPlaying(false); });
+    fetch(`${BASE_URL}/live/say`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: cachedQuestion, voiceName, emotion: "neutral", role }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.blob();
+      })
+      .then(blob => {
+        if (generatedQuestionAudioUrlRef.current) {
+          URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
+        }
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        generatedQuestionAudioUrlRef.current = url;
+        generatedQuestionAudioRef.current = audio;
+        audio.addEventListener("ended", finishGeneratedPlayback, { once: true });
+        audio.addEventListener("error", finishGeneratedPlayback, { once: true });
+        return audio.play();
+      })
+      .catch((err) => {
+        console.error("Generated question TTS error:", err);
+        finishGeneratedPlayback();
+      });
   }
 };
 
@@ -808,12 +851,22 @@ React.useEffect(() => {
   };
 
   if (audioHasEnded && isPlaying) {
+      const hasMoreLinesOnPage =
+        state.pagesValues[state.page]?.text?.length - 1 >= state.index;
+
+      if (generatedQuestion && showAvatar && !hasMoreLinesOnPage) {
+        setIsPlaying(false);
+        setAudioHasEnded(false);
+        setIsButtonDisabled(false);
+        return;
+      }
+
       // audioHasEnded becomes true via either natural audio-end OR the
       // utterance matcher's advanceToNextLine — never via a user click.
       handleNextClick("auto");
       setAudioHasEnded(false);
   }
-}, [audioHasEnded, isPlaying, handleNextClick]);
+}, [audioHasEnded, isPlaying, handleNextClick, generatedQuestion, showAvatar, state.page, state.index, state.pagesValues]);
 
 // If the user read the line move to next line.
 const lastProcessedUtteranceRef = useRef("");
@@ -1021,7 +1074,7 @@ function stripSSMLTags(text) {
     };
 
     return (
-      <div className="question-area">
+      <div className={`question-area ${showAvatar ? 'has-avatar' : ''}`}>
         {showAvatar && (
           <div className="role-image-container">
             <img
@@ -1029,7 +1082,7 @@ function stripSSMLTags(text) {
               src={narratorImage}
               alt="Narrator"
               onClick={handleLatestClick}
-              style={{ width: '200px', cursor: 'pointer' }}
+              style={{ cursor: 'pointer' }}
               className={isSlidingBack ? 'slide-back' : (hasSlidCloserRef.current ? 'slide-closer-hold' : 'slide-closer')}
               onAnimationEnd={(e) => {
                 if (e.animationName === 'slide-closer') {
@@ -1047,11 +1100,11 @@ function stripSSMLTags(text) {
         <div className="question-history">
           {questionHistory.map((msg, i) => {
             const isLatest = i === latestIdx;
-            const age = Math.min(latestIdx - i, 3);
+            const isPrevious = i === latestIdx - 1;
             const classes = [
               'question-message',
               msg.type,
-              isLatest ? 'latest' : `older age-${age}`,
+              isLatest ? 'latest' : isPrevious ? 'previous' : 'hidden',
               isLatest && isSpeaking ? 'speaking' : '',
             ].filter(Boolean).join(' ');
             return (
