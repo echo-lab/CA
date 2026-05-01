@@ -418,14 +418,7 @@ Last question: ${question || ''}
 Reply: ${reply || ''}
 Book/page context: ${bookText || ''}
 Image description: ${imageDescription || ''}
-</reinforcement_context>`;
-    const message = {
-      clientContent: {
-        turns: [{
-          role: "user",
-          parts: [{ text: reinforcementPrompt }],
-        }],
-        turnComplete: true,
+</reinforcement_context>`,
       },
     };
 
