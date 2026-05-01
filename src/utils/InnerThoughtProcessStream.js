@@ -48,7 +48,12 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
                         items.push(parsed.item);
                     } else if (parsed.type === 'done') {
                         generatedQuestion = parsed.generatedQuestion;
-                        if (!generatedQuestion) gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: 'aborted — no ON_TOPIC utterances' });
+                        if (!generatedQuestion) {
+                            const reason = items.length === 0
+                                ? 'aborted — no categorization items parsed'
+                                : 'aborted — no ON_TOPIC utterances';
+                            gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: reason });
+                        }
                     } else if (parsed.type === 'error') {
                         throw new Error(parsed.error);
                     }

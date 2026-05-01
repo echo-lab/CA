@@ -43,12 +43,13 @@ Style requirements:
 Prompt version: ${PROMPT_VERSION}`;
 const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page.
 
-Output one JSON object as one NDJSON line, with no extra text.
+Output one JSON object as one NDJSON line for each utterance, with no extra text.
 
 Categories:
 1. ON_TOPIC
 - Directly addresses the current page's narrative, character emotions, or visual details.
 - Shows accurate comprehension of the story, including correct character names/genders.
+- Can use pronouns or partial descriptions instead of character names when the meaning is clearly grounded in the current page.
 - Must be substantive. Do not use for one-word fillers.
 
 2. PAGE_QUESTION
@@ -118,6 +119,28 @@ function logOpenAIUsage(label, usage) {
         totalTokens: usage.total_tokens,
         cachedTokens: getCachedPromptTokens(usage),
     });
+}
+
+function parseCategorizationLine(line) {
+    const trimmed = String(line || '').trim();
+    if (!trimmed) return null;
+    const jsonish = trimmed
+        .replace(/^```(?:json)?/i, '')
+        .replace(/```$/i, '')
+        .trim();
+    try {
+        const item = JSON.parse(jsonish);
+        return item && typeof item === 'object' && typeof item.category === 'string' ? item : null;
+    } catch {
+        const match = jsonish.match(/\{[\s\S]*\}/);
+        if (match) {
+            try {
+                const item = JSON.parse(match[0]);
+                return item && typeof item === 'object' && typeof item.category === 'string' ? item : null;
+            } catch {}
+        }
+        return null;
+    }
 }
 
 function normalizePageTextForCache(pageText) {
@@ -631,7 +654,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
             model: OPENAI_OFFSCRIPT_MODEL,
             stream: true,
             stream_options: { include_usage: true },
-            max_completion_tokens: 40,
+            max_completion_tokens: 160,
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: categorizationMessages,
@@ -653,6 +676,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
         tlog('categorization stream object received (request sent to OpenAI)');
         const items = [];
         let buffer = '';
+        let rawCategorizationText = '';
         let hasOnTopic = false;
 
         for await (const chunk of categorizationStream) {
@@ -666,15 +690,14 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
             }
             const token = chunk.choices?.[0]?.delta?.content || '';
             buffer += token;
+            rawCategorizationText += token;
 
             const lines = buffer.split('\n');
             buffer = lines.pop();
 
             for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed) continue;
-                try {
-                    const item = JSON.parse(trimmed);
+                const item = parseCategorizationLine(line);
+                if (item) {
                     if (tFirstItem === null) {
                         tFirstItem = Date.now();
                         tlog('first parsed item written to client');
@@ -684,7 +707,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
                     res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
                     if (item.category === 'ON_TOPIC') hasOnTopic = true;
                     else questionAbortController.abort();
-                } catch (e) {}
+                }
             }
         }
         tlog(`categorization stream complete (${items.length} items, hasOnTopic=${hasOnTopic})`);
@@ -692,8 +715,8 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
 
         // Flush remaining buffer
         if (buffer.trim()) {
-            try {
-                const item = JSON.parse(buffer.trim());
+            const item = parseCategorizationLine(buffer);
+            if (item) {
                 if (tFirstItem === null) tFirstItem = Date.now();
                 tLastItem = Date.now();
                 items.push(item);
@@ -701,7 +724,14 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
                 console.log('Categorization item (from flush):', item);
                 if (item.category === 'ON_TOPIC') hasOnTopic = true;
                 else questionAbortController.abort();
-            } catch (e) {}
+            }
+        }
+
+        if (items.length === 0) {
+            console.warn('[cat-stream] no categorization item parsed', {
+                rawText: rawCategorizationText.slice(0, 500),
+                rawLength: rawCategorizationText.length,
+            });
         }
 
         // Categorization done — decide whether to use or cancel question generation
