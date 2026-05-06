@@ -7,7 +7,7 @@
 
 # testing
 /coverage
-cache/tts/
+cache/
 
 # production
 /build
