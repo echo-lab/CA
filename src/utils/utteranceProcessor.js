@@ -11,8 +11,8 @@ const MID_SENTENCE_TAGS = new Set([
   'Conjunction',     // "and", "but", "because"
   'Auxiliary',        // "is", "was", "have"
 ]);
+const MIN_OFFSCRIPT_FLUSH_WORDS = 4;
 const MAX_OFFSCRIPT_BUFFER = 20;
-let pendingOffScriptWords = [];
 let pendingPOSBuffer = [];
 let currentAbortController = null;
 let deferredOffScriptEntries = [];
@@ -21,6 +21,13 @@ let isCategorizationPending = false;
 let awaitingQuestionAnswer = false;
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
+
+function clearLiveOffScriptState(offScriptLogRef) {
+  pendingPOSBuffer = [];
+  if (offScriptLogRef) {
+    offScriptLogRef.current = [];
+  }
+}
 
 function emptyQueues() {
   return Array.from({ length: VARIANT_SLOT_COUNT }, () => []);
@@ -102,8 +109,7 @@ export function abortCurrentCategorization() {
     currentAbortController.abort();
     currentAbortController = null;
   }
-  pendingOffScriptWords = [];
-  pendingPOSBuffer = [];
+  clearLiveOffScriptState();
   deferredOffScriptEntries = [];
   deferredContext = null;
   isCategorizationPending = false;
@@ -114,47 +120,33 @@ export function getIsCategorizationPending() {
   return isCategorizationPending;
 }
 
-// Capture off-script words into pending buffer, flush when POS says sentence is complete
-function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, context) {
-  if (!offScriptLogRef || leftoverWords.length === 0) return;
+function flushStableOffScriptPhrase(lineIndex, context, force = false) {
+  if (!context || pendingPOSBuffer.length === 0) return false;
 
-  // Always append to offScriptLogRef for page-change flushes from Story.js
-  offScriptLogRef.current.push({ lineIndex, text: leftoverWords.join(' ') });
-  debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
-
-  if (!context) return;
-
-  // Remove words already sent in a previous flush
-  const alreadySent = new Set(pendingOffScriptWords);
-  const newWords = leftoverWords.filter(w => !alreadySent.has(w));
-  if (newWords.length === 0) return;
-
-  // Accumulate into POS buffer
-  pendingPOSBuffer.push(...newWords);
-  debugLog({ type: 'pos_buffer', words: pendingPOSBuffer.join(' '), count: pendingPOSBuffer.length });
-
-  // Only flush when the sentence seems complete or the buffer is too large
   const bufferText = pendingPOSBuffer.join(' ');
-  if (!isUtteranceComplete(bufferText) && pendingPOSBuffer.length < MAX_OFFSCRIPT_BUFFER) {
-    debugLog({ type: 'offscript_hold', reason: 'mid_sentence', text: bufferText, wordCount: pendingPOSBuffer.length });
-    return;
+  const isLargeEnough = pendingPOSBuffer.length >= MIN_OFFSCRIPT_FLUSH_WORDS;
+  const isFull = pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER;
+
+  if (!force && !isLargeEnough && !isFull) {
+    debugLog({ type: 'offscript_hold', reason: 'min_words', text: bufferText, wordCount: pendingPOSBuffer.length });
+    return false;
   }
 
-  // Sentence complete or buffer full — flush
-  debugLog({ type: 'pos_flush', reason: pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER ? 'buffer_full' : 'sentence_complete', text: bufferText });
+  if (!force && !isUtteranceComplete(bufferText) && !isFull) {
+    debugLog({ type: 'offscript_hold', reason: 'mid_sentence', text: bufferText, wordCount: pendingPOSBuffer.length });
+    return false;
+  }
 
-  // Clear offScriptLogRef so these words aren't re-sent on page change
-  offScriptLogRef.current = [];
+  debugLog({ type: 'pos_flush', reason: isFull ? 'buffer_full' : force ? 'forced' : 'sentence_complete', text: bufferText });
+
   if (!isCategorizationPending) {
-    // Prepend any entries that were deferred during a previous in-flight round
     const snapshot = [
       ...deferredOffScriptEntries,
       { lineIndex: lineIndex, text: bufferText },
     ];
     deferredOffScriptEntries = [];
     deferredContext = null;
-    pendingOffScriptWords = [];
-    pendingPOSBuffer = [];
+    clearLiveOffScriptState();
     sendOffScriptLog(
       { current: snapshot },
       context.state.page,
@@ -167,8 +159,29 @@ function captureOffScriptWords(offScriptLogRef, lineIndex, leftoverWords, contex
   } else {
     deferredOffScriptEntries.push({ lineIndex, text: bufferText });
     deferredContext = context;
-    pendingPOSBuffer = [];
+    clearLiveOffScriptState();
     debugLog({ type: 'offscript_deferred', lineIndex, text: bufferText, bufferSize: deferredOffScriptEntries.length });
+  }
+  return true;
+}
+
+// Capture stable off-script words that have been consumed from the matching queue.
+function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, context) {
+  if (!offScriptLogRef || !Array.isArray(stableWords) || stableWords.length === 0) return;
+
+  const words = stableWords.map(w => String(w || '').trim()).filter(Boolean);
+  if (words.length === 0) return;
+
+  offScriptLogRef.current.push({ lineIndex, text: words.join(' ') });
+  debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
+
+  if (!context) return;
+
+  pendingPOSBuffer.push(...words);
+  debugLog({ type: 'pos_buffer', words: pendingPOSBuffer.join(' '), count: pendingPOSBuffer.length });
+
+  if (flushStableOffScriptPhrase(lineIndex, context)) {
+    clearLiveOffScriptState(offScriptLogRef);
   }
 }
 
@@ -250,6 +263,24 @@ function jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance)
   }, 100);
 }
 
+function getMaxReadableLookbackWords(state, currentLineIndex, totalLines) {
+  let maxWords = 1;
+
+  for (let offset = 0; offset <= 3; offset++) {
+    const lineIndex = currentLineIndex + offset;
+    if (lineIndex >= totalLines) break;
+
+    const line = state.pagesValues[state.page]?.text?.[lineIndex];
+    if (!line?.Dialogue) continue;
+
+    const normalized = normalizeText(stripSSMLTags(line.Dialogue));
+    const wordCount = normalized[0].split(/\s+/).filter(w => w.length > 0).length;
+    maxWords = Math.max(maxWords, wordCount);
+  }
+
+  return maxWords;
+}
+
 // Forward search uses slot 0 (expanded form) only — best-effort lookahead, simpler is fine.
 function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance }) {
   const allSpokenWords = utteranceQueuesRef.current[0] || [];
@@ -272,7 +303,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
       const exactMatch = findSubsequenceMatch(variant.text, allSpokenWords);
       if (exactMatch !== null) {
         debugLog({ type: 'forward_exact_match', label: variant.label, lineIndex: checkIndex, startIdx: exactMatch.startIdx });
-        captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx), categorizationContext); // 
+        captureStableOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, exactMatch.startIdx), categorizationContext);
         clearMatchState(refs, exactMatch.endIdx);
         jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance);
         return true;
@@ -285,7 +316,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
           const fwdDetail = calculateConfidenceDetail(windowWords, variant.text);
           if (fwdDetail.confidence >= 0.6) {
             debugLog({ type: 'forward_hybrid_match', label: variant.label, lineIndex: checkIndex, confidence: (fwdDetail.confidence * 100).toFixed(1), fuzzyScore: ((1 - fwdDetail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - fwdDetail.phoneticScore) * 100).toFixed(1) });
-            captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
+            captureStableOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + variant.wordCount);
             jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance);
             return true;
@@ -293,7 +324,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
         }
       } else {
         if (calculateConfidence(allSpokenWords, variant.text) >= 0.6) {
-          captureOffScriptWords(offScriptLogRef, checkIndex, [], categorizationContext); // 
+          captureStableOffScriptWords(offScriptLogRef, checkIndex, [], categorizationContext);
           clearMatchState(refs, allSpokenWordCount);
           jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance);
           return true;
@@ -329,7 +360,10 @@ export async function processUserUtterance({
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
   const currentLine = state.pagesValues[state.page]?.text?.[currentLineIndex];
-  const categorizationContext = { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef };
+  const canCategorizeLive = questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
+  const categorizationContext = canCategorizeLive
+    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef }
+    : null;
 
   if (currentLineTrackingRef.current.page !== state.page) {
     accumulatedUtterancesRef.current = [];
@@ -357,7 +391,7 @@ export async function processUserUtterance({
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
-    captureOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
+    captureStableOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
     return;
   }
 
@@ -387,7 +421,7 @@ export async function processUserUtterance({
   if (!rawDialogue) return; // nothing to match against (pure SSML or empty line)
   const expVariants = normalizeText(rawDialogue);
   const expectedTexts = [expVariants[0], expVariants[1] ?? expVariants[0]];
-  const expectedWordCount = expectedTexts[0].split(/\s+/).filter(w => w.length > 0).length;
+  const maxReadableLookbackWords = getMaxReadableLookbackWords(state, currentLineIndex, totalLines);
 
   const refs = { accumulatedUtterancesRef, utteranceQueuesRef };
 
@@ -410,7 +444,7 @@ export async function processUserUtterance({
       const exactMatch = findSubsequenceMatch(divSentence.text, allSpokenWords);
       if (exactMatch !== null) {
         debugLog({ type: 'exact_match', label: labelTag, startIdx: exactMatch.startIdx });
-        captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx));
+        captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx), categorizationContext);
         clearMatchState(refs, exactMatch.endIdx);
         if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
         advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
@@ -427,7 +461,7 @@ export async function processUserUtterance({
             : calculateConfidenceDetail(window, divSentence.text);
           if (detail.confidence >= 0.6) {
             debugLog({ type: 'hybrid_match', label: labelTag, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
-            captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
+            captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + divSentence.wordCount);
             if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
             advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
@@ -455,12 +489,13 @@ export async function processUserUtterance({
     foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance });
   }
 
-  // Step 4: Slide queue if no match found — remove 1 word from front, add to pending buffer
+  // Step 4: Release only words that are no longer needed for current/future line matching.
   if (!foundMatch) {
-    captureOffScriptWords(offScriptLogRef, currentLineIndex, utteranceQueuesRef.current[0], categorizationContext);
-    pendingOffScriptWords = [...utteranceQueuesRef.current[0]];
-    const removed = utteranceQueuesRef.current[0].shift();
-    utteranceQueuesRef.current[1].shift();
-    debugLog({ type: 'queue_slide', removed });
+    const queue = utteranceQueuesRef.current[0] || [];
+    const wordsToRelease = Math.max(1, queue.length - maxReadableLookbackWords);
+    const removedWords = utteranceQueuesRef.current[0].splice(0, wordsToRelease);
+    utteranceQueuesRef.current[1].splice(0, wordsToRelease);
+    captureStableOffScriptWords(offScriptLogRef, currentLineIndex, removedWords, categorizationContext);
+    debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
   }
 }

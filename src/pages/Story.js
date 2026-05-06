@@ -151,6 +151,8 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
+  const [isGeneratedQuestionAudioPending, setIsGeneratedQuestionAudioPending] = useState(false);
+  const [thinkingDotCount, setThinkingDotCount] = useState(1);
 
   // isCategorizationPending is a UI mirror of utteranceProcessor's module-level
   // flag. utteranceProcessor's sendOffScriptLog is the single source of truth;
@@ -426,6 +428,8 @@ const playSound = () => {
 // Pre-fetch TTS audio when a generated question arrives (without auto-playing)
 useEffect(() => {
   if (!generatedQuestion) return;
+  setIsGeneratedQuestionAudioPending(true);
+  setThinkingDotCount(1);
 
   // Clean up old audio before fetching new one
   if (generatedQuestionAudioRef.current) {
@@ -459,11 +463,26 @@ useEffect(() => {
       audio.addEventListener("error", () => URL.revokeObjectURL(url));
       generatedQuestionAudioUrlRef.current = url;
       generatedQuestionAudioRef.current = audio;
+      setIsGeneratedQuestionAudioPending(false);
     })
-    .catch(err => console.error('TTS pre-fetch error:', err));
+    .catch(err => {
+      console.error('TTS pre-fetch error:', err);
+      setIsGeneratedQuestionAudioPending(false);
+    });
 
-  return () => { cancelled = true; };
+  return () => {
+    cancelled = true;
+    setIsGeneratedQuestionAudioPending(false);
+  };
 }, [generatedQuestion]);
+
+useEffect(() => {
+  if (!isGeneratedQuestionAudioPending) return;
+  const intervalId = setInterval(() => {
+    setThinkingDotCount(prev => (prev % 3) + 1);
+  }, 450);
+  return () => clearInterval(intervalId);
+}, [isGeneratedQuestionAudioPending]);
 
 useEffect(() => {
   if (!generatedQuestion) return;
@@ -496,6 +515,8 @@ const clearQuestionUI = () => {
   abortCurrentCategorization();
   setAwaitingQuestionAnswer(false);
   setGeneratedQuestion(null);
+  setIsGeneratedQuestionAudioPending(false);
+  setThinkingDotCount(1);
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
   setShowAvatar(false);
@@ -1104,6 +1125,8 @@ function stripSSMLTags(text) {
           {questionHistory.map((msg, i) => {
             const isLatest = i === latestIdx;
             const isPrevious = i === latestIdx - 1;
+            const showThinking = isLatest && msg.type === 'generated' && isGeneratedQuestionAudioPending;
+            const displayText = showThinking ? `Thinking${'.'.repeat(thinkingDotCount)}` : msg.text;
             const classes = [
               'question-message',
               msg.type,
@@ -1117,7 +1140,7 @@ function stripSSMLTags(text) {
                 onClick={isLatest ? handleLatestClick : undefined}
                 style={{ cursor: isLatest ? 'pointer' : 'default' }}
               >
-                {msg.text}
+                {displayText}
               </div>
             );
           })}

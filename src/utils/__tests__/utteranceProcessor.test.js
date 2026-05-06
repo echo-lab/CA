@@ -1,4 +1,9 @@
-import { processUserUtterance } from '../utteranceProcessor';
+jest.mock('../InnerThoughtProcessStream', () => ({
+  categorizeOffScriptUtterancesStreaming: jest.fn(async () => ({ items: [], generatedQuestion: null })),
+}));
+
+import { categorizeOffScriptUtterancesStreaming } from '../InnerThoughtProcessStream';
+import { abortCurrentCategorization, processUserUtterance } from '../utteranceProcessor';
 import { createMockRefs, createMockState } from '../testFixtures';
 
 // Suppress console output during tests
@@ -13,8 +18,10 @@ afterAll(() => {
 // Use fake timers for setTimeout in advanceToNextLine / jumpToFutureLine
 beforeEach(() => {
   jest.useFakeTimers();
+  categorizeOffScriptUtterancesStreaming.mockClear();
 });
 afterEach(() => {
+  abortCurrentCategorization();
   jest.runAllTimers();
   jest.useRealTimers();
 });
@@ -868,6 +875,68 @@ describe('utteranceProcessor', () => {
       }));
 
       expect(refs.offScriptLogRef.current.length).toBe(2);
+    });
+
+    it('does not send tiny off-script fragments before the minimum phrase size', async () => {
+      const lines = ['Let us choose a cake.'];
+      const refs = createMockRefs();
+      const state = createMockState(lines, 0, 0);
+      const onCategorizationStart = jest.fn();
+
+      for (const utterance of ['yeah', 'the', 'why']) {
+        await processUserUtterance(buildCallArgs(refs, state, {
+          userUtterance: utterance,
+          onCategorizationStart,
+          onCategorizationResult: jest.fn(),
+        }));
+      }
+
+      await Promise.resolve();
+
+      expect(onCategorizationStart).not.toHaveBeenCalled();
+      expect(categorizeOffScriptUtterancesStreaming).not.toHaveBeenCalled();
+      expect(refs.offScriptLogRef.current.map(entry => entry.text)).toEqual(['yeah', 'the', 'why']);
+    });
+
+    it('sends a stable complete off-script phrase once and preserves repeated words', async () => {
+      const lines = ['Read this.'];
+      const refs = createMockRefs();
+      const state = createMockState(lines, 0, 0);
+      const onCategorizationStart = jest.fn();
+
+      await processUserUtterance(buildCallArgs(refs, state, {
+        userUtterance: 'picking picking something interesting today maybe',
+        onCategorizationStart,
+        onCategorizationResult: jest.fn(),
+      }));
+
+      await Promise.resolve();
+
+      expect(onCategorizationStart).toHaveBeenCalledTimes(1);
+      expect(categorizeOffScriptUtterancesStreaming).toHaveBeenCalledTimes(1);
+      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][0]).toContain('[Line 1] "picking picking something interesting"');
+      expect(refs.offScriptLogRef.current).toEqual([]);
+    });
+
+    it('routes the off-script prefix before a matched reading line through live categorization', async () => {
+      const lines = ['Let us choose a cake.'];
+      const refs = createMockRefs();
+      const state = createMockState(lines, 0, 0);
+      const setAudioHasEnded = jest.fn();
+
+      await processUserUtterance(buildCallArgs(refs, state, {
+        userUtterance: 'pizza pizza pizza pizza let us choose a cake',
+        setAudioHasEnded,
+        onCategorizationStart: jest.fn(),
+        onCategorizationResult: jest.fn(),
+      }));
+
+      await Promise.resolve();
+
+      expect(setAudioHasEnded).toHaveBeenCalled();
+      expect(categorizeOffScriptUtterancesStreaming).toHaveBeenCalledTimes(1);
+      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][0]).toContain('[Line 1] "pizza pizza pizza pizza"');
+      expect(refs.offScriptLogRef.current).toEqual([]);
     });
   });
 
