@@ -334,10 +334,13 @@ function setupDeepgramProxy(server) {
             encoding: 'linear16',
             sample_rate: 16000,
             channels: 1,
-            punctuate: false,
+            punctuate: true,
             interim_results: true,
             diarize: true,
             smart_format: true,
+            endpointing: 500,
+            utterance_end_ms: 1200,
+            vad_events: true,
             keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5'],
         });
 

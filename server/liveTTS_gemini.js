@@ -44,10 +44,31 @@ async function withRetries(fn, { attempts = 2, delayMs = 300 } = {}) {
 const { CFG, buildKey, readIfFresh, writeAtomically, normalizeText, normEmotion } = require('./lib/cache/ttsCache');
 const { oncePerKey } = require('./lib/cache/inflight');
 
+// Warm imports + client once at module load. Subsequent requests just await the
+// already-resolved promise — no per-request import or client construction, and
+// the underlying HTTP agent's TLS connection to Google is reused.
+let depsPromise;
+function getDeps() {
+  if (!depsPromise) {
+    depsPromise = (async () => {
+      const [{ GoogleGenAI }, wavefileMod] = await Promise.all([
+        import('@google/genai'),
+        import('wavefile'),
+      ]);
+      const WaveFile = wavefileMod.WaveFile || (wavefileMod.default && wavefileMod.default.WaveFile);
+      const apiKey = process.env.GEMINI_API_KEY;
+      const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+      return { ai, WaveFile };
+    })();
+  }
+  return depsPromise;
+}
+// Kick off warmup at startup so the first /live/say request doesn't pay for it.
+getDeps().catch(err => console.warn('[liveTTS] warmup failed; will retry on first request', err));
+
 async function liveSayHandler(req, res) {
   try {
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) return res.status(500).json({ message: "GEMINI_API_KEY not set" });
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({ message: "GEMINI_API_KEY not set" });
 
     let { text, voiceName, emotion, model: modelFromReq, speechRate, role } = req.body || {};
     if (!text || typeof text !== "string" || !text.trim()) {
@@ -109,12 +130,8 @@ async function liveSayHandler(req, res) {
 
     // Produce (deduplicated) on MISS/BYPASS
     const wavBuf = await oncePerKey(key, async () => {
-      const genaiMod = await import("@google/genai");
-      const { GoogleGenAI } = genaiMod;
-      const wavefileMod = await import("wavefile");
-      const WaveFile = wavefileMod.WaveFile || (wavefileMod.default && wavefileMod.default.WaveFile);
-
-      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+      const { ai, WaveFile } = await getDeps();
+      if (!ai) throw new Error('GEMINI_API_KEY not set');
       const systemInstructionText = buildSystemInstructionText({ emotion: emo });
 
       // Build config; include speakingRate if provided

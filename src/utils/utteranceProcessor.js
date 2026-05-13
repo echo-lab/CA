@@ -19,6 +19,10 @@ let deferredOffScriptEntries = [];
 let deferredContext = null;
 let isCategorizationPending = false;
 let awaitingQuestionAnswer = false;
+let lastFlushLineIndex = 0;
+let lastCategorizationContext = null;
+let lastSpeculativeSnapshot = '';
+let speculativeLineEntries = []; // accumulated {lineIndex, text} deltas for the current line
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
 
@@ -88,6 +92,8 @@ function emitQueueState(utteranceQueuesRef) {
 function clearMatchState({ accumulatedUtterancesRef, utteranceQueuesRef }, wordsToConsume) {
   accumulatedUtterancesRef.current = [];
   utteranceQueuesRef.current = utteranceQueuesRef.current.map(q => q.slice(wordsToConsume));
+  lastSpeculativeSnapshot = '';
+  speculativeLineEntries = [];
   emitQueueState(utteranceQueuesRef);
 }
 
@@ -112,6 +118,9 @@ export function abortCurrentCategorization() {
   clearLiveOffScriptState();
   deferredOffScriptEntries = [];
   deferredContext = null;
+  lastCategorizationContext = null;
+  lastSpeculativeSnapshot = '';
+  speculativeLineEntries = [];
   isCategorizationPending = false;
   awaitingQuestionAnswer = false;
 }
@@ -120,26 +129,41 @@ export function getIsCategorizationPending() {
   return isCategorizationPending;
 }
 
-function flushStableOffScriptPhrase(lineIndex, context, force = false) {
-  if (!context || pendingPOSBuffer.length === 0) return false;
+// Checks if pendingPOSBuffer has reached a stable flush point, and if so, sends it for categorization.
+// Called on new utterance arrival and by Story.js effect on endOfTurnSignal.
+export function forceFlushPendingOffScript(offScriptLogRef, { skipPosCheck = false } = {}) {
+  if (pendingPOSBuffer.length === 0 || !lastCategorizationContext) return; // nothing to flush or no context to send to
+  const bufferText = pendingPOSBuffer.join(' ');
+  if (!skipPosCheck && !isUtteranceComplete(bufferText)) { // still mid-sentence, hold off on flushing
+    debugLog({ type: 'offscript_hold', reason: 'pos_incomplete', text: bufferText, bufferSize: pendingPOSBuffer.length });
+    return;
+  }
+  debugLog({ type: 'offscript_flush', reason: skipPosCheck ? 'deepgram_signal' : 'pos_complete', text: bufferText, bufferSize: pendingPOSBuffer.length });
+  if (flushStableOffScriptPhrase(lastFlushLineIndex, lastCategorizationContext, true)) { // force flush, bypassing POS check
+    clearLiveOffScriptState(offScriptLogRef);
+  }
+}
+
+function flushStableOffScriptPhrase(lineIndex, context, force = false) { // returns true if flush was sent for categorization
+  if (!context || pendingPOSBuffer.length === 0) return false; // nothing to flush or no context to send to
 
   const bufferText = pendingPOSBuffer.join(' ');
   const isLargeEnough = pendingPOSBuffer.length >= MIN_OFFSCRIPT_FLUSH_WORDS;
   const isFull = pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER;
 
-  if (!force && !isLargeEnough && !isFull) {
+  if (!force && !isLargeEnough && !isFull) { // too short to flush, hold off until we have a more stable phrase (or buffer fills up)
     debugLog({ type: 'offscript_hold', reason: 'min_words', text: bufferText, wordCount: pendingPOSBuffer.length });
     return false;
   }
 
-  if (!force && !isUtteranceComplete(bufferText) && !isFull) {
+  if (!force && !isUtteranceComplete(bufferText) && !isFull) { // still mid-sentence and buffer isn't full, hold off on flushing to avoid chopping off stable phrases
     debugLog({ type: 'offscript_hold', reason: 'mid_sentence', text: bufferText, wordCount: pendingPOSBuffer.length });
     return false;
   }
 
   debugLog({ type: 'pos_flush', reason: isFull ? 'buffer_full' : force ? 'forced' : 'sentence_complete', text: bufferText });
 
-  if (!isCategorizationPending) {
+  if (!isCategorizationPending) { // only send if there's not already a categorization in flight, to avoid overwhelming the categorizer with partial phrases. If there's an active categorization, defer this flush until it completes.
     const snapshot = [
       ...deferredOffScriptEntries,
       { lineIndex: lineIndex, text: bufferText },
@@ -165,6 +189,59 @@ function flushStableOffScriptPhrase(lineIndex, context, force = false) {
   return true;
 }
 
+function computeSpeculativeDelta(previous, current) {
+  if (!previous) return current;
+  const prevWords = previous.split(/\s+/).filter(Boolean);
+  const currWords = current.split(/\s+/).filter(Boolean);
+  const maxOverlap = Math.min(prevWords.length, currWords.length);
+  for (let i = maxOverlap; i > 0; i--) {
+    const prevTail = prevWords.slice(prevWords.length - i).join(' ');
+    const currHead = currWords.slice(0, i).join(' ');
+    if (prevTail === currHead) {
+      return currWords.slice(i).join(' ');
+    }
+  }
+  return current;
+}
+
+function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, maxLookback, transcriptEndedTerminal) { // only send if we have a terminal punctuation (end of sentence) and the queue isn't already too long (i.e., we're not already in the overflow zone where the matcher has given up on matching to the current line)
+  if (!context) return;
+  const snapshot = utteranceQueuesRef?.current?.[0] || [];
+  if (snapshot.length === 0) return;
+  if (typeof maxLookback === 'number' && snapshot.length > maxLookback) {
+    return;
+  }
+  if (!transcriptEndedTerminal) {
+    return;
+  }
+  const text = snapshot.join(' ');
+  if (text === lastSpeculativeSnapshot) return;
+  if (!isUtteranceComplete(text)) {
+    return;
+  }
+  const previous = lastSpeculativeSnapshot;
+  const delta = computeSpeculativeDelta(previous, text);
+  lastSpeculativeSnapshot = text;
+  const trimmedDelta = delta.trim();
+  if (trimmedDelta) {
+    speculativeLineEntries.push({ lineIndex, turn: speculativeLineEntries.length + 1, text: trimmedDelta });
+  }
+  console.log(`[speculative] previous sent: ${previous ? `"${previous}"` : '(none — fresh line)'}`);
+  console.log(`[speculative] new send     : "${text}"`);
+  console.log(`[speculative] delta        : "${delta}"`);
+  console.log(`[speculative] line entries : ${speculativeLineEntries.length}`, speculativeLineEntries);
+
+  sendOffScriptLog(
+    { current: [...speculativeLineEntries] },
+    context.state.page,
+    context.state,
+    context.onCategorizationResult,
+    context.imageDescriptionRef,
+    context.userAttentionRef?.current,
+    context.onCategorizationStart
+  );
+}
+
 // Capture stable off-script words that have been consumed from the matching queue.
 function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, context) {
   if (!offScriptLogRef || !Array.isArray(stableWords) || stableWords.length === 0) return;
@@ -173,16 +250,20 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
   if (words.length === 0) return;
 
   offScriptLogRef.current.push({ lineIndex, text: words.join(' ') });
-  debugLog({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
+  console.log({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
 
   if (!context) return;
+
+  lastFlushLineIndex = lineIndex;
+  lastCategorizationContext = context;
 
   pendingPOSBuffer.push(...words);
   debugLog({ type: 'pos_buffer', words: pendingPOSBuffer.join(' '), count: pendingPOSBuffer.length });
 
-  if (flushStableOffScriptPhrase(lineIndex, context)) {
-    clearLiveOffScriptState(offScriptLogRef);
-  }
+  // if (pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER) {
+  //   debugLog({ type: 'offscript_eager_check', bufferSize: pendingPOSBuffer.length });
+  //   forceFlushPendingOffScript(offScriptLogRef);
+  // }
 }
 
 export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart) {
@@ -193,16 +274,27 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   const bookText = `Page ${oldPage + 1}:\n` +
     lines.map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n');
 
+  // Two formatting paths:
+  //   - turn-stamped entries (speculative path) are kept as separate lines so the
+  //     categorizer sees distinct utterance turns within the same script line.
+  //   - non-turn entries (queue-slide / page-turn dumps) are micro-fragments from
+  //     transcription chunking; merge them by lineIndex as before.
+  const turnLines = [];
   const lineMap = new Map();
-  for (const { lineIndex, text } of offScriptLogRef.current) {
-    const prev = lineMap.get(lineIndex);
-    lineMap.set(lineIndex, prev ? prev + ' ' + text : text);
+  for (const { lineIndex, text, turn } of offScriptLogRef.current) {
+    if (turn != null) {
+      turnLines.push(`[Line ${lineIndex + 1}, Turn ${turn}] "${text}"`);
+    } else {
+      const prev = lineMap.get(lineIndex);
+      lineMap.set(lineIndex, prev ? prev + ' ' + text : text);
+    }
   }
 
-  const formattedLog = [...lineMap.entries()]
+  const mergedLines = [...lineMap.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([idx, text]) => `[Line ${idx + 1}] "${text}"`)
-    .join('\n');
+    .map(([idx, text]) => `[Line ${idx + 1}] "${text}"`);
+
+  const formattedLog = [...mergedLines, ...turnLines].join('\n');
 
   offScriptLogRef.current = [];
   debugLog({ type: 'offscript_clear' });
@@ -368,6 +460,8 @@ export async function processUserUtterance({
   if (currentLineTrackingRef.current.page !== state.page) {
     accumulatedUtterancesRef.current = [];
     utteranceQueuesRef.current = emptyQueues();
+    lastSpeculativeSnapshot = '';
+    speculativeLineEntries = [];
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   }
 
@@ -451,14 +545,12 @@ export async function processUserUtterance({
         return;
       }
 
-      // Sliding window hybrid (fuzzy + phonetic)
+      // Sliding window hybrid (fuzzy + phonetic) — same scoring in C1 and C2.
       if (condition === "C1" || condition === "C2") {
         const maxStartIndex = allSpokenWords.length - divSentence.wordCount;
         for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
           const window = allSpokenWords.slice(startIdx, startIdx + divSentence.wordCount);
-          const detail = condition === "C2"
-            ? calculateConfidenceDetail(window, divSentence.text, { fuzzyWeight: 0, phoneticWeight: 1 })
-            : calculateConfidenceDetail(window, divSentence.text);
+          const detail = calculateConfidenceDetail(window, divSentence.text);
           if (detail.confidence >= 0.6) {
             debugLog({ type: 'hybrid_match', label: labelTag, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
             captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
@@ -483,19 +575,28 @@ export async function processUserUtterance({
 
   debugLog({ type: 'no_match', variantsTried: allTriedLabels.join(', ') });
 
-  // Step 3: Check if user skipped ahead (next 3 lines)
+  // Step 3: Check if user skipped ahead (next 3 lines) — runs in both C1 and C2.
   let foundMatch;
-  if (condition === "C1") {
+  if (condition === "C1" || condition === "C2") {
     foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance });
   }
 
   // Step 4: Release only words that are no longer needed for current/future line matching.
   if (!foundMatch) {
     const queue = utteranceQueuesRef.current[0] || [];
-    const wordsToRelease = Math.max(1, queue.length - maxReadableLookbackWords);
+    const wordsToRelease = Math.max(0, queue.length - maxReadableLookbackWords);
     const removedWords = utteranceQueuesRef.current[0].splice(0, wordsToRelease);
     utteranceQueuesRef.current[1].splice(0, wordsToRelease);
-    captureStableOffScriptWords(offScriptLogRef, currentLineIndex, removedWords, categorizationContext);
+    //captureStableOffScriptWords(offScriptLogRef, currentLineIndex, removedWords, categorizationContext);
     debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
   }
+
+  const transcriptEndedTerminal = /[.?!]\s*$/.test(userUtterance);
+  if (transcriptEndedTerminal) {
+    console.log('Transcript ended with terminal punctuation sending offscripts:', userUtterance);
+  }
+  else {  
+    console.log('Transcript not ended with terminal punctuation:', userUtterance);
+  }
+  sendSpeculativeQueueSnapshot(utteranceQueuesRef, currentLineIndex, categorizationContext, maxReadableLookbackWords, transcriptEndedTerminal);
 }

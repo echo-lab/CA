@@ -138,6 +138,7 @@ export function AudioStreamControlProvider({ children }) {
           if (data.type === 'Results') {
             const transcript = data.channel?.alternatives?.[0]?.transcript;
             const isFinal = data.is_final;
+            const speechFinal = data.speech_final;
             const words = data.channel?.alternatives?.[0]?.words;
 
             if (transcript && transcript.trim()) {
@@ -155,7 +156,8 @@ export function AudioStreamControlProvider({ children }) {
 
               // Only update userUtterance if we have a final transcript
               if (isFinal) {
-                console.log(`Final transcript received: "${transcript}"`);
+                const endsTerminal = /[.?!]\s*$/.test(transcript);
+                console.log(`Final transcript received: "${transcript}"${speechFinal ? ' [speech_final]' : ''}${endsTerminal ? ' [terminal_punct]' : ''}`);
                 setUserUtterance(transcript);
               }
             }
