@@ -49,7 +49,7 @@ function Reader() {
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
   // C1: question generation OFF, C2: question generation ON (selected in ConditionSelecter).
-  const QUESTION_GEN_ENABLED = condition === "C2";
+  const QUESTION_GEN_ENABLED = condition === "C1";
 
   const mateFrames = {
     "Green Grant": [
@@ -151,6 +151,8 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
+  const [isGeneratedQuestionAudioPending, setIsGeneratedQuestionAudioPending] = useState(false);
+  const [thinkingDotCount, setThinkingDotCount] = useState(1);
 
   // isCategorizationPending is a UI mirror of utteranceProcessor's module-level
   // flag. utteranceProcessor's sendOffScriptLog is the single source of truth;
@@ -426,6 +428,8 @@ const playSound = () => {
 // Pre-fetch TTS audio when a generated question arrives (without auto-playing)
 useEffect(() => {
   if (!generatedQuestion) return;
+  setIsGeneratedQuestionAudioPending(true);
+  setThinkingDotCount(1);
 
   // Clean up old audio before fetching new one
   if (generatedQuestionAudioRef.current) {
@@ -438,32 +442,49 @@ useEffect(() => {
   }
 
   let cancelled = false;
-  const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
-  const voiceName = narratorRole?.VA || "kore";
-  const role = narratorRole?.role || null;
   const BASE_URL = process.env.REACT_APP_API_BASE;
 
-  fetch(`${BASE_URL}/live/say`, {
+  // Generated questions are short, unique strings → /live/say cache always misses
+  // and pays full Gemini TTS latency + uncompressed WAV transfer. Route them
+  // through Cloud TTS /synthesize: GA endpoint, MP3 output (~6-8× smaller payload),
+  // more predictable latency than the preview Gemini API.
+  fetch(`${BASE_URL}/synthesize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: generatedQuestion, voiceName, emotion: "neutral", role }),
+    body: JSON.stringify({
+      text: generatedQuestion,
+      voice: { languageCode: "en-US", name: "en-US-Wavenet-F" },
+    }),
   })
     .then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.blob();
+      return res.json();
     })
-    .then(blob => {
-      if (cancelled) { URL.revokeObjectURL(URL.createObjectURL(blob)); return; }
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.addEventListener("error", () => URL.revokeObjectURL(url));
-      generatedQuestionAudioUrlRef.current = url;
+    .then(data => {
+      if (cancelled || !data?.audioContent) return;
+      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      generatedQuestionAudioUrlRef.current = null;
       generatedQuestionAudioRef.current = audio;
+      setIsGeneratedQuestionAudioPending(false);
     })
-    .catch(err => console.error('TTS pre-fetch error:', err));
+    .catch(err => {
+      console.error('TTS pre-fetch error:', err);
+      setIsGeneratedQuestionAudioPending(false);
+    });
 
-  return () => { cancelled = true; };
+  return () => {
+    cancelled = true;
+    setIsGeneratedQuestionAudioPending(false);
+  };
 }, [generatedQuestion]);
+
+useEffect(() => {
+  if (!isGeneratedQuestionAudioPending) return;
+  const intervalId = setInterval(() => {
+    setThinkingDotCount(prev => (prev % 3) + 1);
+  }, 450);
+  return () => clearInterval(intervalId);
+}, [isGeneratedQuestionAudioPending]);
 
 useEffect(() => {
   if (!generatedQuestion) return;
@@ -496,6 +517,8 @@ const clearQuestionUI = () => {
   abortCurrentCategorization();
   setAwaitingQuestionAnswer(false);
   setGeneratedQuestion(null);
+  setIsGeneratedQuestionAudioPending(false);
+  setThinkingDotCount(1);
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
   setShowAvatar(false);
@@ -569,27 +592,27 @@ const speakGenerated = () => {
       finishGeneratedPlayback();
     });
   } else if (cachedQuestion) {
-    const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
-    const voiceName = narratorRole?.VA || "kore";
-    const role = narratorRole?.role || null;
     const BASE_URL = process.env.REACT_APP_API_BASE;
     setIsGeneratedQuestionPlaying(true);
-    fetch(`${BASE_URL}/live/say`, {
+    fetch(`${BASE_URL}/synthesize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: cachedQuestion, voiceName, emotion: "neutral", role }),
+      body: JSON.stringify({
+        text: cachedQuestion,
+        voice: { languageCode: "en-US", name: "en-US-Wavenet-F" },
+      }),
     })
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.blob();
+        return res.json();
       })
-      .then(blob => {
+      .then(data => {
+        if (!data?.audioContent) throw new Error("No audioContent in response");
         if (generatedQuestionAudioUrlRef.current) {
           URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
+          generatedQuestionAudioUrlRef.current = null;
         }
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        generatedQuestionAudioUrlRef.current = url;
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
         generatedQuestionAudioRef.current = audio;
         audio.addEventListener("ended", finishGeneratedPlayback, { once: true });
         audio.addEventListener("error", finishGeneratedPlayback, { once: true });
@@ -914,6 +937,7 @@ React.useEffect(() => { stateRef.current = state; });
 // Jump to a specific line index
 const jumpToLine = useCallback((lineIndex) => {
   setAudioHasEnded(false);
+  setIsPlaying(true);
   setState(prevState => {
     const page = prevState.pagesValues[prevState.page];
     const isLastLine = lineIndex === page.text.length;
@@ -972,6 +996,7 @@ React.useEffect(() => {
     onQuestionAnswered: questionGenEnabledRef.current ? playReinforcement : undefined
   });
 }, [userUtterance]);
+
 
 
 function stripSSMLTags(text) {
@@ -1116,6 +1141,8 @@ function stripSSMLTags(text) {
           {questionHistory.map((msg, i) => {
             const isLatest = i === latestIdx;
             const isPrevious = i === latestIdx - 1;
+            const showThinking = isLatest && msg.type === 'generated' && isGeneratedQuestionAudioPending;
+            const displayText = showThinking ? `Thinking${'.'.repeat(thinkingDotCount)}` : msg.text;
             const classes = [
               'question-message',
               msg.type,
@@ -1129,7 +1156,7 @@ function stripSSMLTags(text) {
                 onClick={isLatest ? handleLatestClick : undefined}
                 style={{ cursor: isLatest ? 'pointer' : 'default' }}
               >
-                {msg.text}
+                {displayText}
               </div>
             );
           })}

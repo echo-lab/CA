@@ -45,7 +45,12 @@ export async function ImageAnalysis({ book, page, pageText }) {
         body: JSON.stringify({
           book,
           page,
-          question: 'Describe what is happening in this image, focusing on the characters\' actions, emotions, and any visual details relevant to the story.',
+          question: `Describe what is happening in the image. Focus on:
+- What the characters are doing
+- Their emotions and interactions
+- Important objects and background details
+- What is happening in the scene
+Use clear and simple language. Avoid guessing.`,
           pageText,
         }),
       });
