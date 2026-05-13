@@ -474,11 +474,7 @@ export async function processUserUtterance({
   if (wasAwaiting) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'question_reply_captured', utterance: userUtterance });
-    if (questionGenEnabled) {
-      onQuestionAnswered?.(userUtterance);
-    } else {
-      debugLog({ type: 'question_reply_ignored', reason: 'question_generation_disabled' });
-    }
+    onQuestionAnswered?.(userUtterance);
     return;
   }
 
