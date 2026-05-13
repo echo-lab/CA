@@ -22,7 +22,7 @@ let awaitingQuestionAnswer = false;
 let lastFlushLineIndex = 0;
 let lastCategorizationContext = null;
 let lastSpeculativeSnapshot = '';
-let speculativeLineEntries = []; // accumulated {lineIndex, text} deltas for the current line
+let speculativeLineEntries = [];
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
 
@@ -129,8 +129,6 @@ export function getIsCategorizationPending() {
   return isCategorizationPending;
 }
 
-// Checks if pendingPOSBuffer has reached a stable flush point, and if so, sends it for categorization.
-// Called on new utterance arrival and by Story.js effect on endOfTurnSignal.
 export function forceFlushPendingOffScript(offScriptLogRef, { skipPosCheck = false } = {}) {
   if (pendingPOSBuffer.length === 0 || !lastCategorizationContext) return; // nothing to flush or no context to send to
   const bufferText = pendingPOSBuffer.join(' ');
