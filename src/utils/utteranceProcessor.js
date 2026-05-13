@@ -484,6 +484,30 @@ export async function processUserUtterance({
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
     captureStableOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
+
+    // Speculative-style cumulative send for post-last-line speech. Each terminal-
+    // punctuation transcript becomes its own turn; the categorizer receives the
+    // full history of post-last-line turns. lineIndex = totalLines marks them as
+    // post-last-line ("[Line {totalLines+1}, Turn K]").
+    if (categorizationContext) {
+      const text = userUtterance.trim();
+      const transcriptEndedTerminal = /[.?!]\s*$/.test(text);
+      if (transcriptEndedTerminal && text && text !== lastSpeculativeSnapshot && isUtteranceComplete(text)) {
+        speculativeLineEntries.push({ lineIndex: totalLines, turn: speculativeLineEntries.length + 1, text });
+        lastSpeculativeSnapshot = text;
+        console.log(`[post-last-line] turn ${speculativeLineEntries.length}: "${text}"`);
+        console.log(`[post-last-line] line entries: ${speculativeLineEntries.length}`, speculativeLineEntries);
+        sendOffScriptLog(
+          { current: [...speculativeLineEntries] },
+          categorizationContext.state.page,
+          categorizationContext.state,
+          categorizationContext.onCategorizationResult,
+          categorizationContext.imageDescriptionRef,
+          categorizationContext.userAttentionRef?.current,
+          categorizationContext.onCategorizationStart
+        );
+      }
+    }
     return;
   }
 

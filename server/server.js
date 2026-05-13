@@ -32,6 +32,7 @@ const PROMPT_VERSION = 'talemate-offscript-v1';
 const OPENAI_PROMPT_CACHE_KEY = PROMPT_VERSION;
 const OPENAI_PROMPT_CACHE_RETENTION = '24h';
 const OPENAI_OFFSCRIPT_MODEL = 'gpt-5-mini';
+
 const TALEMATE_SHARED_PROMPT_PREFIX = `TaleMate is a parent-child co-reading system for children's picture books.
 Audience: toddlers and young children, roughly ages 3-6, reading with a caregiver.
 Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
@@ -41,6 +42,7 @@ Style requirements:
 - Do not invent story facts, objects, names, or emotions not supported by the provided text or image context.
 - Character grounding: Zoe is the bird. Clara is the chameleon. Use character names when known.
 Prompt version: ${PROMPT_VERSION}`;
+
 const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page.
 
 Output one JSON object as one NDJSON line for each utterance, with no extra text.
@@ -56,28 +58,29 @@ Categories:
 - The utterance is a literal or near-literal restatement of the prompt question.
 
 3. OFF_TOPIC
-- CONTEXT_DRIFT: References topics or objects from previous pages not present now.
-- HALLUCINATION: Mentions objects or actions not in the provided image analysis or text.
-- FACTUAL_ERROR: Uses incorrect genders or names for characters.
 - NON_SUBSTANTIVE: Fillers, presence signals, or empty reactions.
 - EXTERNAL: Daily chat or physical environment comments.
 
 Output schema:
-{"category":"ON_TOPIC"|"PAGE_QUESTION"|"OFF_TOPIC"}`;
+{"category":"ON_TOPIC"|"PAGE_QUESTION"|"OFF_TOPIC","reason":"<one short sentence, max 20 words, explaining the classification>"}`;
+
 const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a toddler.
 
 Use the child's/caregiver's utterance, the current page text, the page question, and image context when available.
 Build on what the user noticed. Keep it natural, like a parent would ask. Prefer concrete "who/what/where/why" questions, description prompts, simple recall, or completion-style prompts.
 
 Output only the question. No explanation, no preface.`;
+
 const GEMINI_IMAGE_CHARACTER_RULES = `You are working with TaleMate children's picture book illustrations.
 Character rules:
 - Zoe is the bird. Any bird you see is always Zoe.
 - Clara is the chameleon. Any chameleon or lizard you see is always Clara.
 - Always call them by name when referring to those characters.`;
+
 const GEMINI_IMAGE_ANALYSIS_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
 Answer as a parent speaking to a child.
 Give a SHORT answer of 1 sentence.`;
+
 const GEMINI_IMAGE_TAGGING_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
 Detect the characters and key story objects: props, clothing, and held items visible in this illustration.
 Do not tag walls, floors, ceilings, sky, ground, or generic background scenery.
@@ -85,7 +88,9 @@ Keep bounding boxes tight.
 If an object appears multiple times, give each a unique label.
 Limit to 20 objects.
 Return just box_2d ([y_min, x_min, y_max, x_max] normalized 0-1000) and label for each. No additional text.`;
+
 const GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC = Number(process.env.GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC || 60 * 60);
+
 const geminiImageContextCache = new Map();
 
 function buildOpenAIDynamicPagePayload({
@@ -740,6 +745,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
                     tLastItem = Date.now();
                     items.push(item);
                     res.write(`data: ${JSON.stringify({ type: 'item', item })}\n\n`);
+                    console.log(`[cat-stream] item: ${item.category}${item.reason ? ` — ${item.reason}` : ''}`);
                     if (item.category === 'ON_TOPIC') hasOnTopic = true;
                     else questionAbortController.abort();
                 }

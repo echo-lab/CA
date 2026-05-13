@@ -48,6 +48,50 @@ function Reader() {
   const REALTIME_ENABLED = true;
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
+  // Map Gemini Live voice names (used by /live/say for narration) to the closest
+  // Google Cloud TTS voice (used by /synthesize for generated-question audio).
+  // Lets the generated-question voice track the narrator's Gemini voice.
+  const GEMINI_TO_CLOUD_VOICE = {
+    Achernar: "ar-XA-Chirp3-HD-Achernar",
+    Aoede: "en-US-Standard-C",
+    Autonoe: "ar-XA-Chirp3-HD-Autonoe",
+    Callirrhoe: "en-US-Standard-E",
+    Despina: "en-US-Wavenet-F",
+    Erinome: "en-GB-Standard-C",
+    Gacrux: "ar-XA-Chirp3-HD-Gacrux",
+    Kore: "en-US-Wavenet-C",
+    Laomedeia: "en-GB-Wavenet-A",
+    Leda: "en-GB-Wavenet-C",
+    Pulcherrima: "en-US-Wavenet-E",
+    Sulafat: "en-IN-Wavenet-A",
+    Vindemiatrix: "en-GB-Standard-A",
+    Zephyr: "en-GB-Standard-F",
+    Achird: "ar-XA-Chirp3-HD-Achird",
+    Algenib: "ar-XA-Chirp3-HD-Algenib",
+    Alnilam: "en-US-Standard-D",
+    Charon: "en-US-Standard-B",
+    Enceladus: "en-US-Wavenet-D",
+    Fenrir: "en-GB-Standard-B",
+    Iapetus: "en-US-Wavenet-A",
+    Orus: "en-GB-Wavenet-D",
+    Puck: "en-GB-Standard-D",
+    Rasalgethi: "en-US-Wavenet-B",
+    Sadachbia: "en-IN-Wavenet-D",
+    Sadaltager: "en-IN-Wavenet-B",
+    Schedar: "en-IN-Standard-D",
+    Umbriel: "en-GB-Wavenet-B",
+    Zubenelgenubi: "en-IN-Wavenet-C",
+  };
+
+  // Derive Cloud TTS voice + matching languageCode from the narrator's Gemini name.
+  // languageCode is the first two segments of the voice name (e.g. "en-US-Wavenet-C" -> "en-US").
+  const resolveCloudTtsVoice = (geminiName) => {
+    const cloudName = GEMINI_TO_CLOUD_VOICE[geminiName] || "en-US-Wavenet-F";
+    const parts = cloudName.split('-');
+    const languageCode = `${parts[0]}-${parts[1]}`;
+    return { languageCode, name: cloudName };
+  };
+
   // C1: question generation OFF, C2: question generation ON (selected in ConditionSelecter).
   const QUESTION_GEN_ENABLED = condition === "C1";
 
@@ -453,7 +497,7 @@ useEffect(() => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text: generatedQuestion,
-      voice: { languageCode: "en-US", name: "en-US-Wavenet-F" },
+      voice: resolveCloudTtsVoice(narratorRole?.VA),
     }),
   })
     .then(res => {
@@ -591,7 +635,7 @@ const speakGenerated = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: cachedQuestion,
-        voice: { languageCode: "en-US", name: "en-US-Wavenet-F" },
+        voice: resolveCloudTtsVoice(narratorRole?.VA),
       }),
     })
       .then(res => {
