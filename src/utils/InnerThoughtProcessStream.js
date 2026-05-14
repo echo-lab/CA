@@ -1,9 +1,9 @@
 import { gptDebugLog } from "./debugMonitor";
 
-const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, signal) => {
+const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoice, onAudio, signal) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
-    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention };
+    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoice };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/categorize-utterances-stream', payload });
 
     const t0 = performance.now();
@@ -53,6 +53,10 @@ const categorizeOffScriptUtterancesStreaming = async (formattedUtterances, curre
                                 ? 'aborted — no categorization items parsed'
                                 : 'aborted — no ON_TOPIC utterances';
                             gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: reason });
+                        }
+                    } else if (parsed.type === 'audio') {
+                        if (parsed.audioContent && typeof onAudio === 'function') {
+                            try { onAudio(parsed.audioContent); } catch (cbErr) { console.error('onAudio callback error:', cbErr); }
                         }
                     } else if (parsed.type === 'error') {
                         throw new Error(parsed.error);

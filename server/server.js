@@ -43,7 +43,7 @@ Style requirements:
 - Character grounding: Zoe is the bird. Clara is the chameleon. Use character names when known.
 Prompt version: ${PROMPT_VERSION}`;
 
-const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page.
+const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page. When classifying put more weight on the latest part of the utterance.
 
 Output one JSON object as one NDJSON line for each utterance, with no extra text.
 
@@ -53,16 +53,17 @@ Categories:
 - Shows accurate comprehension of the story, including correct character names/genders.
 - Can use pronouns or partial descriptions instead of character names when the meaning is clearly grounded in the current page.
 - Must be substantive. Do not use for one-word fillers.
+- Related to the current page question as long as it is not a regurgitation of existing page question.
+- The utterance must open up a meaningfully NEW angle relative to any <pending_question>.
 
-2. PAGE_QUESTION
-- The utterance is a literal or near-literal restatement of the prompt question.
-
-3. OFF_TOPIC
+2. OFF_TOPIC
 - NON_SUBSTANTIVE: Fillers, presence signals, or empty reactions.
 - EXTERNAL: Daily chat or physical environment comments.
+- RELVANCY: The latest addition to utterance is off-topic, even if earlier parts were on-topic.
+- REDUNDANT: The utterance is on-topic but would only prompt a follow-up question nearly identical to the <pending_question> still awaiting the child's response.
 
 Output schema:
-{"category":"ON_TOPIC"|"PAGE_QUESTION"|"OFF_TOPIC","reason":"<one short sentence, max 20 words, explaining the classification>"}`;
+{"category":"ON_TOPIC"|"OFF_TOPIC","reason":"<one short sentence, max 20 words, explaining the classification>"}`;
 
 const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a toddler.
 
@@ -71,10 +72,18 @@ Build on what the user noticed. Keep it natural, like a parent would ask. Prefer
 
 Output only the question. No explanation, no preface.`;
 
+const REINFORCEMENT_PROMPT = `Task: generate one brief reinforcement response for a toddler in a co-reading session.
+
+Use the latest child/caregiver utterance, the last asked question, the current page text, prior reinforcement turns, and image context when available.
+Affirm what the user said, gently connect it to the book or pattern idea, and keep the response natural for a parent to say aloud.
+Do not ask a new question. Do not introduce unrelated facts. Do not mention that you are an AI.
+
+Output only the reinforcement response. No explanation, no preface.`;
+
 const GEMINI_IMAGE_CHARACTER_RULES = `You are working with TaleMate children's picture book illustrations.
 Character rules:
 - Zoe is the bird. Any bird you see is always Zoe.
-- Clara is the chameleon. Any chameleon or lizard you see is always Clara.
+- Clara is the chameleon. Any chameleon or lizard you see will most likely be Clara.
 - Always call them by name when referring to those characters.`;
 
 const GEMINI_IMAGE_ANALYSIS_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
@@ -83,7 +92,6 @@ Give a SHORT answer of 1 sentence.`;
 
 const GEMINI_IMAGE_TAGGING_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
 Detect the characters and key story objects: props, clothing, and held items visible in this illustration.
-Do not tag walls, floors, ceilings, sky, ground, or generic background scenery.
 Keep bounding boxes tight.
 If an object appears multiple times, give each a unique label.
 Limit to 20 objects.
@@ -101,15 +109,48 @@ function buildOpenAIDynamicPagePayload({
     userAttention,
     utteranceTag,
     formattedUtterances,
+    pendingGeneratedQuestion,
 }) {
+    const pendingBlock = pendingGeneratedQuestion
+        ? `<pending_question>\n"${pendingGeneratedQuestion}"\n(This question was generated for the child but has not yet been played/answered. Avoid producing another that would be redundant with it.)\n</pending_question>\n`
+        : '';
     return `<current_page>
 Page: ${currentPageNumber || ''}
 Book Text: ${bookText || ''}
 Question: "${currentPageQuestion || ''}"
 </current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<${utteranceTag}>
+${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}${pendingBlock}<${utteranceTag}>
 ${formattedUtterances}
 </${utteranceTag}>`;
+}
+
+function buildReinforcementPayload({
+    question,
+    reply,
+    currentPageQuestion,
+    bookText,
+    currentPageNumber,
+    imageDescription,
+    userAttention,
+    reinforcementHistory,
+}) {
+    const history = Array.isArray(reinforcementHistory)
+        ? reinforcementHistory
+            .slice(-8)
+            .map((turn, idx) => `[Turn ${idx + 1}] User: "${turn.user || ''}"\nResponse: "${turn.response || ''}"`)
+            .join('\n')
+        : '';
+
+    return `<current_page>
+Page: ${currentPageNumber || ''}
+Book Text: ${bookText || ''}
+Page Question: "${currentPageQuestion || ''}"
+</current_page>
+${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<reinforcement_context>
+Last Asked Question: "${question || currentPageQuestion || ''}"
+Latest User Utterance: "${reply || ''}"
+${history ? `Prior Reinforcement Turns:\n${history}` : 'Prior Reinforcement Turns: none'}
+</reinforcement_context>`;
 }
 
 function getCachedPromptTokens(usage) {
@@ -637,7 +678,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
     let tLastItem = null;
     let categorizationUsage = null;
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoice } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -660,6 +701,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
                     userAttention,
                     utteranceTag: 'off_script_utterances',
                     formattedUtterances,
+                    pendingGeneratedQuestion,
                 }),
             },
         ];
@@ -676,6 +718,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
                     userAttention,
                     utteranceTag: 'utterances',
                     formattedUtterances,
+                    pendingGeneratedQuestion,
                 }),
             },
         ];
@@ -821,6 +864,20 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
         }
 
         res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
+
+        if (generatedQuestion && ttsVoice) {
+            try {
+                const tTtsStart = Date.now();
+                const ttsData = await synthesizeSpeech({ text: generatedQuestion, voice: ttsVoice });
+                tlog(`tts complete in ${Date.now() - tTtsStart}ms`);
+                if (ttsData?.audioContent) {
+                    res.write(`data: ${JSON.stringify({ type: 'audio', audioContent: ttsData.audioContent })}\n\n`);
+                }
+            } catch (ttsErr) {
+                console.error('[cat-stream] inline TTS failed:', ttsErr);
+            }
+        }
+
         res.end();
         const ms = (a, b) => a == null || b == null ? null : b - a;
         console.log('[cat-stream] summary (ms):', {
@@ -836,6 +893,58 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
         console.error('Error in streaming categorization:', error);
         res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
         res.end();
+    }
+});
+
+app.post('/api/reinforcement', async (req, res) => {
+    try {
+        const {
+            question,
+            reply,
+            currentPageQuestion,
+            bookText,
+            currentPageNumber,
+            imageDescription,
+            userAttention,
+            reinforcementHistory,
+        } = req.body;
+
+        if (!reply) {
+            return res.status(400).json({ message: 'Provide reply' });
+        }
+
+        const response = await openai.chat.completions.create({
+            model: OPENAI_OFFSCRIPT_MODEL,
+            max_completion_tokens: 80,
+            reasoning_effort: 'minimal',
+            verbosity: 'low',
+            prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
+            prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
+            messages: [
+                { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
+                { role: "developer", content: REINFORCEMENT_PROMPT },
+                {
+                    role: "user",
+                    content: buildReinforcementPayload({
+                        question,
+                        reply,
+                        currentPageQuestion,
+                        bookText,
+                        currentPageNumber,
+                        imageDescription,
+                        userAttention,
+                        reinforcementHistory,
+                    }),
+                },
+            ],
+        });
+
+        logOpenAIUsage('reinforcement', response?.usage);
+        const reinforcement = response?.choices?.[0]?.message?.content?.trim() || '';
+        res.json({ reinforcement });
+    } catch (error) {
+        console.error('Error in /api/reinforcement:', error);
+        res.status(500).json({ message: error.toString() });
     }
 });
 
@@ -878,50 +987,34 @@ app.get('/api/book-data/:bookId', (req, res) => {
     res.json({ name: book.Name, pages: pageEntries });
 });
 
+async function synthesizeSpeech({ text, voice }) {
+    if (!text || !voice) throw new Error('synthesizeSpeech: text and voice required');
+    const fetch = (await import('node-fetch')).default;
+    const sanitizedText = String(text).replace(/(\*)+/g, '').replace(/'/g, '"');
+    const ssmlText = `<speak>${sanitizedText}</speak>`;
+    const request = {
+        input: { ssml: ssmlText },
+        voice,
+        audioConfig: { audioEncoding: 'MP3', speakingRate: 0.8 },
+    };
+    const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+    });
+    const raw = await response.text();
+    if (!response.ok) {
+        console.error('TTS API responded with status', response.status);
+        console.error('TTS API error body:', raw);
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return JSON.parse(raw);
+}
+
 app.post('/synthesize', async (req, res) => {
     try {
-        // Log the incoming request body
         console.log('/synthesize request body:', JSON.stringify(req.body, null, 2));
-
-        const fetch = (await import('node-fetch')).default;
-        let sanitizedText = req.body.text.replace(/(\*)+/g, '');
-        sanitizedText = sanitizedText.replace(/'/g, '"');
-        //console.log(sanitizedText)
-        const ssmlText = `<speak>${sanitizedText}</speak>`;
-        const request = {
-            input: { ssml: ssmlText },
-            voice: req.body.voice,
-            audioConfig: { audioEncoding: 'MP3' , speakingRate: 0.8},
-
-        };
-
-        // Log the exact payload sent to Google
-        console.log('TTS API request payload:', JSON.stringify(request, null, 2));
-
-        const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + GOOGLE_API_KEY, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-        });
-
-        const raw = await response.text();
-        if (!response.ok) {
-            console.error('TTS API responded with status', response.status);
-            console.error('TTS API error body:', raw);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        let data;
-        try {
-            data = JSON.parse(raw);
-        } catch (parseErr) {
-            console.error('Failed to parse TTS API JSON:', raw);
-            return res.status(500).json({ message: 'Invalid JSON from TTS API' });
-        }
-
-        console.log('TTS API success payload (truncated):', raw.slice(0, 100));
+        const data = await synthesizeSpeech({ text: req.body.text, voice: req.body.voice });
         return res.json(data);
     } catch (error) {
         console.error('Error in Google Text-to-Speech:', error);

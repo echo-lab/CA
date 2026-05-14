@@ -47,7 +47,7 @@ function calculateConfidenceDetail(spokenWords, expectedText, options = {}) {
     exactWordWeight: 0.0,
     fuzzyWeight: 0.4,
     phoneticWeight: 0.6,
-    matchThreshold: 0.6,
+    matchThreshold: 0.7,
     ...options,
   });
   return { confidence: result.confidence, fuzzyScore: result.fuzzyScore, phoneticScore: result.phoneticScore };
@@ -66,7 +66,7 @@ function divideExpectedText(expectedText) {
   for (const pct of percentages) {
     const keepCount = Math.ceil(totalWords * pct);
     if (keepCount < 3 && pct < 1.0) break;
-    if (totalWords <= 4 && pct < 1.0) break;
+    if (totalWords <= 6 && pct < 1.0) break;
 
     const startInd = totalWords - keepCount;
     const slicedText = expectedText.map(variant => {
@@ -176,7 +176,10 @@ function flushStableOffScriptPhrase(lineIndex, context, force = false) { // retu
       context.onCategorizationResult,
       context.imageDescriptionRef,
       context.userAttentionRef?.current,
-      context.onCategorizationStart
+      context.onCategorizationStart,
+      context.pendingGeneratedQuestionRef?.current || null,
+      context.ttsVoice || null,
+      context.onGeneratedAudio || null
     );
   } else {
     deferredOffScriptEntries.push({ lineIndex, text: bufferText });
@@ -236,7 +239,10 @@ function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, ma
     context.onCategorizationResult,
     context.imageDescriptionRef,
     context.userAttentionRef?.current,
-    context.onCategorizationStart
+    context.onCategorizationStart,
+    context.pendingGeneratedQuestionRef?.current || null,
+    context.ttsVoice || null,
+    context.onGeneratedAudio || null
   );
 }
 
@@ -264,7 +270,7 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
   // }
 }
 
-export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart) {
+export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoice, onGeneratedAudio) {
   if (!offScriptLogRef?.current?.length) return;
 
   const lines = state.pagesValues[oldPage]?.text || [];
@@ -304,7 +310,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, controller.signal);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoice, onGeneratedAudio, controller.signal);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -333,7 +339,10 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
         ctx.onCategorizationResult,
         ctx.imageDescriptionRef,
         ctx.userAttentionRef?.current,
-        ctx.onCategorizationStart
+        ctx.onCategorizationStart,
+        ctx.pendingGeneratedQuestionRef?.current || null,
+        ctx.ttsVoice || null,
+        ctx.onGeneratedAudio || null
       );
     }
   }
@@ -444,15 +453,28 @@ export async function processUserUtterance({
   onCategorizationStart,
   imageDescriptionRef,
   userAttentionRef,
+  pendingGeneratedQuestionRef,
+  ttsVoice,
+  onGeneratedAudio,
   questionGenEnabledRef,
-  onQuestionAnswered
+  isReinforcementModeRef,
+  onQuestionAnswered,
+  onReinforcementUtterance,
+  onReadingResumed
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
   const currentLine = state.pagesValues[state.page]?.text?.[currentLineIndex];
-  const canCategorizeLive = questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
+
+  if (!userUtterance) return;
+
+  const wasAwaiting = awaitingQuestionAnswer;
+  const reinforcementActiveAtStart = wasAwaiting || isReinforcementModeRef?.current === true;
+  awaitingQuestionAnswer = false;
+
+  const canCategorizeLive = !reinforcementActiveAtStart && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
-    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef }
+    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoice, onGeneratedAudio }
     : null;
 
   if (currentLineTrackingRef.current.page !== state.page) {
@@ -463,26 +485,18 @@ export async function processUserUtterance({
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   }
 
-  if (!userUtterance) return;
-
-  const wasAwaiting = awaitingQuestionAnswer;
-  awaitingQuestionAnswer = false;
-
-  // If we just asked a generated follow-up question, treat this utterance purely as the
-  // reply — route it to reinforcement and skip categorization so it doesn't seed another
-  // question.
-  if (wasAwaiting) {
-    lastProcessedUtteranceRef.current = userUtterance;
-    debugLog({ type: 'question_reply_captured', utterance: userUtterance });
-    onQuestionAnswered?.(userUtterance);
-    return;
-  }
-
   // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
   // But only if the last line is no longer highlighted (i.e., already matched)
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
+
+    if (reinforcementActiveAtStart) {
+      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
+      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+      return;
+    }
+
     captureStableOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
 
     // Speculative-style cumulative send for post-last-line speech. Each terminal-
@@ -504,20 +518,34 @@ export async function processUserUtterance({
           categorizationContext.onCategorizationResult,
           categorizationContext.imageDescriptionRef,
           categorizationContext.userAttentionRef?.current,
-          categorizationContext.onCategorizationStart
+          categorizationContext.onCategorizationStart,
+          categorizationContext.pendingGeneratedQuestionRef?.current || null,
+          categorizationContext.ttsVoice || null,
+          categorizationContext.onGeneratedAudio || null
         );
       }
     }
     return;
   }
 
-  if (!currentLine?.Reading) return;
+  if (!currentLine?.Reading) {
+    if (reinforcementActiveAtStart) {
+      lastProcessedUtteranceRef.current = userUtterance;
+      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
+      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+    }
+    return;
+  }
 
   const currentCharacter = state.CharacterRoles.find(obj => obj.Character === currentLine.Character);
   const isUserReadingRole = currentCharacter?.role === "Parent" || currentCharacter?.role === "Child" || currentCharacter?.role === "Dummy";
 
   if (!isUserReadingRole) {
     lastProcessedUtteranceRef.current = userUtterance;
+    if (reinforcementActiveAtStart) {
+      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
+      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+    }
     return;
   }
 
@@ -534,7 +562,13 @@ export async function processUserUtterance({
 
   // Prepare expected text — same 2-slot structure: slot 0 expanded, slot 1 original.
   const rawDialogue = stripSSMLTags(currentLine.Dialogue)?.trim();
-  if (!rawDialogue) return; // nothing to match against (pure SSML or empty line)
+  if (!rawDialogue) {
+    if (reinforcementActiveAtStart) {
+      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
+      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+    }
+    return; // nothing to match against (pure SSML or empty line)
+  }
   const expVariants = normalizeText(rawDialogue);
   const expectedTexts = [expVariants[0], expVariants[1] ?? expVariants[0]];
   const maxReadableLookbackWords = getMaxReadableLookbackWords(state, currentLineIndex, totalLines);
@@ -563,6 +597,7 @@ export async function processUserUtterance({
         captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx), categorizationContext);
         clearMatchState(refs, exactMatch.endIdx);
         if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
+        if (reinforcementActiveAtStart) onReadingResumed?.();
         advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
         return;
       }
@@ -578,6 +613,7 @@ export async function processUserUtterance({
             captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + divSentence.wordCount);
             if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
+            if (reinforcementActiveAtStart) onReadingResumed?.();
             advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
             return;
           }
@@ -603,14 +639,23 @@ export async function processUserUtterance({
     foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance });
   }
 
+  if (foundMatch) {
+    if (reinforcementActiveAtStart) onReadingResumed?.();
+    return;
+  }
+
   // Step 4: Release only words that are no longer needed for current/future line matching.
-  if (!foundMatch) {
-    const queue = utteranceQueuesRef.current[0] || [];
-    const wordsToRelease = Math.max(0, queue.length - maxReadableLookbackWords);
-    const removedWords = utteranceQueuesRef.current[0].splice(0, wordsToRelease);
-    utteranceQueuesRef.current[1].splice(0, wordsToRelease);
-    //captureStableOffScriptWords(offScriptLogRef, currentLineIndex, removedWords, categorizationContext);
-    debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
+  const queue = utteranceQueuesRef.current[0] || [];
+  const wordsToRelease = Math.max(0, queue.length - maxReadableLookbackWords);
+  const removedWords = utteranceQueuesRef.current[0].splice(0, wordsToRelease);
+  utteranceQueuesRef.current[1].splice(0, wordsToRelease);
+  //captureStableOffScriptWords(offScriptLogRef, currentLineIndex, removedWords, categorizationContext);
+  debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
+
+  if (reinforcementActiveAtStart) {
+    debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
+    (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+    return;
   }
 
   const transcriptEndedTerminal = /[.?!]\s*$/.test(userUtterance);

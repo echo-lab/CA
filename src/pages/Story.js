@@ -16,6 +16,7 @@ import { processUserUtterance, sendOffScriptLog, abortCurrentCategorization, set
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
 import { lineChange } from "../logGeneration";
+import { roles } from "../Book/Roles";
 
 class Book {
   constructor(data) {
@@ -33,6 +34,7 @@ function Reader() {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isGeneratedQuestionPlaying, setIsGeneratedQuestionPlaying] = useState(false);
   const [isPageQuestionPlaying, setIsPageQuestionPlaying] = useState(false);
+  const [isReinforcementPlaying, setIsReinforcementPlaying] = useState(false);
   const [childHasPlayed, setChildHasPlayed] = useState(false);
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
@@ -48,45 +50,12 @@ function Reader() {
   const REALTIME_ENABLED = true;
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
-  // Map Gemini Live voice names (used by /live/say for narration) to the closest
-  // Google Cloud TTS voice (used by /synthesize for generated-question audio).
-  // Lets the generated-question voice track the narrator's Gemini voice.
-  const GEMINI_TO_CLOUD_VOICE = {
-    Achernar: "ar-XA-Chirp3-HD-Achernar",
-    Aoede: "en-US-Standard-C",
-    Autonoe: "ar-XA-Chirp3-HD-Autonoe",
-    Callirrhoe: "en-US-Standard-E",
-    Despina: "en-US-Wavenet-F",
-    Erinome: "en-GB-Standard-C",
-    Gacrux: "ar-XA-Chirp3-HD-Gacrux",
-    Kore: "en-US-Wavenet-C",
-    Laomedeia: "en-GB-Wavenet-A",
-    Leda: "en-GB-Wavenet-C",
-    Pulcherrima: "en-US-Wavenet-E",
-    Sulafat: "en-IN-Wavenet-A",
-    Vindemiatrix: "en-GB-Standard-A",
-    Zephyr: "en-GB-Standard-F",
-    Achird: "ar-XA-Chirp3-HD-Achird",
-    Algenib: "ar-XA-Chirp3-HD-Algenib",
-    Alnilam: "en-US-Standard-D",
-    Charon: "en-US-Standard-B",
-    Enceladus: "en-US-Wavenet-D",
-    Fenrir: "en-GB-Standard-B",
-    Iapetus: "en-US-Wavenet-A",
-    Orus: "en-GB-Wavenet-D",
-    Puck: "en-GB-Standard-D",
-    Rasalgethi: "en-US-Wavenet-B",
-    Sadachbia: "en-IN-Wavenet-D",
-    Sadaltager: "en-IN-Wavenet-B",
-    Schedar: "en-IN-Standard-D",
-    Umbriel: "en-GB-Wavenet-B",
-    Zubenelgenubi: "en-IN-Wavenet-C",
-  };
-
-  // Derive Cloud TTS voice + matching languageCode from the narrator's Gemini name.
-  // languageCode is the first two segments of the voice name (e.g. "en-US-Wavenet-C" -> "en-US").
+  
   const resolveCloudTtsVoice = (geminiName) => {
-    const cloudName = GEMINI_TO_CLOUD_VOICE[geminiName] || "en-US-Wavenet-F";
+    const match = geminiName
+      ? roles.find(r => r.RoleParameter === geminiName || r.RoleParameter === String(geminiName).toLowerCase())
+      : null;
+    const cloudName = match?.cloudVoice || "en-US-Wavenet-F";
     const parts = cloudName.split('-');
     const languageCode = `${parts[0]}-${parts[1]}`;
     return { languageCode, name: cloudName };
@@ -145,8 +114,6 @@ function Reader() {
     disconnect,
     geminiLiveConnect,
     geminiLiveDisconnect,
-    sendContentMessage,
-    sendContentMessageGemini,
     isMuted,
     userUtterance,
     speakerLabels,
@@ -190,6 +157,7 @@ function Reader() {
     isVolumnOn: false,
     hasReachedEnd: false // New state variable
   });
+  const stateRef = useRef(state);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
@@ -219,7 +187,12 @@ function Reader() {
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
   const userAttentionRef = useRef(null);
+  const pendingGeneratedQuestionRef = useRef(null);
   const lastAskedQuestionRef = useRef(null);
+  const reinforcementModeRef = useRef(false);
+  const reinforcementSessionRef = useRef({ question: null, turns: [] });
+  const reinforcementRequestSeqRef = useRef(0);
+  const reinforcementAudioRef = useRef(null);
   const isPageQuestionPlayingRef = useRef(false);
   const pendingLineTriggersRef = useRef(new Map());
   const pendingUntargetedLineTriggerRef = useRef(null);
@@ -273,7 +246,7 @@ function Reader() {
 
   useEffect(() => {
     let intervalId = null;
-    if (isGeneratedQuestionPlaying || isPageQuestionPlaying || isGeminiAudioPlaying) {
+    if (isGeneratedQuestionPlaying || isPageQuestionPlaying || isGeminiAudioPlaying || isReinforcementPlaying) {
       intervalId = setInterval(changeFrame, 250);
     }
     return () => {
@@ -283,7 +256,7 @@ function Reader() {
       const imgElement = document.getElementById("role-image");
       if (imgElement) imgElement.src = frames[0];
     };
-  }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying]);
+  }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isReinforcementPlaying]);
 
   function canon(text) {
     return stripSSMLTags(String(text || ""))
@@ -410,6 +383,9 @@ const gotoNextPage = () => {
       imageDescriptionRef,
       userAttentionRef.current,
       hasOffScript ? () => setIsCategorizationPending(true) : undefined,
+      pendingGeneratedQuestionRef.current || null,
+      resolveCloudTtsVoice(narratorRole?.VA),
+      handleGeneratedAudio,
     );
   }
 
@@ -469,13 +445,36 @@ const playSound = () => {
   speak(question, voiceName, "neutral", role);
 };
 
-// Pre-fetch TTS audio when a generated question arrives (without auto-playing)
+// Audio bytes for the generated question may arrive (via cat-stream's `audio`
+// SSE event) BEFORE the `done` event's question text has propagated to React
+// state. Buffer the audio in that case and consume it when the question lands.
+// If audio arrives after the question is already set, decode immediately.
+const bufferedAudioContentRef = useRef(null);
+
+const decodeAndAssignAudio = useCallback((audioContent) => {
+  try {
+    const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
+    generatedQuestionAudioUrlRef.current = null;
+    generatedQuestionAudioRef.current = audio;
+  } catch (err) {
+    console.error('audio decode error:', err);
+  }
+  setIsGeneratedQuestionAudioPending(false);
+}, []);
+
+const handleGeneratedAudio = useCallback((audioContent) => {
+  if (!audioContent) return;
+  if (pendingGeneratedQuestionRef.current) {
+    decodeAndAssignAudio(audioContent);
+  } else {
+    bufferedAudioContentRef.current = audioContent;
+  }
+}, [decodeAndAssignAudio]);
+
 useEffect(() => {
   if (!generatedQuestion) return;
-  setIsGeneratedQuestionAudioPending(true);
   setThinkingDotCount(1);
 
-  // Clean up old audio before fetching new one
   if (generatedQuestionAudioRef.current) {
     generatedQuestionAudioRef.current.pause();
     generatedQuestionAudioRef.current = null;
@@ -485,42 +484,14 @@ useEffect(() => {
     generatedQuestionAudioUrlRef.current = null;
   }
 
-  let cancelled = false;
-  const BASE_URL = process.env.REACT_APP_API_BASE;
-
-  // Generated questions are short, unique strings → /live/say cache always misses
-  // and pays full Gemini TTS latency + uncompressed WAV transfer. Route them
-  // through Cloud TTS /synthesize: GA endpoint, MP3 output (~6-8× smaller payload),
-  // more predictable latency than the preview Gemini API.
-  fetch(`${BASE_URL}/synthesize`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      text: generatedQuestion,
-      voice: resolveCloudTtsVoice(narratorRole?.VA),
-    }),
-  })
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then(data => {
-      if (cancelled || !data?.audioContent) return;
-      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-      generatedQuestionAudioUrlRef.current = null;
-      generatedQuestionAudioRef.current = audio;
-      setIsGeneratedQuestionAudioPending(false);
-    })
-    .catch(err => {
-      console.error('TTS pre-fetch error:', err);
-      setIsGeneratedQuestionAudioPending(false);
-    });
-
-  return () => {
-    cancelled = true;
-    setIsGeneratedQuestionAudioPending(false);
-  };
-}, [generatedQuestion]);
+  if (bufferedAudioContentRef.current) {
+    const audioContent = bufferedAudioContentRef.current;
+    bufferedAudioContentRef.current = null;
+    decodeAndAssignAudio(audioContent);
+  } else {
+    setIsGeneratedQuestionAudioPending(true);
+  }
+}, [generatedQuestion, decodeAndAssignAudio]);
 
 useEffect(() => {
   if (!isGeneratedQuestionAudioPending) return;
@@ -529,6 +500,10 @@ useEffect(() => {
   }, 450);
   return () => clearInterval(intervalId);
 }, [isGeneratedQuestionAudioPending]);
+
+useEffect(() => {
+  pendingGeneratedQuestionRef.current = generatedQuestion || null;
+}, [generatedQuestion]);
 
 useEffect(() => {
   if (!generatedQuestion) return;
@@ -557,7 +532,27 @@ useEffect(() => {
 
 }, [generatedQuestion]);
 
+const stopReinforcementAudio = useCallback(() => {
+  if (reinforcementAudioRef.current) {
+    reinforcementAudioRef.current.pause();
+    reinforcementAudioRef.current = null;
+  }
+  setIsReinforcementPlaying(false);
+}, []);
+
+const closeReinforcementMode = useCallback(() => {
+  reinforcementModeRef.current = false;
+  reinforcementSessionRef.current = { question: null, turns: [] };
+  reinforcementRequestSeqRef.current += 1;
+  stopReinforcementAudio();
+  setAwaitingQuestionAnswer(false);
+  if (remoteAudioRef.current && !isMuted) {
+    remoteAudioRef.current.muted = false;
+  }
+}, [isMuted, remoteAudioRef, stopReinforcementAudio]);
+
 const clearQuestionUI = () => {
+  closeReinforcementMode();
   abortCurrentCategorization();
   setAwaitingQuestionAnswer(false);
   setGeneratedQuestion(null);
@@ -578,15 +573,103 @@ const clearQuestionUI = () => {
   }
 };
 
+const getCurrentPageReinforcementContext = async () => {
+  const currentState = stateRef.current;
+  const page = currentState.pagesValues[currentState.page];
+  const lines = page?.text || [];
+  const bookText = `Page ${currentState.page + 1}:\n` +
+    lines.map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n');
+
+  return {
+    currentPageQuestion: page?.question || '',
+    bookText,
+    currentPageNumber: currentState.page + 1,
+    imageDescription: await (imageDescriptionRef.current ?? Promise.resolve(null)),
+    userAttention: userAttentionRef.current,
+  };
+};
+
 const playReinforcement = async (reply) => {
-  const question = lastAskedQuestionRef.current;
-  lastAskedQuestionRef.current = null;
-  console.log("Playing reinforcement. Question:", question, "Reply:", reply);
-  if (remoteAudioRef.current) remoteAudioRef.current.muted = false;
-  if (showAvatarRef.current) {
-    dismissingQuestionRef.current = question;
+  const currentState = stateRef.current;
+  const pageQuestion = currentState.pagesValues[currentState.page]?.question || '';
+  const question = reinforcementSessionRef.current.question || lastAskedQuestionRef.current || pageQuestion;
+  const requestSeq = reinforcementRequestSeqRef.current + 1;
+
+  reinforcementRequestSeqRef.current = requestSeq;
+  reinforcementModeRef.current = true;
+  reinforcementSessionRef.current = {
+    question,
+    turns: reinforcementSessionRef.current.turns || [],
+  };
+  setAwaitingQuestionAnswer(false);
+  stopReinforcementAudio();
+
+  console.log("Generating reinforcement. Question:", question, "Reply:", reply);
+
+  try {
+    const BASE_URL = process.env.REACT_APP_API_BASE;
+    const context = await getCurrentPageReinforcementContext();
+    const generationResponse = await fetch(`${BASE_URL}/api/reinforcement`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question,
+        reply,
+        ...context,
+        reinforcementHistory: reinforcementSessionRef.current.turns,
+      }),
+    });
+
+    if (!generationResponse.ok) throw new Error(`Reinforcement HTTP ${generationResponse.status}`);
+    const generationData = await generationResponse.json();
+    const reinforcement = generationData?.reinforcement?.trim();
+    if (!reinforcement || requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+
+    reinforcementSessionRef.current.turns = [
+      ...reinforcementSessionRef.current.turns,
+      { user: reply, response: reinforcement },
+    ];
+
+    if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
+    const ttsResponse = await fetch(`${BASE_URL}/synthesize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: reinforcement,
+        voice: resolveCloudTtsVoice(narratorRole?.VA),
+      }),
+    });
+
+    if (!ttsResponse.ok) throw new Error(`Reinforcement TTS HTTP ${ttsResponse.status}`);
+    const ttsData = await ttsResponse.json();
+    if (!ttsData?.audioContent || requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+
+    const reinforcementAudio = new Audio(`data:audio/mp3;base64,${ttsData.audioContent}`);
+    reinforcementAudioRef.current = reinforcementAudio;
+    setIsReinforcementPlaying(true);
+
+    const finish = () => {
+      if (reinforcementAudioRef.current === reinforcementAudio) {
+        reinforcementAudioRef.current = null;
+      }
+      setIsReinforcementPlaying(false);
+      if (remoteAudioRef.current && !isMuted) {
+        remoteAudioRef.current.muted = false;
+      }
+    };
+
+    reinforcementAudio.addEventListener("ended", finish, { once: true });
+    reinforcementAudio.addEventListener("error", finish, { once: true });
+    await reinforcementAudio.play();
+  } catch (error) {
+    console.error("Reinforcement generation/playback error:", error);
+    if (requestSeq === reinforcementRequestSeqRef.current) {
+      setIsReinforcementPlaying(false);
+      if (remoteAudioRef.current && !isMuted) {
+        remoteAudioRef.current.muted = false;
+      }
+    }
   }
-  sendContentMessageGemini(question, reply, state.page, imageDescriptionRef.current);
 };
 
 useEffect(() => {
@@ -826,6 +909,10 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
 * or move to the next page.
 */
 const handleNextClick = React.useCallback((trigger = "manual") => {
+ if (reinforcementModeRef.current) {
+   clearQuestionUI();
+ }
+
  const markLineChange = trigger === "auto"
    ? markNextLineChangeAutomatic
    : markNextLineChangeManual;
@@ -866,6 +953,9 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
              imageDescriptionRef,
              userAttentionRef.current,
              hasOffScript ? () => setIsCategorizationPending(true) : undefined,
+             pendingGeneratedQuestionRef.current || null,
+             resolveCloudTtsVoice(narratorRole?.VA),
+             handleGeneratedAudio,
            );
          }
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
@@ -964,7 +1054,6 @@ React.useEffect(() => {
   lineChange(state.page, state.index, { trigger });
 }, [state.page, state.index]);
 
-const stateRef = useRef(state);
 React.useEffect(() => { stateRef.current = state; });
 
 // Jump to a specific line index
@@ -1006,8 +1095,6 @@ React.useEffect(() => {
     state: stateRef.current,
     condition,
     speakerLabels,
-    sendContentMessage,
-    sendContentMessageGemini,
     gotoNextPage,
     jumpToLine,
     setAudioHasEnded,
@@ -1024,8 +1111,14 @@ React.useEffect(() => {
     },
     imageDescriptionRef,
     userAttentionRef,
+    pendingGeneratedQuestionRef,
+    ttsVoice: resolveCloudTtsVoice(narratorRole?.VA),
+    onGeneratedAudio: handleGeneratedAudio,
     questionGenEnabledRef,
-    onQuestionAnswered: playReinforcement
+    isReinforcementModeRef: reinforcementModeRef,
+    onQuestionAnswered: playReinforcement,
+    onReinforcementUtterance: playReinforcement,
+    onReadingResumed: clearQuestionUI
   });
 }, [userUtterance]);
 
