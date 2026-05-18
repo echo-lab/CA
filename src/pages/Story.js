@@ -234,18 +234,38 @@ function Reader() {
 
   function changeFrame() {
     const imgElement = document.getElementById("role-image");
-    if (!imgElement) return;
-    frameIndexRef.current = (frameIndexRef.current + 1) % frames.length;
-    imgElement.src = frames[frameIndexRef.current];
+    if (!imgElement) {
+      console.warn("[changeFrame] role-image element not found in DOM");
+      return;
+    }
+    const nextIdx = (frameIndexRef.current + 1) % frames.length;
+    frameIndexRef.current = nextIdx;
+    const nextSrc = frames[nextIdx];
+    imgElement.src = nextSrc;
+    console.log(`[changeFrame] tick idx=${nextIdx}/${frames.length} src=${nextSrc} role=${narratorRole?.role}`);
   }
 
   useEffect(() => {
     let intervalId = null;
-    if (isGeneratedQuestionPlaying || isPageQuestionPlaying || isGeminiAudioPlaying || isReinforcementPlaying) {
+    const anyPlaying = isGeneratedQuestionPlaying || isPageQuestionPlaying || isGeminiAudioPlaying || isReinforcementPlaying;
+    console.log("[changeFrame] effect run", {
+      anyPlaying,
+      isGeneratedQuestionPlaying,
+      isPageQuestionPlaying,
+      isGeminiAudioPlaying,
+      isReinforcementPlaying,
+      framesLen: frames.length,
+      role: narratorRole?.role,
+    });
+    if (anyPlaying) {
+      console.log("[changeFrame] starting interval");
       intervalId = setInterval(changeFrame, 250);
     }
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) {
+        console.log("[changeFrame] clearing interval");
+        clearInterval(intervalId);
+      }
       // Reset to default frame
       frameIndexRef.current = 0;
       const imgElement = document.getElementById("role-image");
