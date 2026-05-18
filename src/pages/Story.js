@@ -12,11 +12,12 @@ import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
-import { processUserUtterance, sendOffScriptLog, abortCurrentCategorization, setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
+import { processUserUtterance, sendOffScriptLog, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot } from "../utils/utteranceProcessor";
+import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
+import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
 import { lineChange } from "../logGeneration";
-import { roles } from "../Book/Roles";
 
 class Book {
   constructor(data) {
@@ -46,21 +47,12 @@ function Reader() {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   // How many warm requests to run in parallel
   const PRELOAD_CONCURRENCY = 1;
+  const TEST_GENERATED_QUESTION = "How do you think Zoe is feeling?";
   // Hardcoded feature flags
   const REALTIME_ENABLED = true;
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
   
-  const resolveCloudTtsVoice = (geminiName) => {
-    const match = geminiName
-      ? roles.find(r => r.RoleParameter === geminiName || r.RoleParameter === String(geminiName).toLowerCase())
-      : null;
-    const cloudName = match?.cloudVoice || "en-US-Wavenet-F";
-    const parts = cloudName.split('-');
-    const languageCode = `${parts[0]}-${parts[1]}`;
-    return { languageCode, name: cloudName };
-  };
-
   // C1: question generation OFF, C2: question generation ON (selected in ConditionSelecter).
   const QUESTION_GEN_ENABLED = condition === "C1";
 
@@ -163,8 +155,9 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
-  const [isGeneratedQuestionAudioPending, setIsGeneratedQuestionAudioPending] = useState(false);
-  const [thinkingDotCount, setThinkingDotCount] = useState(1);
+  // Mirror of isGeneratedQuestionPlaying for use inside callbacks/effects that
+  // would otherwise close over a stale state value.
+  const isGeneratedQuestionPlayingRef = useRef(false);
 
   // isCategorizationPending is a UI mirror of utteranceProcessor's module-level
   // flag. utteranceProcessor's sendOffScriptLog is the single source of truth;
@@ -174,6 +167,7 @@ function Reader() {
   const [showAvatar, setShowAvatar] = useState(false);
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
+  useEffect(() => { isGeneratedQuestionPlayingRef.current = isGeneratedQuestionPlaying; }, [isGeneratedQuestionPlaying]);
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const [isSlidingBack, setIsSlidingBack] = useState(false);
   // Tracks whether slide-closer has already played. Prevents re-triggering
@@ -193,6 +187,7 @@ function Reader() {
   const reinforcementSessionRef = useRef({ question: null, turns: [] });
   const reinforcementRequestSeqRef = useRef(0);
   const reinforcementAudioRef = useRef(null);
+  const reinforcementStreamingPlayerRef = useRef(null);
   const isPageQuestionPlayingRef = useRef(false);
   const pendingLineTriggersRef = useRef(new Map());
   const pendingUntargetedLineTriggerRef = useRef(null);
@@ -384,8 +379,11 @@ const gotoNextPage = () => {
       userAttentionRef.current,
       hasOffScript ? () => setIsCategorizationPending(true) : undefined,
       pendingGeneratedQuestionRef.current || null,
-      resolveCloudTtsVoice(narratorRole?.VA),
-      handleGeneratedAudio,
+      narratorRole?.VA || null,
+      handleAudioChunk,
+      handleAudioEnd,
+      handleAudioError,
+      startGeneratedQuestion,
     );
   }
 
@@ -445,35 +443,209 @@ const playSound = () => {
   speak(question, voiceName, "neutral", role);
 };
 
-// Audio bytes for the generated question may arrive (via cat-stream's `audio`
-// SSE event) BEFORE the `done` event's question text has propagated to React
-// state. Buffer the audio in that case and consume it when the question lands.
-// If audio arrives after the question is already set, decode immediately.
-const bufferedAudioContentRef = useRef(null);
+// Streaming generated-question audio. Gemini emits PCM chunks via SSE; we keep
+// them buffered until the user clicks the generated question, then feed them to
+// Web Audio in sequence.
+const streamingPlayerRef = useRef(null);
+const fullQuestionTextRef = useRef('');
+const cumulativeAudioMsRef = useRef(0);
+const generatedQuestionAudioChunksRef = useRef([]);
+const generatedQuestionAudioEndedRef = useRef(false);
+const generatedQuestionAudioErrorRef = useRef(null);
+const generatedQuestionPlayRequestedRef = useRef(false);
+const suppressGeneratedAudioStreamRef = useRef(false);
+const [revealedQuestion, setRevealedQuestion] = useState('');
 
-const decodeAndAssignAudio = useCallback((audioContent) => {
-  try {
-    const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
-    generatedQuestionAudioUrlRef.current = null;
-    generatedQuestionAudioRef.current = audio;
-  } catch (err) {
-    console.error('audio decode error:', err);
-  }
-  setIsGeneratedQuestionAudioPending(false);
+const SPEECH_CHARS_PER_SEC = 14;
+const computeRevealLength = useCallback((fullText, cumulativeMs) => {
+  if (!fullText) return 0;
+  const estTotalMs = (fullText.length / SPEECH_CHARS_PER_SEC) * 1000;
+  const fraction = Math.min(1, cumulativeMs / Math.max(estTotalMs, 1));
+  const target = Math.floor(fullText.length * fraction);
+  if (target >= fullText.length) return fullText.length;
+  let cut = target;
+  while (cut < fullText.length && fullText[cut] !== ' ') cut++;
+  return cut;
 }, []);
 
-const handleGeneratedAudio = useCallback((audioContent) => {
-  if (!audioContent) return;
-  if (pendingGeneratedQuestionRef.current) {
-    decodeAndAssignAudio(audioContent);
-  } else {
-    bufferedAudioContentRef.current = audioContent;
+const teardownStreamingPlayer = useCallback(() => {
+  if (streamingPlayerRef.current) {
+    try { streamingPlayerRef.current.stop(); } catch {}
+    streamingPlayerRef.current = null;
   }
-}, [decodeAndAssignAudio]);
+}, []);
+
+const finishGeneratedPlayback = useCallback((questionText) => {
+  if (remoteAudioRef.current && !isMuted) remoteAudioRef.current.muted = false;
+  generatedQuestionPlayRequestedRef.current = false;
+  setIsGeneratedQuestionPlaying(false);
+  if (questionText) lastAskedQuestionRef.current = questionText;
+  setAwaitingQuestionAnswer(true);
+}, [isMuted, remoteAudioRef]);
+
+const createGeneratedQuestionPlayer = useCallback((questionText) => createStreamingPcmPlayer({
+  onEnded: () => {
+    finishGeneratedPlayback(questionText || fullQuestionTextRef.current);
+  },
+  onError: (err) => {
+    console.error('streaming player error:', err);
+    finishGeneratedPlayback(questionText || fullQuestionTextRef.current);
+  },
+}), [finishGeneratedPlayback]);
+
+const pushBufferedGeneratedAudio = useCallback((player) => {
+  const chunks = [...generatedQuestionAudioChunksRef.current]
+    .sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0));
+  chunks.forEach(({ seq, audioContent }) => {
+    player.pushChunk(seq, audioContent);
+  });
+}, []);
+
+const startGeneratedQuestion = useCallback((questionText) => {
+  const text = String(questionText || '').trim();
+  if (!text || isGeneratedQuestionPlayingRef.current) return;
+
+  const existing = streamingPlayerRef.current;
+  if (existing && existing.isFinished?.()) {
+    try { existing.stop(); } catch {}
+    streamingPlayerRef.current = null;
+  }
+
+  fullQuestionTextRef.current = text;
+  cumulativeAudioMsRef.current = 0;
+  generatedQuestionAudioChunksRef.current = [];
+  generatedQuestionAudioEndedRef.current = false;
+  generatedQuestionAudioErrorRef.current = null;
+  generatedQuestionPlayRequestedRef.current = false;
+  suppressGeneratedAudioStreamRef.current = false;
+  pendingGeneratedQuestionRef.current = text;
+  setRevealedQuestion('');
+  setGeneratedQuestion(text);
+  setQuestionHistory(prev => {
+    const last = prev[prev.length - 1];
+    if (last && last.type === "generated" && last.text === text) {
+      return prev;
+    }
+    return [
+      ...prev,
+      {
+        id: `gen-${Date.now()}`,
+        text,
+        type: "generated",
+      },
+    ];
+  });
+  setShowAvatar(true);
+  hasSlidCloserRef.current = false;
+}, []);
+
+const handleAudioChunk = useCallback((seq, audioContent, durationMs) => {
+  if (!audioContent) return;
+  if (suppressGeneratedAudioStreamRef.current) return;
+
+  const chunk = { seq, audioContent, durationMs };
+  const chunks = generatedQuestionAudioChunksRef.current;
+  const existingIndex = chunks.findIndex(c => c.seq === seq);
+  if (existingIndex >= 0) chunks[existingIndex] = chunk;
+  else chunks.push(chunk);
+
+  if (generatedQuestionPlayRequestedRef.current && streamingPlayerRef.current) {
+    streamingPlayerRef.current.pushChunk(seq, audioContent);
+  }
+
+  cumulativeAudioMsRef.current += Number(durationMs) || 0;
+  if (fullQuestionTextRef.current) {
+    const cut = computeRevealLength(fullQuestionTextRef.current, cumulativeAudioMsRef.current);
+    setRevealedQuestion(fullQuestionTextRef.current.slice(0, cut));
+  }
+}, [computeRevealLength]);
+
+const handleAudioEnd = useCallback(() => {
+  if (suppressGeneratedAudioStreamRef.current) {
+    suppressGeneratedAudioStreamRef.current = false;
+    return;
+  }
+  generatedQuestionAudioEndedRef.current = true;
+  if (generatedQuestionPlayRequestedRef.current && streamingPlayerRef.current) {
+    streamingPlayerRef.current.end();
+  }
+  if (fullQuestionTextRef.current) setRevealedQuestion(fullQuestionTextRef.current);
+}, []);
+
+const handleAudioError = useCallback((message) => {
+  console.warn('TTS streaming error:', message);
+  if (suppressGeneratedAudioStreamRef.current) {
+    suppressGeneratedAudioStreamRef.current = false;
+    return;
+  }
+  generatedQuestionAudioErrorRef.current = message || 'Generated question audio failed';
+  if (fullQuestionTextRef.current) setRevealedQuestion(fullQuestionTextRef.current);
+  if (generatedQuestionPlayRequestedRef.current) {
+    finishGeneratedPlayback(fullQuestionTextRef.current);
+  }
+  teardownStreamingPlayer();
+}, [finishGeneratedPlayback, teardownStreamingPlayer]);
+
+const handleTestQuestionClick = useCallback(() => {
+  if (process.env.NODE_ENV !== 'development' || isGeneratedQuestionPlayingRef.current) return;
+
+  abortCurrentCategorization();
+  setIsCategorizationPending(false);
+  streamGeneratedQuestionTest({
+    questionText: TEST_GENERATED_QUESTION,
+    ttsVoiceName: narratorRole?.VA || null,
+    onQuestionReady: startGeneratedQuestion,
+    onAudioChunk: handleAudioChunk,
+    onAudioEnd: handleAudioEnd,
+    onAudioError: handleAudioError,
+  });
+}, [TEST_GENERATED_QUESTION, handleAudioChunk, handleAudioEnd, handleAudioError, narratorRole?.VA, startGeneratedQuestion]);
 
 useEffect(() => {
-  if (!generatedQuestion) return;
-  setThinkingDotCount(1);
+  pendingGeneratedQuestionRef.current = generatedQuestion || null;
+}, [generatedQuestion]);
+
+const stopReinforcementAudio = useCallback(() => {
+  if (reinforcementAudioRef.current) {
+    reinforcementAudioRef.current.pause();
+    reinforcementAudioRef.current = null;
+  }
+  if (reinforcementStreamingPlayerRef.current) {
+    try { reinforcementStreamingPlayerRef.current.stop(); } catch {}
+    reinforcementStreamingPlayerRef.current = null;
+  }
+  setIsReinforcementPlaying(false);
+}, []);
+
+const closeReinforcementMode = useCallback(() => {
+  reinforcementModeRef.current = false;
+  reinforcementSessionRef.current = { question: null, turns: [] };
+  reinforcementRequestSeqRef.current += 1;
+  resetReinforcementSnapshot();
+  stopReinforcementAudio();
+  setAwaitingQuestionAnswer(false);
+  if (remoteAudioRef.current && !isMuted) {
+    remoteAudioRef.current.muted = false;
+  }
+}, [isMuted, remoteAudioRef, stopReinforcementAudio]);
+
+const finishQuestionInteraction = useCallback(() => {
+  closeReinforcementMode();
+  setAwaitingQuestionAnswer(false);
+  generatedQuestionPlayRequestedRef.current = false;
+  suppressGeneratedAudioStreamRef.current = false;
+  teardownStreamingPlayer();
+  setIsGeneratedQuestionPlaying(false);
+  setIsSlidingBack(false);
+  dismissingQuestionRef.current = null;
+
+  const latestGenerated = fullQuestionTextRef.current || generatedQuestion;
+  if (latestGenerated) {
+    setGeneratedQuestion(latestGenerated);
+    setRevealedQuestion(latestGenerated);
+    pendingGeneratedQuestionRef.current = latestGenerated;
+    setShowAvatar(true);
+  }
 
   if (generatedQuestionAudioRef.current) {
     generatedQuestionAudioRef.current.pause();
@@ -483,84 +655,26 @@ useEffect(() => {
     URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
     generatedQuestionAudioUrlRef.current = null;
   }
-
-  if (bufferedAudioContentRef.current) {
-    const audioContent = bufferedAudioContentRef.current;
-    bufferedAudioContentRef.current = null;
-    decodeAndAssignAudio(audioContent);
-  } else {
-    setIsGeneratedQuestionAudioPending(true);
-  }
-}, [generatedQuestion, decodeAndAssignAudio]);
-
-useEffect(() => {
-  if (!isGeneratedQuestionAudioPending) return;
-  const intervalId = setInterval(() => {
-    setThinkingDotCount(prev => (prev % 3) + 1);
-  }, 450);
-  return () => clearInterval(intervalId);
-}, [isGeneratedQuestionAudioPending]);
-
-useEffect(() => {
-  pendingGeneratedQuestionRef.current = generatedQuestion || null;
-}, [generatedQuestion]);
-
-useEffect(() => {
-  if (!generatedQuestion) return;
-
-  setQuestionHistory(prev => {
-    const last = prev[prev.length - 1];
-
-    if (last && last.type === "generated" && last.text === generatedQuestion) {
-      return prev;
-    }
-
-    const next = [
-      ...prev,
-      {
-        id: `gen-${Date.now()}`,
-        text: generatedQuestion,
-        type: "generated",
-      },
-    ];
-    
-    return next;
-  });
-
-  setShowAvatar(true);
-  hasSlidCloserRef.current = false;
-
-}, [generatedQuestion]);
-
-const stopReinforcementAudio = useCallback(() => {
-  if (reinforcementAudioRef.current) {
-    reinforcementAudioRef.current.pause();
-    reinforcementAudioRef.current = null;
-  }
-  setIsReinforcementPlaying(false);
-}, []);
-
-const closeReinforcementMode = useCallback(() => {
-  reinforcementModeRef.current = false;
-  reinforcementSessionRef.current = { question: null, turns: [] };
-  reinforcementRequestSeqRef.current += 1;
-  stopReinforcementAudio();
-  setAwaitingQuestionAnswer(false);
-  if (remoteAudioRef.current && !isMuted) {
-    remoteAudioRef.current.muted = false;
-  }
-}, [isMuted, remoteAudioRef, stopReinforcementAudio]);
+}, [closeReinforcementMode, generatedQuestion, teardownStreamingPlayer]);
 
 const clearQuestionUI = () => {
   closeReinforcementMode();
   abortCurrentCategorization();
   setAwaitingQuestionAnswer(false);
   setGeneratedQuestion(null);
-  setIsGeneratedQuestionAudioPending(false);
-  setThinkingDotCount(1);
+  setRevealedQuestion('');
+  fullQuestionTextRef.current = '';
+  cumulativeAudioMsRef.current = 0;
+  generatedQuestionAudioChunksRef.current = [];
+  generatedQuestionAudioEndedRef.current = false;
+  generatedQuestionAudioErrorRef.current = null;
+  generatedQuestionPlayRequestedRef.current = false;
+  suppressGeneratedAudioStreamRef.current = false;
+  teardownStreamingPlayer();
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
   setShowAvatar(false);
+  setIsGeneratedQuestionPlaying(false);
   hasSlidCloserRef.current = false;
   dismissingQuestionRef.current = null;
   if (generatedQuestionAudioRef.current) {
@@ -573,7 +687,7 @@ const clearQuestionUI = () => {
   }
 };
 
-const getCurrentPageReinforcementContext = async () => {
+const getCurrentPageReinforcementContext = () => {
   const currentState = stateRef.current;
   const page = currentState.pagesValues[currentState.page];
   const lines = page?.text || [];
@@ -584,7 +698,7 @@ const getCurrentPageReinforcementContext = async () => {
     currentPageQuestion: page?.question || '',
     bookText,
     currentPageNumber: currentState.page + 1,
-    imageDescription: await (imageDescriptionRef.current ?? Promise.resolve(null)),
+    imageDescriptionRef,
     userAttention: userAttentionRef.current,
   };
 };
@@ -607,50 +721,12 @@ const playReinforcement = async (reply) => {
   console.log("Generating reinforcement. Question:", question, "Reply:", reply);
 
   try {
-    const BASE_URL = process.env.REACT_APP_API_BASE;
-    const context = await getCurrentPageReinforcementContext();
-    const generationResponse = await fetch(`${BASE_URL}/api/reinforcement`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question,
-        reply,
-        ...context,
-        reinforcementHistory: reinforcementSessionRef.current.turns,
-      }),
-    });
-
-    if (!generationResponse.ok) throw new Error(`Reinforcement HTTP ${generationResponse.status}`);
-    const generationData = await generationResponse.json();
-    const reinforcement = generationData?.reinforcement?.trim();
-    if (!reinforcement || requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
-
-    reinforcementSessionRef.current.turns = [
-      ...reinforcementSessionRef.current.turns,
-      { user: reply, response: reinforcement },
-    ];
-
+    const context = getCurrentPageReinforcementContext();
     if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
-    const ttsResponse = await fetch(`${BASE_URL}/synthesize`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: reinforcement,
-        voice: resolveCloudTtsVoice(narratorRole?.VA),
-      }),
-    });
 
-    if (!ttsResponse.ok) throw new Error(`Reinforcement TTS HTTP ${ttsResponse.status}`);
-    const ttsData = await ttsResponse.json();
-    if (!ttsData?.audioContent || requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
-
-    const reinforcementAudio = new Audio(`data:audio/mp3;base64,${ttsData.audioContent}`);
-    reinforcementAudioRef.current = reinforcementAudio;
-    setIsReinforcementPlaying(true);
-
-    const finish = () => {
-      if (reinforcementAudioRef.current === reinforcementAudio) {
-        reinforcementAudioRef.current = null;
+    const finishStreamingReinforcement = () => {
+      if (reinforcementStreamingPlayerRef.current) {
+        reinforcementStreamingPlayerRef.current = null;
       }
       setIsReinforcementPlaying(false);
       if (remoteAudioRef.current && !isMuted) {
@@ -658,9 +734,51 @@ const playReinforcement = async (reply) => {
       }
     };
 
-    reinforcementAudio.addEventListener("ended", finish, { once: true });
-    reinforcementAudio.addEventListener("error", finish, { once: true });
-    await reinforcementAudio.play();
+    await sendReinforcementLog({
+      question,
+      reply,
+      ...context,
+      reinforcementHistory: reinforcementSessionRef.current.turns,
+      ttsVoiceName: narratorRole?.VA || null,
+      onReinforcementReady: (reinforcement) => {
+        if (!reinforcement || requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+        reinforcementSessionRef.current.turns = [
+          ...reinforcementSessionRef.current.turns,
+          { user: reply, response: reinforcement },
+        ];
+      },
+      onAudioChunk: (seq, audioContent) => {
+        if (requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+        if (!reinforcementStreamingPlayerRef.current) {
+          reinforcementStreamingPlayerRef.current = createStreamingPcmPlayer({
+            onEnded: finishStreamingReinforcement,
+            onError: (err) => {
+              console.error("Reinforcement streaming player error:", err);
+              finishStreamingReinforcement();
+            },
+          });
+          setIsReinforcementPlaying(true);
+          Promise.resolve(reinforcementStreamingPlayerRef.current.resume()).catch((err) => {
+            console.error("Reinforcement Gemini TTS playback error:", err);
+            finishStreamingReinforcement();
+          });
+        }
+        reinforcementStreamingPlayerRef.current.pushChunk(seq, audioContent);
+      },
+      onAudioEnd: () => {
+        if (requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+        if (reinforcementStreamingPlayerRef.current) reinforcementStreamingPlayerRef.current.end();
+        else finishStreamingReinforcement();
+      },
+      onAudioError: (message) => {
+        console.error("Reinforcement Gemini TTS stream error:", message);
+        if (requestSeq === reinforcementRequestSeqRef.current) finishStreamingReinforcement();
+      },
+    });
+
+    if (requestSeq === reinforcementRequestSeqRef.current && !reinforcementStreamingPlayerRef.current) {
+      finishStreamingReinforcement();
+    }
   } catch (error) {
     console.error("Reinforcement generation/playback error:", error);
     if (requestSeq === reinforcementRequestSeqRef.current) {
@@ -684,63 +802,38 @@ const speakGenerated = () => {
   if (isGeneratedQuestionPlaying) return;
 
   const cachedQuestion = generatedQuestion;
+  if (!cachedQuestion) return;
 
-  if (remoteAudioRef.current) {
-    remoteAudioRef.current.muted = true;
+  const audioError = generatedQuestionAudioErrorRef.current;
+  const hasChunks = generatedQuestionAudioChunksRef.current.length > 0;
+  if (audioError && !hasChunks) {
+    console.warn('Generated question Gemini TTS unavailable:', audioError);
+    finishGeneratedPlayback(cachedQuestion);
+    return;
   }
-  const unmute = () => {
-    if (remoteAudioRef.current && !isMuted) {
-      remoteAudioRef.current.muted = false;
-    }
-  };
-  const finishGeneratedPlayback = () => {
-    unmute();
-    setIsGeneratedQuestionPlaying(false);
-    lastAskedQuestionRef.current = cachedQuestion;
-    setAwaitingQuestionAnswer(true);
-  };
 
-  if (generatedQuestionAudioRef.current) {
-    const cachedAudio = generatedQuestionAudioRef.current;
-    cachedAudio.pause();
-    setIsGeneratedQuestionPlaying(true);
-    cachedAudio.addEventListener("ended", finishGeneratedPlayback, { once: true });
-    cachedAudio.currentTime = 0;
-    cachedAudio.play().catch((err) => {
-      console.error("Generated question audio playback error:", err);
-      finishGeneratedPlayback();
-    });
-  } else if (cachedQuestion) {
-    const BASE_URL = process.env.REACT_APP_API_BASE;
-    setIsGeneratedQuestionPlaying(true);
-    fetch(`${BASE_URL}/synthesize`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: cachedQuestion,
-        voice: resolveCloudTtsVoice(narratorRole?.VA),
-      }),
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        if (!data?.audioContent) throw new Error("No audioContent in response");
-        if (generatedQuestionAudioUrlRef.current) {
-          URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
-          generatedQuestionAudioUrlRef.current = null;
-        }
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        generatedQuestionAudioRef.current = audio;
-        audio.addEventListener("ended", finishGeneratedPlayback, { once: true });
-        audio.addEventListener("error", finishGeneratedPlayback, { once: true });
-        return audio.play();
-      })
-      .catch((err) => {
-        console.error("Generated question TTS error:", err);
-        finishGeneratedPlayback();
-      });
+  const existing = streamingPlayerRef.current;
+  if (existing && existing.isFinished?.()) {
+    try { existing.stop(); } catch {}
+    streamingPlayerRef.current = null;
+  }
+
+  if (!streamingPlayerRef.current) {
+    streamingPlayerRef.current = createGeneratedQuestionPlayer(cachedQuestion);
+  }
+
+  generatedQuestionPlayRequestedRef.current = true;
+  setIsGeneratedQuestionPlaying(true);
+  if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
+  pushBufferedGeneratedAudio(streamingPlayerRef.current);
+
+  Promise.resolve(streamingPlayerRef.current.resume()).catch((err) => {
+    console.error("Generated question Gemini TTS playback error:", err);
+    finishGeneratedPlayback(cachedQuestion);
+  });
+
+  if (generatedQuestionAudioEndedRef.current) {
+    streamingPlayerRef.current.end();
   }
 };
 
@@ -954,8 +1047,11 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
              userAttentionRef.current,
              hasOffScript ? () => setIsCategorizationPending(true) : undefined,
              pendingGeneratedQuestionRef.current || null,
-             resolveCloudTtsVoice(narratorRole?.VA),
-             handleGeneratedAudio,
+             narratorRole?.VA || null,
+             handleAudioChunk,
+             handleAudioEnd,
+             handleAudioError,
+             startGeneratedQuestion,
            );
          }
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
@@ -1104,23 +1200,35 @@ React.useEffect(() => {
     onCategorizationResult: (result) => {
       if (result?.sourcePage !== stateRef.current.page) return;
       setIsCategorizationPending(false);
-
-      if (result?.generatedQuestion) {
-        setGeneratedQuestion(result.generatedQuestion);
+      // Note: setGeneratedQuestion is fired earlier via onQuestionReady (on
+      // the SSE `done` event) so the text reveal can keep up with the
+      // incoming chunks. This handler just clears the pending UI flag.
+    },
+    onQuestionReady: (questionText) => {
+      // Fires synchronously inside the SSE reader the moment `done` parses,
+      // before any audio_chunk events for this question are processed. That
+      // ordering lets the text reveal slice the right prefix as each chunk
+      // arrives. We still suppress this if a previous question is mid-play.
+      if (isGeneratedQuestionPlayingRef.current) {
+        suppressGeneratedAudioStreamRef.current = true;
+        return;
       }
+      startGeneratedQuestion(questionText);
     },
     imageDescriptionRef,
     userAttentionRef,
     pendingGeneratedQuestionRef,
-    ttsVoice: resolveCloudTtsVoice(narratorRole?.VA),
-    onGeneratedAudio: handleGeneratedAudio,
+    ttsVoiceName: narratorRole?.VA || null,
+    onAudioChunk: handleAudioChunk,
+    onAudioEnd: handleAudioEnd,
+    onAudioError: handleAudioError,
     questionGenEnabledRef,
     isReinforcementModeRef: reinforcementModeRef,
     onQuestionAnswered: playReinforcement,
     onReinforcementUtterance: playReinforcement,
-    onReadingResumed: clearQuestionUI
+    onReadingResumed: finishQuestionInteraction
   });
-}, [userUtterance]);
+  }, [userUtterance]);
 
 
 
@@ -1266,8 +1374,12 @@ function stripSSMLTags(text) {
           {questionHistory.map((msg, i) => {
             const isLatest = i === latestIdx;
             const isPrevious = i === latestIdx - 1;
-            const showThinking = isLatest && msg.type === 'generated' && isGeneratedQuestionAudioPending;
-            const displayText = showThinking ? `Thinking${'.'.repeat(thinkingDotCount)}` : msg.text;
+            // The latest generated question reveals incrementally as TTS audio
+            // chunks arrive; older generated questions and page questions
+            // always show their full text.
+            const isLatestGenerated = isLatest && msg.type === 'generated';
+            const displayText = isLatestGenerated ? (revealedQuestion || msg.text) : msg.text;
+            const isRevealing = isLatestGenerated && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length;
             const classes = [
               'question-message',
               msg.type,
@@ -1282,6 +1394,7 @@ function stripSSMLTags(text) {
                 style={{ cursor: isLatest ? 'pointer' : 'default' }}
               >
                 {displayText}
+                {isRevealing && <span className="reveal-cursor">▍</span>}
               </div>
             );
           })}
@@ -1415,7 +1528,7 @@ function stripSSMLTags(text) {
     <div className="navigation-buttons-container">
 
       <button
-        onClick={setGeneratedQuestion.bind(null, state.pagesValues[state.page].question)}
+        onClick={handleTestQuestionClick}
         className="btn btn-outline-secondary"
         disabled={process.env.NODE_ENV !== 'development'}
         style={{ fontSize: '12px', padding: '4px 10px', marginRight: '10px' }}

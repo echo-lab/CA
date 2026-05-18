@@ -199,6 +199,53 @@ async function liveSayHandler(req, res) {
   }
 }
 
+// Streaming TTS over Vertex (matches liveTTS_gemini.js's generateGeminiTtsChunks):
+// yields raw PCM base64 chunks as the model emits them, for cat-stream's
+// progressive-reveal audio push.
+async function* generateGeminiTtsChunks({ text, voiceName, emotion, role, speechRate, model }) {
+  const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+  const LOCATION = process.env.VERTEX_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+  if (!PROJECT_ID) throw new Error("VERTEX_PROJECT_ID or GOOGLE_CLOUD_PROJECT not set");
+
+  let textNorm = normalizeText(text);
+  textNorm = textNorm.replace(/\bZoe\b/g, "Zoey");
+  const emo = normEmotion(emotion);
+  const ttsPrompt = buildNaturalLanguagePrompt({ text: textNorm, emotion: emo, role });
+  const resolvedModel = (model && String(model).trim()) || process.env.VERTEX_MODEL || "gemini-2.5-flash-tts";
+  if (/gemini-.*live/i.test(resolvedModel)) {
+    throw new Error(`Model "${resolvedModel}" is a Live (WebSocket) model; use a TTS model.`);
+  }
+
+  const genaiMod = await import("@google/genai");
+  const { GoogleGenAI } = genaiMod;
+  const client = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
+
+  const config = {
+    speechConfig: {
+      languageCode: "en-US",
+      voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName || 'Kore' } },
+      ...(speechRate != null ? { speakingRate: speechRate } : {}),
+    },
+  };
+
+  const stream = await client.models.generateContentStream({
+    model: resolvedModel,
+    contents: ttsPrompt,
+    config,
+  });
+
+  let seq = 0;
+  let totalBytes = 0;
+  for await (const chunk of stream) {
+    const b64 = extractAudioBase64FromCandidates(chunk);
+    if (!b64) continue;
+    const sampleBytes = Math.floor((b64.length * 3) / 4);
+    totalBytes += sampleBytes;
+    yield { seq: seq++, audioContent: b64, sampleBytes };
+  }
+  console.log(`[vertex-tts-stream] complete model=${resolvedModel} voice=${voiceName || 'Kore'} chunks=${seq} totalBytes=${totalBytes}`);
+}
+
 async function healthHandler(req, res) {
   const ok = Boolean(process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT);
   res.json({
@@ -209,4 +256,4 @@ async function healthHandler(req, res) {
   });
 }
 
-module.exports = { liveSayHandler, healthHandler };
+module.exports = { liveSayHandler, healthHandler, generateGeminiTtsChunks };

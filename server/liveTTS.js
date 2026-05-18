@@ -17,4 +17,4 @@ function registerLiveTtsRoutes(app) {
   app.get("/live/health", handlers.healthHandler);
 }
 
-module.exports = { registerLiveTtsRoutes };
+module.exports = { registerLiveTtsRoutes, generateGeminiTtsChunks: handlers.generateGeminiTtsChunks };

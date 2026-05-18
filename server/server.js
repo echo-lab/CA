@@ -8,7 +8,7 @@ const OpenAI = require('openai');
 const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
-const { registerLiveTtsRoutes } = require('./liveTTS');
+const { registerLiveTtsRoutes, generateGeminiTtsChunks } = require('./liveTTS');
 const { setupEducationalQuestionRoutes } = require('./ModelsCommunication');
 const { setupGeminiLiveProxy } = require('./geminiLiveProxy');
 
@@ -408,7 +408,6 @@ function setupDeepgramProxy(server) {
 
         // Handle metadata
         deepgramLive.on(LiveTranscriptionEvents.Metadata, (data) => {
-            console.log('Deepgram metadata:', data);
             if (clientWs.readyState === WebSocket.OPEN) {
                 clientWs.send(JSON.stringify(data));
             }
@@ -416,7 +415,6 @@ function setupDeepgramProxy(server) {
 
         // Handle utterance end
         deepgramLive.on(LiveTranscriptionEvents.UtteranceEnd, (data) => {
-            console.log('Utterance ended');
             if (clientWs.readyState === WebSocket.OPEN) {
                 clientWs.send(JSON.stringify(data));
             }
@@ -424,7 +422,6 @@ function setupDeepgramProxy(server) {
 
         // Handle speech started
         deepgramLive.on(LiveTranscriptionEvents.SpeechStarted, (data) => {
-            console.log('Speech started');
             if (clientWs.readyState === WebSocket.OPEN) {
                 clientWs.send(JSON.stringify(data));
             }
@@ -432,7 +429,6 @@ function setupDeepgramProxy(server) {
 
         // Handle Deepgram errors
         deepgramLive.on(LiveTranscriptionEvents.Error, (error) => {
-            console.error('Deepgram error:', error);
             if (clientWs.readyState === WebSocket.OPEN) {
                 clientWs.send(JSON.stringify({
                     type: 'error',
@@ -678,7 +674,7 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
     let tLastItem = null;
     let categorizationUsage = null;
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoice } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -865,16 +861,30 @@ app.post('/api/categorize-utterances-stream', async (req, res) => {
 
         res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
 
-        if (generatedQuestion && ttsVoice) {
+        if (generatedQuestion && ttsVoiceName) {
+            const tTtsStart = Date.now();
+            let tFirstChunkOut = null;
+            let chunksSent = 0;
             try {
-                const tTtsStart = Date.now();
-                const ttsData = await synthesizeSpeech({ text: generatedQuestion, voice: ttsVoice });
-                tlog(`tts complete in ${Date.now() - tTtsStart}ms`);
-                if (ttsData?.audioContent) {
-                    res.write(`data: ${JSON.stringify({ type: 'audio', audioContent: ttsData.audioContent })}\n\n`);
+                for await (const { seq, audioContent, sampleBytes } of generateGeminiTtsChunks({
+                    text: generatedQuestion,
+                    voiceName: ttsVoiceName,
+                })) {
+                    if (tFirstChunkOut === null) {
+                        tFirstChunkOut = Date.now();
+                        tlog(`tts first chunk after ${tFirstChunkOut - tTtsStart}ms`);
+                    }
+                    console.log(`Chunk ${seq + 1} generated`);
+                    // PCM is 16-bit (2 bytes) mono at 24kHz → durationMs = (samples / 24)
+                    const durationMs = (sampleBytes / 2) / 24;
+                    res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq, audioContent, durationMs })}\n\n`);
+                    chunksSent++;
                 }
+                res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
+                tlog(`tts streaming complete in ${Date.now() - tTtsStart}ms (${chunksSent} chunks)`);
             } catch (ttsErr) {
-                console.error('[cat-stream] inline TTS failed:', ttsErr);
+                console.error('[cat-stream] streaming TTS failed:', ttsErr);
+                res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
             }
         }
 
@@ -945,6 +955,125 @@ app.post('/api/reinforcement', async (req, res) => {
     } catch (error) {
         console.error('Error in /api/reinforcement:', error);
         res.status(500).json({ message: error.toString() });
+    }
+});
+
+app.post('/api/reinforcement-stream', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    try {
+        const {
+            question,
+            reply,
+            currentPageQuestion,
+            bookText,
+            currentPageNumber,
+            imageDescription,
+            userAttention,
+            reinforcementHistory,
+            ttsVoiceName,
+        } = req.body;
+
+        if (!reply) {
+            res.write(`data: ${JSON.stringify({ type: 'error', error: 'Provide reply' })}\n\n`);
+            return res.end();
+        }
+
+        const response = await openai.chat.completions.create({
+            model: OPENAI_OFFSCRIPT_MODEL,
+            max_completion_tokens: 80,
+            reasoning_effort: 'minimal',
+            verbosity: 'low',
+            prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
+            prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
+            messages: [
+                { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
+                { role: "developer", content: REINFORCEMENT_PROMPT },
+                {
+                    role: "user",
+                    content: buildReinforcementPayload({
+                        question,
+                        reply,
+                        currentPageQuestion,
+                        bookText,
+                        currentPageNumber,
+                        imageDescription,
+                        userAttention,
+                        reinforcementHistory,
+                    }),
+                },
+            ],
+        });
+
+        logOpenAIUsage('reinforcement-stream', response?.usage);
+        const reinforcement = response?.choices?.[0]?.message?.content?.trim() || '';
+        res.write(`data: ${JSON.stringify({ type: 'done', reinforcement })}\n\n`);
+
+        if (reinforcement) {
+            try {
+                for await (const { seq, audioContent, sampleBytes } of generateGeminiTtsChunks({
+                    text: reinforcement,
+                    voiceName: ttsVoiceName,
+                })) {
+                    const durationMs = (sampleBytes / 2) / 24;
+                    res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq, audioContent, durationMs })}\n\n`);
+                }
+                res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
+            } catch (ttsErr) {
+                console.error('[reinforcement-stream] streaming TTS failed:', ttsErr);
+                res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
+            }
+        }
+
+        res.end();
+    } catch (error) {
+        console.error('Error in /api/reinforcement-stream:', error);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
+        res.end();
+    }
+});
+
+app.post('/api/generated-question-test-stream', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    try {
+        const { questionText, ttsVoiceName } = req.body;
+        const generatedQuestion = String(questionText || '').trim();
+
+        if (!generatedQuestion) {
+            res.write(`data: ${JSON.stringify({ type: 'error', error: 'Provide questionText' })}\n\n`);
+            return res.end();
+        }
+
+        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
+
+        {
+            try {
+                for await (const { seq, audioContent, sampleBytes } of generateGeminiTtsChunks({
+                    text: generatedQuestion,
+                    voiceName: ttsVoiceName,
+                })) {
+                    const durationMs = (sampleBytes / 2) / 24;
+                    res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq, audioContent, durationMs })}\n\n`);
+                }
+                res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
+            } catch (ttsErr) {
+                console.error('[generated-question-test-stream] streaming TTS failed:', ttsErr);
+                res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
+            }
+        }
+
+        res.end();
+    } catch (error) {
+        console.error('Error in /api/generated-question-test-stream:', error);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
+        res.end();
     }
 });
 

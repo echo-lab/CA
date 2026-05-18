@@ -938,6 +938,64 @@ describe('utteranceProcessor', () => {
       expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][0]).toContain('[Line 1] "pizza pizza pizza pizza"');
       expect(refs.offScriptLogRef.current).toEqual([]);
     });
+
+    it('forwards onQuestionReady through speculative live categorization', async () => {
+      const lines = ['Let us choose a cake.'];
+      const refs = createMockRefs();
+      const state = createMockState(lines, 0, 0);
+      const onQuestionReady = jest.fn();
+
+      await processUserUtterance(buildCallArgs(refs, state, {
+        userUtterance: 'pizza pizza pizza pizza.',
+        onCategorizationStart: jest.fn(),
+        onCategorizationResult: jest.fn(),
+        onQuestionReady,
+      }));
+
+      await Promise.resolve();
+
+      expect(categorizeOffScriptUtterancesStreaming).toHaveBeenCalledTimes(1);
+      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][11]).toBe(onQuestionReady);
+    });
+
+    it('uses the utterance copy for speculative categorization instead of the pruned matcher queue', async () => {
+      const lines = ['Read this.'];
+      const refs = createMockRefs();
+      const state = createMockState(lines, 0, 0);
+
+      await processUserUtterance(buildCallArgs(refs, state, {
+        userUtterance: 'always feel how do you think zoe is feeling.',
+        onCategorizationStart: jest.fn(),
+        onCategorizationResult: jest.fn(),
+      }));
+
+      await Promise.resolve();
+
+      expect(categorizeOffScriptUtterancesStreaming).toHaveBeenCalledTimes(1);
+      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][0]).toContain(
+        '[Line 1, Turn 1] "always feel how do you think zoe is feeling"'
+      );
+    });
+
+    it('forwards onQuestionReady through post-last-line live categorization', async () => {
+      const lines = ['The End.'];
+      const refs = createMockRefs();
+      const state = createMockState(lines, 0, 1);
+      state.pagesValues[0].text[0].Reading = false;
+      const onQuestionReady = jest.fn();
+
+      await processUserUtterance(buildCallArgs(refs, state, {
+        userUtterance: 'the library had tall shelves.',
+        onCategorizationStart: jest.fn(),
+        onCategorizationResult: jest.fn(),
+        onQuestionReady,
+      }));
+
+      await Promise.resolve();
+
+      expect(categorizeOffScriptUtterancesStreaming).toHaveBeenCalledTimes(1);
+      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][11]).toBe(onQuestionReady);
+    });
   });
 
   describe('word queue accumulation', () => {
