@@ -232,6 +232,10 @@ function Reader() {
     }, 100);
   };
 
+  useEffect(() => {
+    frames.forEach(src => { const img = new Image(); img.src = src; });
+  }, [frames]);
+
   function changeFrame() {
     const imgElement = document.getElementById("role-image");
     if (!imgElement) {
