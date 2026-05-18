@@ -691,3 +691,14 @@ img {
     border-color: rgb(218, 176, 22);
   }
 }
+
+.reveal-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  opacity: 0.7;
+  animation: reveal-cursor-blink 0.9s steps(2, start) infinite;
+}
+
+@keyframes reveal-cursor-blink {
+  to { visibility: hidden; }
+}

@@ -66,6 +66,50 @@ function getDeps() {
 // Kick off warmup at startup so the first /live/say request doesn't pay for it.
 getDeps().catch(err => console.warn('[liveTTS] warmup failed; will retry on first request', err));
 
+// Streaming TTS: call Gemini via generateContentStream and yield raw PCM chunks
+// as base64 strings. Caller is responsible for forwarding them (e.g., via SSE)
+// and the client decodes/plays via Web Audio API.
+async function* generateGeminiTtsChunks({ text, voiceName, emotion, role, speechRate, model }) {
+  const { ai } = await getDeps();
+  if (!ai) throw new Error('GEMINI_API_KEY not set');
+
+  const textNorm = normalizeText(text);
+  const emo = normEmotion(emotion);
+  const resolvedModel = (model && String(model).trim()) || process.env.GEMINI_LIVE_MODEL || "gemini-2.5-flash-preview-tts";
+  if (/gemini-.*live/i.test(resolvedModel)) {
+    throw new Error(`Model "${resolvedModel}" is a Live (WebSocket) model; use a TTS model.`);
+  }
+
+  const speechConfig = speechRate != null
+    ? {
+        ...(voiceName ? { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } : {}),
+        speakingRate: speechRate,
+      }
+    : (voiceName ? { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } : undefined);
+
+  const reqBody = {
+    model: resolvedModel,
+    contents: [{ parts: [{ text: textNorm }] }],
+    systemInstruction: asSystemContent(buildSystemInstructionText({ emotion: emo })),
+    config: {
+      responseModalities: ["AUDIO"],
+      ...(speechConfig ? { speechConfig } : {}),
+    },
+  };
+
+  const stream = await ai.models.generateContentStream(reqBody);
+  let seq = 0;
+  let totalBytes = 0;
+  for await (const chunk of stream) {
+    const b64 = extractAudioBase64FromCandidates(chunk);
+    if (!b64) continue;
+    const sampleBytes = Math.floor((b64.length * 3) / 4);
+    totalBytes += sampleBytes;
+    yield { seq: seq++, audioContent: b64, sampleBytes };
+  }
+  console.log(`[gemini-tts-stream] complete model=${resolvedModel} voice=${voiceName || '(default)'} chunks=${seq} totalBytes=${totalBytes}`);
+}
+
 async function liveSayHandler(req, res) {
   try {
     if (!process.env.GEMINI_API_KEY) return res.status(500).json({ message: "GEMINI_API_KEY not set" });
@@ -213,4 +257,4 @@ async function healthHandler(req, res) {
   });
 }
 
-module.exports = { liveSayHandler, healthHandler };
+module.exports = { liveSayHandler, healthHandler, generateGeminiTtsChunks };

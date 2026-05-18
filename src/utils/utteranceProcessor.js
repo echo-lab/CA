@@ -1,5 +1,5 @@
 import nlp from "compromise";
-import { categorizeOffScriptUtterancesStreaming } from "./InnerThoughtProcessStream";
+import { categorizeOffScriptUtterancesStreaming, streamReinforcement } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
@@ -23,6 +23,11 @@ let lastFlushLineIndex = 0;
 let lastCategorizationContext = null;
 let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
+let lastReinforcementSnapshot = '';
+
+export function resetReinforcementSnapshot() {
+  lastReinforcementSnapshot = '';
+}
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
 
@@ -178,8 +183,11 @@ function flushStableOffScriptPhrase(lineIndex, context, force = false) { // retu
       context.userAttentionRef?.current,
       context.onCategorizationStart,
       context.pendingGeneratedQuestionRef?.current || null,
-      context.ttsVoice || null,
-      context.onGeneratedAudio || null
+      context.ttsVoiceName || null,
+      context.onAudioChunk || null,
+      context.onAudioEnd || null,
+      context.onAudioError || null,
+      context.onQuestionReady || null
     );
   } else {
     deferredOffScriptEntries.push({ lineIndex, text: bufferText });
@@ -205,11 +213,15 @@ function computeSpeculativeDelta(previous, current) {
   return current;
 }
 
-function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, maxLookback, transcriptEndedTerminal) { // only send if we have a terminal punctuation (end of sentence) and the queue isn't already too long (i.e., we're not already in the overflow zone where the matcher has given up on matching to the current line)
+function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, maxLookback, transcriptEndedTerminal, sourceText) { // only send if we have a terminal punctuation (end of sentence)
   if (!context) return;
-  const snapshot = utteranceQueuesRef?.current?.[0] || [];
+  const sourceSnapshot = sourceText
+    ? normalizeText(sourceText)[0].split(/\s+/).filter(w => w.length > 0)
+    : [];
+  const usingSourceCopy = sourceSnapshot.length > 0;
+  const snapshot = usingSourceCopy ? sourceSnapshot : (utteranceQueuesRef?.current?.[0] || []);
   if (snapshot.length === 0) return;
-  if (typeof maxLookback === 'number' && snapshot.length > maxLookback) {
+  if (!usingSourceCopy && typeof maxLookback === 'number' && snapshot.length > maxLookback) {
     return;
   }
   if (!transcriptEndedTerminal) {
@@ -241,8 +253,11 @@ function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, ma
     context.userAttentionRef?.current,
     context.onCategorizationStart,
     context.pendingGeneratedQuestionRef?.current || null,
-    context.ttsVoice || null,
-    context.onGeneratedAudio || null
+    context.ttsVoiceName || null,
+    context.onAudioChunk || null,
+    context.onAudioEnd || null,
+    context.onAudioError || null,
+    context.onQuestionReady || null
   );
 }
 
@@ -270,7 +285,7 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
   // }
 }
 
-export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoice, onGeneratedAudio) {
+export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady) {
   if (!offScriptLogRef?.current?.length) return;
 
   const lines = state.pagesValues[oldPage]?.text || [];
@@ -310,7 +325,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoice, onGeneratedAudio, controller.signal);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady, controller.signal);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -341,11 +356,50 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
         ctx.userAttentionRef?.current,
         ctx.onCategorizationStart,
         ctx.pendingGeneratedQuestionRef?.current || null,
-        ctx.ttsVoice || null,
-        ctx.onGeneratedAudio || null
+        ctx.ttsVoiceName || null,
+        ctx.onAudioChunk || null,
+        ctx.onAudioEnd || null,
+        ctx.onAudioError || null,
+        ctx.onQuestionReady || null
       );
     }
   }
+}
+
+export async function sendReinforcementLog({
+  reply,
+  question,
+  currentPageQuestion,
+  bookText,
+  currentPageNumber,
+  imageDescriptionRef,
+  userAttention,
+  reinforcementHistory,
+  ttsVoiceName,
+  onReinforcementReady,
+  onAudioChunk,
+  onAudioEnd,
+  onAudioError,
+  signal,
+}) {
+  if (!reply) return null;
+  const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
+  return streamReinforcement({
+    question,
+    reply,
+    currentPageQuestion,
+    bookText,
+    currentPageNumber,
+    imageDescription,
+    userAttention,
+    reinforcementHistory,
+    ttsVoiceName,
+    onReinforcementReady,
+    onAudioChunk,
+    onAudioEnd,
+    onAudioError,
+    signal,
+  });
 }
 
 function advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance) {
@@ -454,8 +508,11 @@ export async function processUserUtterance({
   imageDescriptionRef,
   userAttentionRef,
   pendingGeneratedQuestionRef,
-  ttsVoice,
-  onGeneratedAudio,
+  ttsVoiceName,
+  onAudioChunk,
+  onAudioEnd,
+  onAudioError,
+  onQuestionReady,
   questionGenEnabledRef,
   isReinforcementModeRef,
   onQuestionAnswered,
@@ -472,9 +529,29 @@ export async function processUserUtterance({
   const reinforcementActiveAtStart = wasAwaiting || isReinforcementModeRef?.current === true;
   awaitingQuestionAnswer = false;
 
+  const fireReinforcement = () => {
+    const text = (userUtterance || '').trim();
+    if (!text) return;
+    if (!/[.?!]\s*$/.test(text)) {
+      debugLog({ type: 'reinforcement_gate_skip', reason: 'no_terminal_punct', utterance: text });
+      return;
+    }
+    if (text === lastReinforcementSnapshot) {
+      debugLog({ type: 'reinforcement_gate_skip', reason: 'duplicate', utterance: text });
+      return;
+    }
+    if (!isUtteranceComplete(text)) {
+      debugLog({ type: 'reinforcement_gate_skip', reason: 'pos_incomplete', utterance: text });
+      return;
+    }
+    lastReinforcementSnapshot = text;
+    debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: text });
+    (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(text);
+  };
+
   const canCategorizeLive = !reinforcementActiveAtStart && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
-    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoice, onGeneratedAudio }
+    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady }
     : null;
 
   if (currentLineTrackingRef.current.page !== state.page) {
@@ -482,6 +559,7 @@ export async function processUserUtterance({
     utteranceQueuesRef.current = emptyQueues();
     lastSpeculativeSnapshot = '';
     speculativeLineEntries = [];
+    lastReinforcementSnapshot = '';
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   }
 
@@ -492,8 +570,7 @@ export async function processUserUtterance({
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
 
     if (reinforcementActiveAtStart) {
-      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
-      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+      fireReinforcement();
       return;
     }
 
@@ -520,8 +597,11 @@ export async function processUserUtterance({
           categorizationContext.userAttentionRef?.current,
           categorizationContext.onCategorizationStart,
           categorizationContext.pendingGeneratedQuestionRef?.current || null,
-          categorizationContext.ttsVoice || null,
-          categorizationContext.onGeneratedAudio || null
+          categorizationContext.ttsVoiceName || null,
+          categorizationContext.onAudioChunk || null,
+          categorizationContext.onAudioEnd || null,
+          categorizationContext.onAudioError || null,
+          categorizationContext.onQuestionReady || null
         );
       }
     }
@@ -531,8 +611,7 @@ export async function processUserUtterance({
   if (!currentLine?.Reading) {
     if (reinforcementActiveAtStart) {
       lastProcessedUtteranceRef.current = userUtterance;
-      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
-      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+      fireReinforcement();
     }
     return;
   }
@@ -543,8 +622,7 @@ export async function processUserUtterance({
   if (!isUserReadingRole) {
     lastProcessedUtteranceRef.current = userUtterance;
     if (reinforcementActiveAtStart) {
-      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
-      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+      fireReinforcement();
     }
     return;
   }
@@ -564,8 +642,7 @@ export async function processUserUtterance({
   const rawDialogue = stripSSMLTags(currentLine.Dialogue)?.trim();
   if (!rawDialogue) {
     if (reinforcementActiveAtStart) {
-      debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
-      (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+      fireReinforcement();
     }
     return; // nothing to match against (pure SSML or empty line)
   }
@@ -653,8 +730,7 @@ export async function processUserUtterance({
   debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
 
   if (reinforcementActiveAtStart) {
-    debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: userUtterance });
-    (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(userUtterance);
+    fireReinforcement();
     return;
   }
 
@@ -665,5 +741,5 @@ export async function processUserUtterance({
   else {  
     console.log('Transcript not ended with terminal punctuation:', userUtterance);
   }
-  sendSpeculativeQueueSnapshot(utteranceQueuesRef, currentLineIndex, categorizationContext, maxReadableLookbackWords, transcriptEndedTerminal);
+  sendSpeculativeQueueSnapshot(utteranceQueuesRef, currentLineIndex, categorizationContext, maxReadableLookbackWords, transcriptEndedTerminal, userUtterance);
 }

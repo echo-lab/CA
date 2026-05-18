@@ -39,7 +39,7 @@ function openGptDebugMonitor() {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>GPT-4o Debug Monitor</title>
+  <title>GPT-5 Debug Monitor</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Menlo', 'Consolas', monospace; font-size: 12px; background: #1e1e1e; color: #d4d4d4; }
@@ -85,7 +85,7 @@ function openGptDebugMonitor() {
 </head>
 <body>
   <div id="header">
-    <h3>GPT-4o Debug Monitor</h3>
+    <h3>GPT-5 Debug Monitor</h3>
   </div>
   <div id="log"></div>
   <button id="clear-btn" onclick="document.getElementById('log').innerHTML=''">Clear</button>
@@ -129,6 +129,22 @@ function openGptDebugMonitor() {
         var id = 'fold-' + (foldId++);
         html += '<div class="field"><span class="field-label fold-toggle" onclick="var el=document.getElementById(\\'' + id + '\\');var btn=this.querySelector(\\'span\\');if(el.style.display===\\'none\\'){el.style.display=\\'block\\';btn.textContent=\\'\\u25BC\\';}else{el.style.display=\\'none\\';btn.textContent=\\'\\u25B6\\';}">Full Context <span>\\u25B6</span> </span>' +
           '<pre id="' + id + '" class="fold-content" style="display:none">' + esc(JSON.stringify(payload, null, 2)) + '</pre></div>';
+      } else if (endpoint === '/api/reinforcement-stream') {
+        html += field('Question', payload.question, 200);
+        html += field('User Reply', payload.reply, 300);
+        html += field('Page Question', payload.currentPageQuestion, 200);
+        html += field('Page #', payload.currentPageNumber);
+        html += field('Book Text', payload.bookText, 100);
+        html += field('Image Analysis', payload.imageDescription, 120);
+        html += field('User Attention', payload.userAttention, 80);
+        var hist = Array.isArray(payload.reinforcementHistory) ? payload.reinforcementHistory : [];
+        html += field('Prior Turns', hist.length === 0 ? 'none' : hist.map(function(t, i) {
+          return '[Turn ' + (i + 1) + '] User: "' + (t.user || '') + '" -> Response: "' + (t.response || '') + '"';
+        }).join('\\n'), 400);
+        html += field('TTS Voice', payload.ttsVoiceName, 60);
+        var rid = 'fold-' + (foldId++);
+        html += '<div class="field"><span class="field-label fold-toggle" onclick="var el=document.getElementById(\\'' + rid + '\\');var btn=this.querySelector(\\'span\\');if(el.style.display===\\'none\\'){el.style.display=\\'block\\';btn.textContent=\\'\\u25BC\\';}else{el.style.display=\\'none\\';btn.textContent=\\'\\u25B6\\';}">Full Context <span>\\u25B6</span> </span>' +
+          '<pre id="' + rid + '" class="fold-content" style="display:none">' + esc(JSON.stringify(payload, null, 2)) + '</pre></div>';
       } else {
         html += field('Payload', JSON.stringify(payload, null, 2), 500);
       }
@@ -148,6 +164,8 @@ function openGptDebugMonitor() {
             html += field(key, val, 300);
           }
         }
+      } else if (endpoint === '/api/reinforcement-stream') {
+        html += field('Reinforcement', data.reinforcement || '(none)', 400);
       } else {
         html += field('Result', JSON.stringify(data, null, 2), 500);
       }
