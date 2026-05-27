@@ -14,6 +14,7 @@ import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { processUserUtterance, sendOffScriptLog, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot } from "../utils/utteranceProcessor";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
+import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
@@ -32,7 +33,7 @@ function Reader() {
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
   const location = useLocation();
   const navigate = useNavigate();
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [, setIsAudioPlaying] = useState(false);
   const [isGeneratedQuestionPlaying, setIsGeneratedQuestionPlaying] = useState(false);
   const [isPageQuestionPlaying, setIsPageQuestionPlaying] = useState(false);
   const [isReinforcementPlaying, setIsReinforcementPlaying] = useState(false);
@@ -115,6 +116,9 @@ function Reader() {
     connectToDeepgram,
     disconnectDeepgram,
     isGeminiAudioPlaying,
+    isAnyAudioPlaying,
+    tryBeginAudio,
+    endAudio,
   } = useAudioStreamControl();
 
   let bookData
@@ -188,6 +192,7 @@ function Reader() {
   const reinforcementRequestSeqRef = useRef(0);
   const reinforcementAudioRef = useRef(null);
   const reinforcementStreamingPlayerRef = useRef(null);
+  const reinforcementAudioBlockedRef = useRef(false);
   const isPageQuestionPlayingRef = useRef(false);
   const pendingLineTriggersRef = useRef(new Map());
   const pendingUntargetedLineTriggerRef = useRef(null);
@@ -461,10 +466,17 @@ const playSound = () => {
   const voiceName = narratorRole?.VA || "kore";
   const role = narratorRole?.role || null;
   const question = state.pagesValues[state.page].question;
-  setIsPageQuestionPlaying(true);
-  isPageQuestionPlayingRef.current = true;
-  lastAskedQuestionRef.current = question;
-  speak(question, voiceName, "neutral", role);
+  speak(question, voiceName, "neutral", role, AUDIO_SOURCES.PAGE_QUESTION, {
+    onBegin: () => {
+      setIsPageQuestionPlaying(true);
+      isPageQuestionPlayingRef.current = true;
+      lastAskedQuestionRef.current = question;
+    },
+    onError: () => {
+      setIsPageQuestionPlaying(false);
+      isPageQuestionPlayingRef.current = false;
+    },
+  });
 };
 
 // Streaming generated-question audio. Gemini emits PCM chunks via SSE; we keep
@@ -503,9 +515,10 @@ const finishGeneratedPlayback = useCallback((questionText) => {
   if (remoteAudioRef.current && !isMuted) remoteAudioRef.current.muted = false;
   generatedQuestionPlayRequestedRef.current = false;
   setIsGeneratedQuestionPlaying(false);
+  endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
   if (questionText) lastAskedQuestionRef.current = questionText;
   setAwaitingQuestionAnswer(true);
-}, [isMuted, remoteAudioRef]);
+}, [endAudio, isMuted, remoteAudioRef]);
 
 const createGeneratedQuestionPlayer = useCallback((questionText) => createStreamingPcmPlayer({
   onEnded: () => {
@@ -638,8 +651,10 @@ const stopReinforcementAudio = useCallback(() => {
     try { reinforcementStreamingPlayerRef.current.stop(); } catch {}
     reinforcementStreamingPlayerRef.current = null;
   }
+  reinforcementAudioBlockedRef.current = false;
   setIsReinforcementPlaying(false);
-}, []);
+  endAudio(AUDIO_SOURCES.REINFORCEMENT);
+}, [endAudio]);
 
 const closeReinforcementMode = useCallback(() => {
   reinforcementModeRef.current = false;
@@ -659,6 +674,7 @@ const finishQuestionInteraction = useCallback(() => {
   generatedQuestionPlayRequestedRef.current = false;
   suppressGeneratedAudioStreamRef.current = false;
   teardownStreamingPlayer();
+  endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
   setIsGeneratedQuestionPlaying(false);
   setIsSlidingBack(false);
   dismissingQuestionRef.current = null;
@@ -679,7 +695,7 @@ const finishQuestionInteraction = useCallback(() => {
     URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
     generatedQuestionAudioUrlRef.current = null;
   }
-}, [closeReinforcementMode, generatedQuestion, teardownStreamingPlayer]);
+}, [closeReinforcementMode, endAudio, generatedQuestion, teardownStreamingPlayer]);
 
 const clearQuestionUI = () => {
   closeReinforcementMode();
@@ -695,6 +711,7 @@ const clearQuestionUI = () => {
   generatedQuestionPlayRequestedRef.current = false;
   suppressGeneratedAudioStreamRef.current = false;
   teardownStreamingPlayer();
+  endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
   setIsSlidingBack(false);
   setIsCategorizationPending(false);
   setShowAvatar(false);
@@ -728,6 +745,8 @@ const getCurrentPageReinforcementContext = () => {
 };
 
 const playReinforcement = async (reply) => {
+  if (isAnyAudioPlaying) return;
+
   const currentState = stateRef.current;
   const pageQuestion = currentState.pagesValues[currentState.page]?.question || '';
   const question = reinforcementSessionRef.current.question || lastAskedQuestionRef.current || pageQuestion;
@@ -741,18 +760,20 @@ const playReinforcement = async (reply) => {
   };
   setAwaitingQuestionAnswer(false);
   stopReinforcementAudio();
+  reinforcementAudioBlockedRef.current = false;
 
   console.log("Generating reinforcement. Question:", question, "Reply:", reply);
 
   try {
     const context = getCurrentPageReinforcementContext();
-    if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
 
     const finishStreamingReinforcement = () => {
       if (reinforcementStreamingPlayerRef.current) {
         reinforcementStreamingPlayerRef.current = null;
       }
+      reinforcementAudioBlockedRef.current = false;
       setIsReinforcementPlaying(false);
+      endAudio(AUDIO_SOURCES.REINFORCEMENT);
       if (remoteAudioRef.current && !isMuted) {
         remoteAudioRef.current.muted = false;
       }
@@ -773,7 +794,14 @@ const playReinforcement = async (reply) => {
       },
       onAudioChunk: (seq, audioContent) => {
         if (requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+        if (reinforcementAudioBlockedRef.current) return;
         if (!reinforcementStreamingPlayerRef.current) {
+          if (!tryBeginAudio(AUDIO_SOURCES.REINFORCEMENT)) {
+            reinforcementAudioBlockedRef.current = true;
+            setIsReinforcementPlaying(false);
+            return;
+          }
+          if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
           reinforcementStreamingPlayerRef.current = createStreamingPcmPlayer({
             onEnded: finishStreamingReinforcement,
             onError: (err) => {
@@ -791,6 +819,10 @@ const playReinforcement = async (reply) => {
       },
       onAudioEnd: () => {
         if (requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+        if (reinforcementAudioBlockedRef.current) {
+          reinforcementAudioBlockedRef.current = false;
+          return;
+        }
         if (reinforcementStreamingPlayerRef.current) reinforcementStreamingPlayerRef.current.end();
         else finishStreamingReinforcement();
       },
@@ -800,13 +832,15 @@ const playReinforcement = async (reply) => {
       },
     });
 
-    if (requestSeq === reinforcementRequestSeqRef.current && !reinforcementStreamingPlayerRef.current) {
+    if (requestSeq === reinforcementRequestSeqRef.current && !reinforcementStreamingPlayerRef.current && !reinforcementAudioBlockedRef.current) {
       finishStreamingReinforcement();
     }
   } catch (error) {
     console.error("Reinforcement generation/playback error:", error);
     if (requestSeq === reinforcementRequestSeqRef.current) {
+      reinforcementAudioBlockedRef.current = false;
       setIsReinforcementPlaying(false);
+      endAudio(AUDIO_SOURCES.REINFORCEMENT);
       if (remoteAudioRef.current && !isMuted) {
         remoteAudioRef.current.muted = false;
       }
@@ -842,6 +876,10 @@ const speakGenerated = () => {
     streamingPlayerRef.current = null;
   }
 
+  if (!tryBeginAudio(AUDIO_SOURCES.GENERATED_QUESTION)) {
+    return;
+  }
+
   if (!streamingPlayerRef.current) {
     streamingPlayerRef.current = createGeneratedQuestionPlayer(cachedQuestion);
   }
@@ -861,16 +899,23 @@ const speakGenerated = () => {
   }
 };
 
-async function speak(text, voiceName = "kore", emotion = "neutral", role = null) {
-  // prevent multiple audio calls
-  if (isAudioPlaying) {
-    return;
+async function speak(
+  text,
+  voiceName = "kore",
+  emotion = "neutral",
+  role = null,
+  source = AUDIO_SOURCES.TTS,
+  options = {}
+) {
+  const clean = stripSSMLTags(String(text || "").trim());
+  if (!clean) return false;
+
+  if (!tryBeginAudio(source)) {
+    return false;
   }
 
   try {
-    const clean = stripSSMLTags(String(text || "").trim());
-    if (!clean) return;
-
+    options.onBegin?.();
     setIsAudioPlaying(true);
 
     const { audio } = await say({
@@ -880,14 +925,30 @@ async function speak(text, voiceName = "kore", emotion = "neutral", role = null)
       role,
     });
 
+    const handleEnded = () => {
+      endAudio(source);
+      options.onEnded?.();
+      audioEnded();
+    };
+    const handleError = () => {
+      endAudio(source);
+      options.onError?.();
+      audioEnded();
+    };
+
     setAudio(audio);
-    audio.addEventListener("ended", audioEnded);
+    audio.addEventListener("ended", handleEnded, { once: true });
+    audio.addEventListener("error", handleError, { once: true });
+    return true;
   } catch (err) {
     console.error("TTS error:", err);
+    endAudio(source);
+    options.onError?.();
     setIsAudioPlaying(false);
     setTimeout(() => {
       setAudioHasEnded(true);
     }, 100);
+    return false;
   }
 }
 
@@ -904,8 +965,10 @@ async function speak(text, voiceName = "kore", emotion = "neutral", role = null)
 
     if (currentRole?.role === "Child") {
       const voiceName = currentRole?.VA || "kore";
-      speak(currentLine.Dialogue, voiceName, "neutral", currentRole.role);
-      setChildHasPlayed(true);
+      speak(currentLine.Dialogue, voiceName, "neutral", currentRole.role)
+        .then((started) => {
+          if (started) setChildHasPlayed(true);
+        });
     }
   });
 
@@ -995,30 +1058,22 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
     return;
   }
 
-  try {
-    const { audio } = await say({
-      text: dialogue,
-      voiceName: currentVoiceName,
-      emotion: "neutral",
-      role: currentRole,
-    });
-    console.log("TTS audio ready, starting playback...");
-    setIsAudioPlaying(true);
-    setAudio(audio);
-    if (isLastLine) {
-      audio.addEventListener("ended", () => {
-        line.Reading = false;
-        audioEnded();
-      });
-    } else {
-      audio.addEventListener("ended", audioEnded);
+  const started = await speak(
+    dialogue,
+    currentVoiceName,
+    "neutral",
+    currentRole,
+    AUDIO_SOURCES.STORY_NARRATION,
+    {
+      onBegin: () => console.log("TTS audio ready, starting playback..."),
+      onEnded: () => {
+        if (isLastLine) line.Reading = false;
+      },
     }
-  } catch (error) {
-    console.error("TTS error:", error);
-    setIsAudioPlaying(false);
-    setTimeout(() => {
-      setAudioHasEnded(true);
-    }, 100);
+  );
+
+  if (!started) {
+    setIsPlaying(false);
   }
 }, [audioEnded]);
 
@@ -1264,7 +1319,6 @@ function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
 }
 
-
   function parseText(text) {
      // Strip SSML tags
     const strippedText = stripSSMLTags(text);
@@ -1324,8 +1378,10 @@ function stripSSMLTags(text) {
                   );
                   const voiceName = currentRole?.VA || "kore";
                   const role = currentRole?.role || null;
-                  speak(val.Dialogue, voiceName, "neutral", role);
-                  setChildHasPlayed(true);
+                  speak(val.Dialogue, voiceName, "neutral", role)
+                    .then((started) => {
+                      if (started) setChildHasPlayed(true);
+                    });
                 }
               }}
             >
@@ -1444,7 +1500,7 @@ function stripSSMLTags(text) {
     const isChildTurn = currentRoleNav?.role === "Child" && currentLine?.Reading;
 
     // Disable button if it's child's turn and they haven't played yet
-    const shouldDisableButton = isButtonDisabled || isAudioPlaying;
+    const shouldDisableButton = isButtonDisabled || isAnyAudioPlaying;
     // const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
 
     let buttonText;
@@ -1481,7 +1537,7 @@ function stripSSMLTags(text) {
   function handlePlayClick() {
     console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
 
-    if (isAudioPlaying) {
+    if (isAnyAudioPlaying) {
       return;
     }
 

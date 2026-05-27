@@ -1,5 +1,6 @@
 import { type } from '@testing-library/user-event/dist/type';
-import { createContext, useContext, useRef, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useRef, useState, useEffect } from 'react';
+import { AUDIO_SOURCES, createAudioPlaybackLock } from './audioPlaybackLock';
 
 const BASE_URL = process.env.REACT_APP_API_BASE;
 const GEMINI_REINFORCEMENT_SYSTEM_INSTRUCTION = `You are TaleMate's warm educator voice in a parent-child co-reading session.
@@ -24,6 +25,7 @@ export function AudioStreamControlProvider({ children }) {
   const [speakerLabels, setSpeakerLabels] = useState([]);
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   const [deepgramConnected, setDeepgramConnected] = useState(false);
+  const [activeAudioSource, setActiveAudioSource] = useState(null);
 
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -39,23 +41,39 @@ export function AudioStreamControlProvider({ children }) {
   const geminiMessageQueueRef = useRef([]);
   const geminiActiveAudioSourcesRef = useRef(0);
   const geminiTurnCompleteRef = useRef(false);
+  const geminiAudioBlockedRef = useRef(false);
+  const audioPlaybackLockRef = useRef(null);
+  if (!audioPlaybackLockRef.current) {
+    audioPlaybackLockRef.current = createAudioPlaybackLock(setActiveAudioSource);
+  }
+
+  const tryBeginAudio = useCallback((source) => {
+    return audioPlaybackLockRef.current.tryBeginAudio(source);
+  }, []);
+
+  const endAudio = useCallback((source) => {
+    return audioPlaybackLockRef.current.endAudio(source);
+  }, []);
 
   const finishGeminiPlaybackIfDone = () => {
     if (geminiTurnCompleteRef.current && geminiActiveAudioSourcesRef.current <= 0) {
       geminiActiveAudioSourcesRef.current = 0;
       setIsGeminiAudioPlaying(false);
       setIsAIResponding(false);
+      endAudio(AUDIO_SOURCES.GEMINI_LIVE);
     }
   };
 
   const resetGeminiPlaybackState = () => {
     geminiActiveAudioSourcesRef.current = 0;
     geminiTurnCompleteRef.current = false;
+    geminiAudioBlockedRef.current = false;
     if (geminiPlaybackRef.current?.ctx) {
       geminiPlaybackRef.current.nextStart = geminiPlaybackRef.current.ctx.currentTime;
     }
     setIsGeminiAudioPlaying(false);
     setIsAIResponding(false);
+    endAudio(AUDIO_SOURCES.GEMINI_LIVE);
   };
 
   const connectToDeepgram = async () => {
@@ -312,6 +330,7 @@ export function AudioStreamControlProvider({ children }) {
             for (const part of parts) {
               const inline = part.inlineData;
               if (inline?.mimeType?.startsWith("audio/pcm")) { 
+                if (geminiAudioBlockedRef.current) continue;
                 const binary = atob(inline.data);
                 const raw = new Uint8Array(binary.length);
                 for (let i = 0; i < binary.length; i++) raw[i] = binary.charCodeAt(i);
@@ -320,6 +339,15 @@ export function AudioStreamControlProvider({ children }) {
                 for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 0x8000;
 
                 const { ctx } = geminiPlaybackRef.current;
+                if (!ctx) continue;
+                const ownsGeminiLock = audioPlaybackLockRef.current.activeAudioSource === AUDIO_SOURCES.GEMINI_LIVE;
+                if (geminiActiveAudioSourcesRef.current <= 0 && !ownsGeminiLock) {
+                  if (!tryBeginAudio(AUDIO_SOURCES.GEMINI_LIVE)) {
+                    geminiAudioBlockedRef.current = true;
+                    setIsAIResponding(false);
+                    continue;
+                  }
+                }
                 // Browser autoplay policy starts AudioContext suspended; resume
                 // on first audio chunk (silently no-ops if no user gesture).
                 if (ctx.state === 'suspended') ctx.resume().catch(() => {});
@@ -350,6 +378,10 @@ export function AudioStreamControlProvider({ children }) {
             }
             if (sc.turnComplete) {
               geminiTurnCompleteRef.current = true;
+              if (geminiAudioBlockedRef.current) {
+                geminiAudioBlockedRef.current = false;
+                setIsAIResponding(false);
+              }
               finishGeminiPlaybackIfDone();
             }
           }
@@ -410,9 +442,14 @@ export function AudioStreamControlProvider({ children }) {
 
   const sendContentMessageGemini = (question, reply, bookText, imageDescription) => {
     console.log('Sending content message to Gemini Live');
+    if (audioPlaybackLockRef.current.isAnyAudioPlaying()) {
+      console.log('Skipping Gemini Live message because audio is already playing');
+      return;
+    }
     const ws = geminiSocketRef.current;
     geminiTurnCompleteRef.current = false;
     geminiActiveAudioSourcesRef.current = 0;
+    geminiAudioBlockedRef.current = false;
     const message = {
       realtimeInput: {
         text: `<reinforcement_context>
@@ -467,12 +504,23 @@ Image description: ${imageDescription || ''}
 
       pc.ontrack = (e) => {
         if (remoteAudioRef.current) {
-          remoteAudioRef.current.srcObject = e.streams[0];
+          const audioEl = remoteAudioRef.current;
+          audioEl.srcObject = e.streams[0];
           // Set initial muted state
-          remoteAudioRef.current.muted = isMuted;
-          remoteAudioRef.current.play()
+          audioEl.muted = isMuted;
+          audioEl.onended = () => endAudio(AUDIO_SOURCES.REMOTE_REALTIME);
+          audioEl.onerror = () => endAudio(AUDIO_SOURCES.REMOTE_REALTIME);
+          audioEl.onpause = () => endAudio(AUDIO_SOURCES.REMOTE_REALTIME);
+          if (!isMuted && !tryBeginAudio(AUDIO_SOURCES.REMOTE_REALTIME)) {
+            audioEl.muted = true;
+            return;
+          }
+          audioEl.play()
             .then(() => console.log(`Remote audio playing successfully (${isMuted ? 'muted' : 'unmuted'})`))
-            .catch((err) => console.error("Error playing remote audio:", err));
+            .catch((err) => {
+              endAudio(AUDIO_SOURCES.REMOTE_REALTIME);
+              console.error("Error playing remote audio:", err);
+            });
         } else {
           console.error("remoteAudioRef.current is null!");
         }
@@ -484,6 +532,7 @@ Image description: ${imageDescription || ''}
         if (pc.connectionState === "failed" || pc.connectionState === "closed") {
           setConnected(false);
           setError("Connection failed or closed");
+          endAudio(AUDIO_SOURCES.REMOTE_REALTIME);
         }
       };
 
@@ -670,6 +719,16 @@ Image description: ${imageDescription || ''}
       }
     }
 
+    if (remoteAudioRef.current) {
+      try {
+        remoteAudioRef.current.pause();
+        remoteAudioRef.current.srcObject = null;
+      } catch (err) {
+        console.warn("Error stopping remote audio:", err);
+      }
+    }
+    endAudio(AUDIO_SOURCES.REMOTE_REALTIME);
+
     console.log("Disconnected");
   };
 
@@ -727,6 +786,12 @@ Image description: ${imageDescription || ''}
 
       // Update the remote audio element's muted property
       if (remoteAudioRef.current) {
+        if (!newMutedState && !tryBeginAudio(AUDIO_SOURCES.REMOTE_REALTIME)) {
+          return true;
+        }
+        if (newMutedState) {
+          endAudio(AUDIO_SOURCES.REMOTE_REALTIME);
+        }
         remoteAudioRef.current.muted = newMutedState;
       }
 
@@ -747,6 +812,8 @@ Image description: ${imageDescription || ''}
     isAIResponding,
     isGeminiAudioPlaying,
     isMuted,
+    activeAudioSource,
+    isAnyAudioPlaying: Boolean(activeAudioSource),
     userUtterance,
     speakerLabels,
     deepgramConnected,
@@ -761,6 +828,8 @@ Image description: ${imageDescription || ''}
     sendContentMessage,
     sendContentMessageGemini,
     toggleMute,
+    tryBeginAudio,
+    endAudio,
     remoteAudioRef,
   };
 
