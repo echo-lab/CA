@@ -38,6 +38,23 @@ function clearLiveOffScriptState(offScriptLogRef) {
   }
 }
 
+// Reset all per-page live utterance state when the user moves to a new page.
+// Leftover fragments from the previous page would otherwise leak into the new
+// page's reading-progress check (forcing the line cursor to advance before the
+// user has spoken) and into the next page's categorization context.
+// Intentionally does NOT touch currentAbortController — any in-flight
+// categorization for the page being left behind should still complete.
+export function resetOffScriptStateForPage(offScriptLogRef) {
+  pendingPOSBuffer = [];
+  lastSpeculativeSnapshot = '';
+  speculativeLineEntries = [];
+  lastFlushLineIndex = 0;
+  if (offScriptLogRef) {
+    offScriptLogRef.current = [];
+  }
+  debugLog({ type: 'offscript_reset_page' });
+}
+
 function emptyQueues() {
   return Array.from({ length: VARIANT_SLOT_COUNT }, () => []);
 }

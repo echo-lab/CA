@@ -12,7 +12,7 @@ import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
-import { processUserUtterance, sendOffScriptLog, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot } from "../utils/utteranceProcessor";
+import { processUserUtterance, sendOffScriptLog, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot, resetOffScriptStateForPage } from "../utils/utteranceProcessor";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
@@ -419,6 +419,13 @@ const gotoNextPage = () => {
     );
   }
 
+  // Clear per-page live utterance state so leftover off-script fragments from
+  // the previous page don't bleed into the new page's reading-progress check
+  // or categorization. sendOffScriptLog above already captured + emptied
+  // offScriptLogRef for its own request; this also wipes pendingPOSBuffer and
+  // speculative snapshots that sit inside utteranceProcessor.
+  resetOffScriptStateForPage(offScriptLogRef);
+
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
 
   setIsPlaying(prevIsPlaying => {
@@ -445,6 +452,10 @@ const gotoNextPage = () => {
 const gotoPreviousPage = () => {
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
   clearQuestionUI();
+
+  // Same rationale as gotoNextPage: don't let off-script fragments from the
+  // page being left behind affect the page we're navigating back to.
+  resetOffScriptStateForPage(offScriptLogRef);
 
   setIsPlaying(prevIsPlaying => {
     return false;
@@ -569,8 +580,12 @@ const startGeneratedQuestion = useCallback((questionText) => {
   setGeneratedQuestion(text);
   setQuestionHistory(prev => {
     const last = prev[prev.length - 1];
-    if (last && last.type === "generated" && last.text === text) {
-      return prev;
+    // If a generated-question bubble is already on screen, update it in place
+    // (same React key) so neither the bubble slide-in nor the avatar
+    // slide-closer animations re-trigger. Only the underlying text/audio swap.
+    if (last && last.type === "generated") {
+      if (last.text === text) return prev;
+      return [...prev.slice(0, -1), { ...last, text }];
     }
     return [
       ...prev,
@@ -581,8 +596,13 @@ const startGeneratedQuestion = useCallback((questionText) => {
       },
     ];
   });
+  // Only replay the avatar slide-closer when the avatar wasn't already shown.
+  // Otherwise we'd snap the narrator back to its origin and re-slide on every
+  // new generated question.
+  if (!showAvatarRef.current) {
+    hasSlidCloserRef.current = false;
+  }
   setShowAvatar(true);
-  hasSlidCloserRef.current = false;
 }, []);
 
 const handleAudioChunk = useCallback((seq, audioContent, durationMs) => {
