@@ -592,7 +592,9 @@ img {
   flex: 1 1 auto;
   min-width: 0;
   height: var(--question-stack-height);
-  overflow: hidden;
+  /* Visible so the speaking glow can extend beyond the bubble's bounding box.
+     Hidden/previous bubbles already self-hide via opacity + transform. */
+  overflow: visible;
 }
 
 @keyframes avatar-expand {
@@ -633,6 +635,21 @@ img {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+.question-message.generated:after {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 50%;
+	width: 0;
+	height: 0;
+	border: 26px solid transparent;
+	border-right-color: #6ac26a;
+	border-left: 0;
+	border-top: 0;
+	margin-top: -13px;
+	margin-left: -26px;
+}
+
 .question-message.latest {
   z-index: 2;
   animation: question-slide-in 0.4s ease-out forwards;
@@ -669,28 +686,59 @@ img {
 }
 
 .question-message.latest.speaking {
-  animation: question-slide-in 0.4s ease-out forwards, question-speaking-ring 2.1s ease-in-out 0.4s infinite;
+  animation:
+    question-slide-in 0.4s ease-out forwards,
+    question-glow-pulse 1.8s ease-in-out 0.4s infinite;
+  border-color: transparent;
+}
+
+.question-bubble-text {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes question-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 18px 4px rgba(106, 194, 106, 0.45),
+      0 0 36px 12px rgba(106, 194, 106, 0.28);
+  }
+  50% {
+    box-shadow:
+      0 0 32px 10px rgba(140, 220, 140, 0.85),
+      0 0 64px 24px rgba(106, 194, 106, 0.55),
+      0 0 100px 36px rgba(106, 194, 106, 0.3);
+  }
 }
 
 @keyframes question-slide-in {
   from {
-    transform: translateY(110%);
+    transform: translateX(-110%);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: translateX(0);
     opacity: 1;
   }
 }
 
-@keyframes question-speaking-ring {
-  0%, 100% {
-    border-color: rgba(251, 255, 220, 0.62);
+@keyframes question-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
   }
-  50% {
-    border-color: rgb(218, 176, 22);
+  to {
+    transform: translateX(110%);
+    opacity: 0;
   }
 }
+
+.question-message.exiting {
+  z-index: 2;
+  animation: question-slide-out 0.6s ease-in forwards;
+  pointer-events: none;
+}
+
 
 .reveal-cursor {
   display: inline-block;

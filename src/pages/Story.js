@@ -159,6 +159,9 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
+  // Whether the user has tapped the "I have a thought." bubble to reveal the
+  // actual generated question. Stays false until speakGenerated() is invoked.
+  const [isThoughtRevealed, setIsThoughtRevealed] = useState(false);
   // Mirror of isGeneratedQuestionPlaying for use inside callbacks/effects that
   // would otherwise close over a stale state value.
   const isGeneratedQuestionPlayingRef = useRef(false);
@@ -518,6 +521,11 @@ const finishGeneratedPlayback = useCallback((questionText) => {
   endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
   if (questionText) lastAskedQuestionRef.current = questionText;
   setAwaitingQuestionAnswer(true);
+  // Dismiss the generated-question bubble + narrator avatar. The slide-back
+  // animation's onAnimationEnd handler clears showAvatar and strips the
+  // generated entries from questionHistory, leaving only the page question.
+  dismissingQuestionRef.current = questionText || fullQuestionTextRef.current || true;
+  setIsSlidingBack(true);
 }, [endAudio, isMuted, remoteAudioRef]);
 
 const createGeneratedQuestionPlayer = useCallback((questionText) => createStreamingPcmPlayer({
@@ -557,6 +565,7 @@ const startGeneratedQuestion = useCallback((questionText) => {
   suppressGeneratedAudioStreamRef.current = false;
   pendingGeneratedQuestionRef.current = text;
   setRevealedQuestion('');
+  setIsThoughtRevealed(false);
   setGeneratedQuestion(text);
   setQuestionHistory(prev => {
     const last = prev[prev.length - 1];
@@ -886,6 +895,14 @@ const speakGenerated = () => {
 
   generatedQuestionPlayRequestedRef.current = true;
   setIsGeneratedQuestionPlaying(true);
+  // Reveal the actual question text now that the user has tapped the bubble.
+  // If the full TTS stream has already buffered, show the full text at once;
+  // otherwise the existing handleAudioChunk typewriter takes over as remaining
+  // chunks arrive.
+  setIsThoughtRevealed(true);
+  if (generatedQuestionAudioEndedRef.current && fullQuestionTextRef.current) {
+    setRevealedQuestion(fullQuestionTextRef.current);
+  }
   if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
   pushBufferedGeneratedAudio(streamingPlayerRef.current);
 
@@ -1449,6 +1466,12 @@ function stripSSMLTags(text) {
                   setIsSlidingBack(false);
                   setShowAvatar(false);
                   hasSlidCloserRef.current = false;
+                  // Remove the generated-question bubble(s), keeping only the
+                  // original page question on screen.
+                  setQuestionHistory(prev => prev.filter(m => m.type !== 'generated'));
+                  setGeneratedQuestion(null);
+                  setIsThoughtRevealed(false);
+                  setRevealedQuestion('');
                 }
               }}
             />
@@ -1462,13 +1485,25 @@ function stripSSMLTags(text) {
             // chunks arrive; older generated questions and page questions
             // always show their full text.
             const isLatestGenerated = isLatest && msg.type === 'generated';
-            const displayText = isLatestGenerated ? (revealedQuestion || msg.text) : msg.text;
-            const isRevealing = isLatestGenerated && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length;
+            // Until the user taps the bubble, show a teaser instead of the
+            // actual question. After tap, reveal full text (if audio already
+            // buffered) or typewriter-reveal as chunks arrive.
+            const showThoughtTeaser = isLatestGenerated && !isThoughtRevealed;
+            const displayText = showThoughtTeaser
+              ? 'I have a thought.'
+              : (isLatestGenerated ? (revealedQuestion || msg.text) : msg.text);
+            const isRevealing = isLatestGenerated && isThoughtRevealed && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length;
+            // While a generated question is shown, fully hide all other
+            // messages (the page question disappears rather than peeking above).
+            const latestIsGenerated = latest?.type === 'generated';
+            const positionClass = isLatest
+              ? (isSlidingBack && msg.type === 'generated' ? 'exiting' : 'latest')
+              : (latestIsGenerated ? 'hidden' : (isPrevious ? 'previous' : 'hidden'));
             const classes = [
               'question-message',
               msg.type,
-              isLatest ? 'latest' : isPrevious ? 'previous' : 'hidden',
-              isLatest && isSpeaking ? 'speaking' : '',
+              positionClass,
+              isLatest && isSpeaking && !isSlidingBack ? 'speaking' : '',
             ].filter(Boolean).join(' ');
             return (
               <div
@@ -1477,8 +1512,10 @@ function stripSSMLTags(text) {
                 onClick={isLatest ? handleLatestClick : undefined}
                 style={{ cursor: isLatest ? 'pointer' : 'default' }}
               >
-                {displayText}
-                {isRevealing && <span className="reveal-cursor">▍</span>}
+                <span className="question-bubble-text">
+                  {displayText}
+                  {isRevealing && <span className="reveal-cursor">▍</span>}
+                </span>
               </div>
             );
           })}
