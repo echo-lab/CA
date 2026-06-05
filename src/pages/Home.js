@@ -12,7 +12,7 @@ function Home() {
 
   const renderCard = (card, index) =>{
     // Book 3 ("Levels in the Library") is the training book — skip condition select & survey.
-    const isTraining = card.id === 3;
+    const isTraining = false;
     const linkTo = isTraining ? "/Character" : "/ConditionSelect";
     const linkState = isTraining
       ? { id: card.id, name: participantName, condition: null, training: true }

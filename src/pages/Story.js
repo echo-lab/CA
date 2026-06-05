@@ -54,7 +54,6 @@ function Reader() {
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
   
-  // C1: question generation OFF, C2: question generation ON (selected in ConditionSelecter).
   const QUESTION_GEN_ENABLED = condition === "C1";
 
   const mateFrames = {

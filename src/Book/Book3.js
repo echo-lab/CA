@@ -88,7 +88,7 @@ export const data = [
             {
               Reading: false,
               Character: "Clara",
-              Dialogue: "“Let’s count them—one book. One, two books. One, two, three books.”",
+              Dialogue: "“Let’s count them one book. One, two books. One, two, three books.”",
             },
             {
               Reading: false,
@@ -136,7 +136,7 @@ export const data = [
               Reading: false,
               Character: "Clara",
               Dialogue:
-                "“Let's read...quietly.”",
+                "“Let's read quietly.”",
             },
                         {
               Reading: false,
@@ -159,17 +159,12 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "THUMP.",
-            },
-            {
-              Reading: false,
-              Character: "Clara",
-              Dialogue: "“Shh!”",
+              Dialogue: "Thump.",
             },
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "said Clara.",
+              Dialogue: "Shh! said Clara.",
             },
             {
               Reading: false,
@@ -302,7 +297,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“Next stop—Patternville!”",
+              Dialogue: "“Next stop Pattern village!”",
             },
             {
               Reading: false,
@@ -369,7 +364,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“See—I put four cushions here to match the last stack and then added two more on top.”",
+              Dialogue: "“See, I put four cushions here to match the last stack and then added two more on top.”",
             },
             {
               Reading: false,
@@ -515,7 +510,7 @@ export const data = [
             {
               Reading: false,
               Character: "Zoe",
-              Dialogue: "“…and with her patterning skills, she became a civil engineer and built bridges,”",
+              Dialogue: "“and with her patterning skills, she became a civil engineer and built bridges,”",
             },
             {
               Reading: false,
@@ -552,7 +547,7 @@ export const data = [
             {
               Reading: false,
               Character: "Narrator",
-              Dialogue: "THUMP. The books tumbled down.",
+              Dialogue: "Thump. The books tumbled down.",
             },
             {
               Reading: false,
