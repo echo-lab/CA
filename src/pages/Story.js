@@ -94,11 +94,23 @@ function Reader() {
       require("../Pictures/Mate05/Mates-05-3.png"),
     ],
   };
+  // "Listening" pose shown while the narrator avatar is held open after a
+  // generated question (waiting for the child's answer / between reinforcement
+  // turns). Mirrors the mateFrames role mapping.
+  const mateListeningImages = {
+    "Green Grant": require("../Pictures/Mate01/Mates-01-L.png"),
+    "Yellow Yancey": require("../Pictures/Mate02/Mates-02-L.png"),
+    "Violet Victor": require("../Pictures/Mate03/Mates-03-L.png"),
+    "Blue Beatrice": require("../Pictures/Mate04/Mates-04-L.png"),
+    "Ruby Randy": require("../Pictures/Mate06/Mates-06-L.png"),
+    "Coral Carly": require("../Pictures/Mate05/Mates-05-L.png"),
+  };
   const narratorRole = Array.isArray(selectedOptions)
     ? selectedOptions.find(o => mateFrames[o.role])
     : null;
   const narratorImage = narratorRole?.img;
   const frames = narratorRole ? mateFrames[narratorRole.role] : [narratorImage];
+  const listeningImage = (narratorRole && mateListeningImages[narratorRole.role]) || narratorImage;
 
   const {
     // connected,
@@ -171,6 +183,11 @@ function Reader() {
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const [questionHistory, setQuestionHistory] = useState([]);
   const [showAvatar, setShowAvatar] = useState(false);
+  // True only while the reinforcement loop is active (after the generated
+  // question has been delivered, through listening for the child's answer and
+  // playing reinforcement). Used to swap the narrator avatar to its new "-L"
+  // pose; the "I have a thought" / generated-question phase keeps the old image.
+  const [inReinforcementLoop, setInReinforcementLoop] = useState(false);
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
   useEffect(() => { isGeneratedQuestionPlayingRef.current = isGeneratedQuestionPlaying; }, [isGeneratedQuestionPlaying]);
@@ -265,24 +282,31 @@ function Reader() {
       isPageQuestionPlaying,
       isGeminiAudioPlaying,
       isReinforcementPlaying,
+      showAvatar,
       framesLen: frames.length,
       role: narratorRole?.role,
     });
     if (anyPlaying) {
+      // System is talking (asking a question or delivering reinforcement):
+      // cycle the talking frames so the mouth animates.
       console.log("[changeFrame] starting interval");
       intervalId = setInterval(changeFrame, 250);
+    } else {
+      // Idle: settle on a static pose. Only while the reinforcement loop is
+      // active (listening for the child's answer between reinforcement turns)
+      // show the new "-L" pose. The "I have a thought" / generated-question
+      // phase keeps the default idle frame.
+      frameIndexRef.current = 0;
+      const imgElement = document.getElementById("role-image");
+      if (imgElement) imgElement.src = (showAvatar && inReinforcementLoop) ? listeningImage : frames[0];
     }
     return () => {
       if (intervalId) {
         console.log("[changeFrame] clearing interval");
         clearInterval(intervalId);
       }
-      // Reset to default frame
-      frameIndexRef.current = 0;
-      const imgElement = document.getElementById("role-image");
-      if (imgElement) imgElement.src = frames[0];
     };
-  }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isReinforcementPlaying]);
+  }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isReinforcementPlaying, showAvatar, inReinforcementLoop, listeningImage]);
 
   function canon(text) {
     return stripSSMLTags(String(text || ""))
@@ -306,8 +330,6 @@ function Reader() {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
     userAttentionRef.current = null;
-    // Default the "last asked question" to this page's question so reinforcement
-    // has context even before playSound runs or after a follow-up was consumed.
     lastAskedQuestionRef.current = state.pagesValues[state.page]?.question || null;
     setImageTags([]);
     if (state.page > 0) {
@@ -531,11 +553,14 @@ const finishGeneratedPlayback = useCallback((questionText) => {
   endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
   if (questionText) lastAskedQuestionRef.current = questionText;
   setAwaitingQuestionAnswer(true);
-  // Dismiss the generated-question bubble + narrator avatar. The slide-back
-  // animation's onAnimationEnd handler clears showAvatar and strips the
-  // generated entries from questionHistory, leaving only the page question.
-  dismissingQuestionRef.current = questionText || fullQuestionTextRef.current || true;
-  setIsSlidingBack(true);
+  // Keep the narrator avatar on screen in its "listening" pose while we wait
+  // for the child's answer (and during reinforcement). Do NOT slide back, so
+  // the generated question stays the latest bubble and the page question is
+  // not re-shown. Entering the reinforcement loop swaps the avatar to its -L
+  // pose while idle, and the changeFrame effect animates the talking frames
+  // during reinforcement.
+  setShowAvatar(true);
+  setInReinforcementLoop(true);
 }, [endAudio, isMuted, remoteAudioRef]);
 
 const createGeneratedQuestionPlayer = useCallback((questionText) => createStreamingPcmPlayer({
@@ -690,6 +715,7 @@ const closeReinforcementMode = useCallback(() => {
   reinforcementRequestSeqRef.current += 1;
   resetReinforcementSnapshot();
   stopReinforcementAudio();
+  setInReinforcementLoop(false);
   setAwaitingQuestionAnswer(false);
   if (remoteAudioRef.current && !isMuted) {
     remoteAudioRef.current.muted = false;
@@ -1324,10 +1350,7 @@ React.useEffect(() => {
       // incoming chunks. This handler just clears the pending UI flag.
     },
     onQuestionReady: (questionText) => {
-      // Fires synchronously inside the SSE reader the moment `done` parses,
-      // before any audio_chunk events for this question are processed. That
-      // ordering lets the text reveal slice the right prefix as each chunk
-      // arrives. We still suppress this if a previous question is mid-play.
+      if (!questionGenEnabledRef.current) return;  
       if (isGeneratedQuestionPlayingRef.current) {
         suppressGeneratedAudioStreamRef.current = true;
         return;
@@ -1515,9 +1538,14 @@ function stripSSMLTags(text) {
             // While a generated question is shown, fully hide all other
             // messages (the page question disappears rather than peeking above).
             const latestIsGenerated = latest?.type === 'generated';
-            const positionClass = isLatest
-              ? (isSlidingBack && msg.type === 'generated' ? 'exiting' : 'latest')
-              : (latestIsGenerated ? 'hidden' : (isPrevious ? 'previous' : 'hidden'));
+            // During the reinforcement loop the narrator avatar stays on
+            // screen but no question bubble is shown (neither the generated
+            // question nor the page question).
+            const positionClass = inReinforcementLoop
+              ? 'hidden'
+              : isLatest
+                ? (isSlidingBack && msg.type === 'generated' ? 'exiting' : 'latest')
+                : (latestIsGenerated ? 'hidden' : (isPrevious ? 'previous' : 'hidden'));
             const classes = [
               'question-message',
               msg.type,
