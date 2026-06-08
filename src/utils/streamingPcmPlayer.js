@@ -62,23 +62,16 @@ export function createStreamingPcmPlayer({ onEnded, onError } = {}) {
       const src = ctx.createBufferSource();
       src.buffer = buf;
       src.connect(ctx.destination);
-      // 80ms jitter buffer before the very first chunk so subsequent chunks
-      // have room to arrive without underrun.
       if (nextStartTime === 0) nextStartTime = ctx.currentTime + 0.08;
       const startAt = Math.max(nextStartTime, ctx.currentTime + 0.005);
       src.start(startAt);
       nextStartTime = startAt + buf.duration;
       pendingChunks++;
-      // Schedule the "Playing chunk N" log to fire when the AudioContext clock
-      // actually reaches the chunk's start time. If the context is suspended
-      // (chunks queued before user click), the wait converts setTimeout into
-      // a delayed log; we add a small grace period to avoid logging before
-      // resume() actually transitions the context to 'running'.
+
       const delayMs = Math.max(0, (startAt - ctx.currentTime) * 1000);
       const playingTimer = setTimeout(() => {
         if (!playedSeqs.has(chunkNum)) {
           playedSeqs.add(chunkNum);
-          console.log(`Playing chunk ${chunkNum}`);
         }
       }, delayMs);
       src._chunkNum = chunkNum;
@@ -97,13 +90,9 @@ export function createStreamingPcmPlayer({ onEnded, onError } = {}) {
     stop() {
       stopped = true;
       scheduledSources.forEach((s) => {
-        // Log "Paused chunk N" for chunks that were scheduled but not yet
-        // finished playing. _playingTimer is still pending for chunks that
-        // hadn't reached their start time yet; cancel them too.
         try {
           if (s._playingTimer) clearTimeout(s._playingTimer);
           const n = s._chunkNum;
-          if (n != null) console.log(`Paused chunk ${n}`);
           s.stop();
         } catch {}
       });

@@ -38,12 +38,6 @@ function clearLiveOffScriptState(offScriptLogRef) {
   }
 }
 
-// Reset all per-page live utterance state when the user moves to a new page.
-// Leftover fragments from the previous page would otherwise leak into the new
-// page's reading-progress check (forcing the line cursor to advance before the
-// user has spoken) and into the next page's categorization context.
-// Intentionally does NOT touch currentAbortController — any in-flight
-// categorization for the page being left behind should still complete.
 export function resetOffScriptStateForPage(offScriptLogRef) {
   pendingPOSBuffer = [];
   lastSpeculativeSnapshot = '';
@@ -61,6 +55,25 @@ function emptyQueues() {
 
 function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
+}
+
+// Build the book-context string sent to the model. Includes the page before
+// and after `centerPage` (clamped to valid bounds, so the window naturally
+// shrinks to 2 pages at the start/end). Each page keeps its own "Page N:"
+// header so the model knows the ordering and which page is current.
+export function buildBookContext(pagesValues, centerPage) {
+  if (!Array.isArray(pagesValues) || !pagesValues.length) return '';
+  const start = Math.max(0, centerPage - 1);
+  const end = Math.min(pagesValues.length - 1, centerPage + 1);
+  const sections = [];
+  for (let p = start; p <= end; p++) {
+    const lines = pagesValues[p]?.text || [];
+    sections.push(
+      `Page ${p + 1}:\n` +
+      lines.map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n')
+    );
+  }
+  return sections.join('\n\n');
 }
 
 function calculateConfidenceDetail(spokenWords, expectedText, options = {}) {
@@ -256,10 +269,6 @@ function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, ma
   if (trimmedDelta) {
     speculativeLineEntries.push({ lineIndex, turn: speculativeLineEntries.length + 1, text: trimmedDelta });
   }
-  console.log(`[speculative] previous sent: ${previous ? `"${previous}"` : '(none — fresh line)'}`);
-  console.log(`[speculative] new send     : "${text}"`);
-  console.log(`[speculative] delta        : "${delta}"`);
-  console.log(`[speculative] line entries : ${speculativeLineEntries.length}`, speculativeLineEntries);
 
   sendOffScriptLog(
     { current: [...speculativeLineEntries] },
@@ -286,7 +295,6 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
   if (words.length === 0) return;
 
   offScriptLogRef.current.push({ lineIndex, text: words.join(' ') });
-  console.log({ type: 'offscript_update', entries: offScriptLogRef.current.map(e => ({ lineIndex: e.lineIndex, text: e.text })) });
 
   if (!context) return;
 
@@ -305,10 +313,9 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
 export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady) {
   if (!offScriptLogRef?.current?.length) return;
 
-  const lines = state.pagesValues[oldPage]?.text || [];
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
-  const bookText = `Page ${oldPage + 1}:\n` +
-    lines.map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n');
+  // Include the previous and next page alongside the current one for context.
+  const bookText = buildBookContext(state.pagesValues, oldPage);
 
   // Two formatting paths:
   //   - turn-stamped entries (speculative path) are kept as separate lines so the
@@ -603,8 +610,6 @@ export async function processUserUtterance({
       if (transcriptEndedTerminal && text && text !== lastSpeculativeSnapshot && isUtteranceComplete(text)) {
         speculativeLineEntries.push({ lineIndex: totalLines, turn: speculativeLineEntries.length + 1, text });
         lastSpeculativeSnapshot = text;
-        console.log(`[post-last-line] turn ${speculativeLineEntries.length}: "${text}"`);
-        console.log(`[post-last-line] line entries: ${speculativeLineEntries.length}`, speculativeLineEntries);
         sendOffScriptLog(
           { current: [...speculativeLineEntries] },
           categorizationContext.state.page,

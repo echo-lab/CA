@@ -12,7 +12,7 @@ import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
-import { processUserUtterance, sendOffScriptLog, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot, resetOffScriptStateForPage } from "../utils/utteranceProcessor";
+import { processUserUtterance, sendOffScriptLog, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot, resetOffScriptStateForPage, buildBookContext } from "../utils/utteranceProcessor";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
@@ -212,6 +212,10 @@ function Reader() {
   const reinforcementAudioRef = useRef(null);
   const reinforcementStreamingPlayerRef = useRef(null);
   const reinforcementAudioBlockedRef = useRef(false);
+  // True from the moment a reinforcement turn starts generating until its audio
+  // finishes (or is interrupted). Used for barge-in: if the child starts
+  // speaking while this is true, we stop talking over them.
+  const reinforcementActiveRef = useRef(false);
   const isPageQuestionPlayingRef = useRef(false);
   const pendingLineTriggersRef = useRef(new Map());
   const pendingUntargetedLineTriggerRef = useRef(null);
@@ -287,22 +291,14 @@ function Reader() {
       role: narratorRole?.role,
     });
     if (anyPlaying) {
-      // System is talking (asking a question or delivering reinforcement):
-      // cycle the talking frames so the mouth animates.
-      console.log("[changeFrame] starting interval");
       intervalId = setInterval(changeFrame, 250);
     } else {
-      // Idle: settle on a static pose. Only while the reinforcement loop is
-      // active (listening for the child's answer between reinforcement turns)
-      // show the new "-L" pose. The "I have a thought" / generated-question
-      // phase keeps the default idle frame.
       frameIndexRef.current = 0;
       const imgElement = document.getElementById("role-image");
       if (imgElement) imgElement.src = (showAvatar && inReinforcementLoop) ? listeningImage : frames[0];
     }
     return () => {
       if (intervalId) {
-        console.log("[changeFrame] clearing interval");
         clearInterval(intervalId);
       }
     };
@@ -416,35 +412,8 @@ function Reader() {
   }, [state.page, state.pagesValues, state.CharacterRoles]);
 
 const gotoNextPage = () => {
-  console.log("go to next page button pressed");
 
   clearQuestionUI();
-
-  if (questionGenEnabledRef.current) {
-    const hasOffScript = offScriptLogRef?.current?.length > 0;
-    console.log("sendOffScriptLog called, page:", state.page);
-    sendOffScriptLog(
-      offScriptLogRef,
-      state.page,
-      state,
-      hasOffScript ? () => setIsCategorizationPending(false) : undefined,
-      imageDescriptionRef,
-      userAttentionRef.current,
-      hasOffScript ? () => setIsCategorizationPending(true) : undefined,
-      pendingGeneratedQuestionRef.current || null,
-      narratorRole?.VA || null,
-      handleAudioChunk,
-      handleAudioEnd,
-      handleAudioError,
-      startGeneratedQuestion,
-    );
-  }
-
-  // Clear per-page live utterance state so leftover off-script fragments from
-  // the previous page don't bleed into the new page's reading-progress check
-  // or categorization. sendOffScriptLog above already captured + emptied
-  // offScriptLogRef for its own request; this also wipes pendingPOSBuffer and
-  // speculative snapshots that sit inside utteranceProcessor.
   resetOffScriptStateForPage(offScriptLogRef);
 
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
@@ -705,9 +674,33 @@ const stopReinforcementAudio = useCallback(() => {
     reinforcementStreamingPlayerRef.current = null;
   }
   reinforcementAudioBlockedRef.current = false;
+  reinforcementActiveRef.current = false;
   setIsReinforcementPlaying(false);
   endAudio(AUDIO_SOURCES.REINFORCEMENT);
 }, [endAudio]);
+
+// Barge-in: if the child starts speaking while a reinforcement turn is active
+// (generating or playing), stop talking over them. We bump the request
+// sequence so the in-flight reinforcement stream's callbacks bail out and
+// don't recreate the audio player from later chunks. The reinforcement loop
+// stays open, so the child's answer triggers the next turn as usual.
+useEffect(() => {
+  // Require a non-trivial transcript (>= MIN words) before barging in. Speaker
+  // echo from the reinforcement TTS leaking into the mic, with echo
+  // cancellation on, typically yields only a stray word or two, so this guards
+  // against the system cutting itself off.
+  const BARGE_IN_MIN_WORDS = 2;
+  const wordCount = (deepgramTranscript || '').trim().split(/\s+/).filter(Boolean).length;
+  if (reinforcementActiveRef.current && wordCount >= BARGE_IN_MIN_WORDS) {
+    console.log("[barge-in] child speech detected during reinforcement, stopping:", deepgramTranscript);
+    reinforcementRequestSeqRef.current += 1;
+    stopReinforcementAudio();
+  }
+  // Intentionally only depends on deepgramTranscript so it fires on each new
+  // transcript, not when reinforcement state toggles (which would risk acting
+  // on a stale transcript).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [deepgramTranscript]);
 
 const closeReinforcementMode = useCallback(() => {
   reinforcementModeRef.current = false;
@@ -785,9 +778,8 @@ const clearQuestionUI = () => {
 const getCurrentPageReinforcementContext = () => {
   const currentState = stateRef.current;
   const page = currentState.pagesValues[currentState.page];
-  const lines = page?.text || [];
-  const bookText = `Page ${currentState.page + 1}:\n` +
-    lines.map(l => `${l.Character}: ${stripSSMLTags(l.Dialogue)}`).join('\n');
+  // Include the previous and next page alongside the current one for context.
+  const bookText = buildBookContext(currentState.pagesValues, currentState.page);
 
   return {
     currentPageQuestion: page?.question || '',
@@ -815,6 +807,8 @@ const playReinforcement = async (reply) => {
   setAwaitingQuestionAnswer(false);
   stopReinforcementAudio();
   reinforcementAudioBlockedRef.current = false;
+  // Mark this reinforcement turn active so barge-in can interrupt it.
+  reinforcementActiveRef.current = true;
 
   console.log("Generating reinforcement. Question:", question, "Reply:", reply);
 
@@ -826,6 +820,7 @@ const playReinforcement = async (reply) => {
         reinforcementStreamingPlayerRef.current = null;
       }
       reinforcementAudioBlockedRef.current = false;
+      reinforcementActiveRef.current = false;
       setIsReinforcementPlaying(false);
       endAudio(AUDIO_SOURCES.REINFORCEMENT);
       if (remoteAudioRef.current && !isMuted) {
@@ -1041,8 +1036,6 @@ async function speak(
 
 
   const audioEnded = React.useCallback(() => {
-    console.log("Audio has finished playing!");
-    console.log("audioEnded triggered. Current isPlaying:", isPlaying);
 
     if (audio) {
         audio.removeEventListener("ended", audioEnded);
@@ -1082,7 +1075,6 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
     page.text[index].Reading = true;
 
     if (isLastLine) {
-      console.log("Last line is Parent/Child/Dummy - simulating audio end");
       setTimeout(() => {
         setAudioHasEnded(true);
       }, 100);
@@ -1097,7 +1089,6 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
 
   if (!currentVoiceName) {
     if (isLastLine) {
-      console.log("Last line has no voice - simulating audio end");
       setTimeout(() => {
         setAudioHasEnded(true);
       }, 100);
@@ -1110,7 +1101,6 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
   const dialogue = stripSSMLTags(String(line.Dialogue || ""));
   if (!dialogue.trim()) {
     if (isLastLine) {
-      console.log("Last line has no dialogue - simulating audio end");
       setTimeout(() => {
         setAudioHasEnded(true);
       }, 100);
@@ -1179,25 +1169,7 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
         if (isPlaying) {
          setIsPlaying(false);
         } else {
-         console.log("new page")
-         const hasOffScript = offScriptLogRef?.current?.length > 0;
-         if (questionGenEnabledRef.current) {
-           sendOffScriptLog(
-             offScriptLogRef,
-             state.page,
-             state,
-             hasOffScript ? () => setIsCategorizationPending(false) : undefined,
-             imageDescriptionRef,
-             userAttentionRef.current,
-             hasOffScript ? () => setIsCategorizationPending(true) : undefined,
-             pendingGeneratedQuestionRef.current || null,
-             narratorRole?.VA || null,
-             handleAudioChunk,
-             handleAudioEnd,
-             handleAudioError,
-             startGeneratedQuestion,
-           );
-         }
+         resetOffScriptStateForPage(offScriptLogRef);
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
            state.pagesValues[state.page].text[i].Reading=false;
          }
@@ -1217,7 +1189,6 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
           }
         }
       } else {
-       console.log("last page")
          // If we're on the last page, mark the last text as not being read
          if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
              state.pagesValues[state.page].text[state.index-1].Reading = false;
@@ -1619,7 +1590,6 @@ function stripSSMLTags(text) {
   }
 
   function handlePlayClick() {
-    console.log("handlePlayClick triggered. Current isPlaying:", isPlaying);
 
     if (isAnyAudioPlaying) {
       return;
@@ -1651,15 +1621,10 @@ function stripSSMLTags(text) {
     });
 
     if (!isPlaying) {
-      console.log("page size ", state.pagesValues[state.page]?.text?.length);
-      console.log("current index", state.index);
       if (state.index === 0 || state.pagesValues[state.page]?.text?.length === state.index) {
-        console.log("start reading");
         handleNextClick("manual");
       } else {
-        console.log("resume reading");
         var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index - 1].Character);
-        console.log(currentCharacter);
         if (!currentCharacter[0].VA ||
             currentCharacter[0].role === "Parent" ||
             currentCharacter[0].role === "Child" ||
@@ -1668,7 +1633,6 @@ function stripSSMLTags(text) {
         }
       }
     } else {
-      console.log("Was playing and you paused");
     }
   }
 
