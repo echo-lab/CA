@@ -164,19 +164,6 @@ export function getIsCategorizationPending() {
   return isCategorizationPending;
 }
 
-export function forceFlushPendingOffScript(offScriptLogRef, { skipPosCheck = false } = {}) {
-  if (pendingPOSBuffer.length === 0 || !lastCategorizationContext) return; // nothing to flush or no context to send to
-  const bufferText = pendingPOSBuffer.join(' ');
-  if (!skipPosCheck && !isUtteranceComplete(bufferText)) { // still mid-sentence, hold off on flushing
-    debugLog({ type: 'offscript_hold', reason: 'pos_incomplete', text: bufferText, bufferSize: pendingPOSBuffer.length });
-    return;
-  }
-  debugLog({ type: 'offscript_flush', reason: skipPosCheck ? 'deepgram_signal' : 'pos_complete', text: bufferText, bufferSize: pendingPOSBuffer.length });
-  if (flushStableOffScriptPhrase(lastFlushLineIndex, lastCategorizationContext, true)) { // force flush, bypassing POS check
-    clearLiveOffScriptState(offScriptLogRef);
-  }
-}
-
 function flushStableOffScriptPhrase(lineIndex, context, force = false) { // returns true if flush was sent for categorization
   if (!context || pendingPOSBuffer.length === 0) return false; // nothing to flush or no context to send to
 
@@ -303,11 +290,6 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
 
   pendingPOSBuffer.push(...words);
   debugLog({ type: 'pos_buffer', words: pendingPOSBuffer.join(' '), count: pendingPOSBuffer.length });
-
-  // if (pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER) {
-  //   debugLog({ type: 'offscript_eager_check', bufferSize: pendingPOSBuffer.length });
-  //   forceFlushPendingOffScript(offScriptLogRef);
-  // }
 }
 
 export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady) {
@@ -443,7 +425,7 @@ function jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance)
 function getMaxReadableLookbackWords(state, currentLineIndex, totalLines) {
   let maxWords = 1;
 
-  for (let offset = 0; offset <= 3; offset++) {
+  for (let offset = 0; offset <= 1; offset++) {
     const lineIndex = currentLineIndex + offset;
     if (lineIndex >= totalLines) break;
 
@@ -464,7 +446,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
   const allSpokenWordCount = allSpokenWords.length;
 
 
-  for (let offset = 1; offset <= 3; offset++) {
+  for (let offset = 1; offset <= 2; offset++) {
     const checkIndex = currentLineIndex + offset;
     if (checkIndex >= totalLines) break;
 
@@ -539,9 +521,9 @@ export async function processUserUtterance({
   onQuestionReady,
   questionGenEnabledRef,
   isReinforcementModeRef,
+  generatedQuestionPendingRef,
   onQuestionAnswered,
-  onReinforcementUtterance,
-  onReadingResumed
+  onReinforcementUtterance
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
@@ -573,7 +555,8 @@ export async function processUserUtterance({
     (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(text);
   };
 
-  const canCategorizeLive = !reinforcementActiveAtStart && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
+  const generatedQuestionPending = generatedQuestionPendingRef?.current === true;
+  const canCategorizeLive = !reinforcementActiveAtStart && !generatedQuestionPending && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
     ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady }
     : null;
@@ -696,7 +679,6 @@ export async function processUserUtterance({
         captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, exactMatch.startIdx), categorizationContext);
         clearMatchState(refs, exactMatch.endIdx);
         if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
-        if (reinforcementActiveAtStart) onReadingResumed?.();
         advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
         return;
       }
@@ -712,7 +694,6 @@ export async function processUserUtterance({
             captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
             clearMatchState(refs, startIdx + divSentence.wordCount);
             if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
-            if (reinforcementActiveAtStart) onReadingResumed?.();
             advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
             return;
           }
@@ -739,7 +720,6 @@ export async function processUserUtterance({
   }
 
   if (foundMatch) {
-    if (reinforcementActiveAtStart) onReadingResumed?.();
     return;
   }
 

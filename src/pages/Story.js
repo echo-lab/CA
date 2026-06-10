@@ -12,7 +12,7 @@ import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
-import { processUserUtterance, sendOffScriptLog, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot, resetOffScriptStateForPage, buildBookContext } from "../utils/utteranceProcessor";
+import { processUserUtterance, sendReinforcementLog, abortCurrentCategorization, setAwaitingQuestionAnswer, resetReinforcementSnapshot, resetOffScriptStateForPage, buildBookContext } from "../utils/utteranceProcessor";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
@@ -170,32 +170,22 @@ function Reader() {
   const [audio, setAudio] = useState(null);
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
-  // Whether the user has tapped the "I have a thought." bubble to reveal the
-  // actual generated question. Stays false until speakGenerated() is invoked.
+
   const [isThoughtRevealed, setIsThoughtRevealed] = useState(false);
-  // Mirror of isGeneratedQuestionPlaying for use inside callbacks/effects that
-  // would otherwise close over a stale state value.
+
   const isGeneratedQuestionPlayingRef = useRef(false);
 
-  // isCategorizationPending is a UI mirror of utteranceProcessor's module-level
-  // flag. utteranceProcessor's sendOffScriptLog is the single source of truth;
-  // it drives this state via onCategorizationStart / onCategorizationResult callbacks.
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const [questionHistory, setQuestionHistory] = useState([]);
   const [showAvatar, setShowAvatar] = useState(false);
-  // True only while the reinforcement loop is active (after the generated
-  // question has been delivered, through listening for the child's answer and
-  // playing reinforcement). Used to swap the narrator avatar to its new "-L"
-  // pose; the "I have a thought" / generated-question phase keeps the old image.
+
   const [inReinforcementLoop, setInReinforcementLoop] = useState(false);
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
   useEffect(() => { isGeneratedQuestionPlayingRef.current = isGeneratedQuestionPlaying; }, [isGeneratedQuestionPlaying]);
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const [isSlidingBack, setIsSlidingBack] = useState(false);
-  // Tracks whether slide-closer has already played. Prevents re-triggering
-  // the animation when a new generated question replaces an existing one —
-  // the image stays in place, only the question text/audio updates.
+
   const hasSlidCloserRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
   const generatedQuestionAudioUrlRef = useRef(null);
@@ -212,9 +202,7 @@ function Reader() {
   const reinforcementAudioRef = useRef(null);
   const reinforcementStreamingPlayerRef = useRef(null);
   const reinforcementAudioBlockedRef = useRef(false);
-  // True from the moment a reinforcement turn starts generating until its audio
-  // finishes (or is interrupted). Used for barge-in: if the child starts
-  // speaking while this is true, we stop talking over them.
+
   const reinforcementActiveRef = useRef(false);
   const isPageQuestionPlayingRef = useRef(false);
   const pendingLineTriggersRef = useRef(new Map());
@@ -494,6 +482,10 @@ const generatedQuestionAudioEndedRef = useRef(false);
 const generatedQuestionAudioErrorRef = useRef(null);
 const generatedQuestionPlayRequestedRef = useRef(false);
 const suppressGeneratedAudioStreamRef = useRef(false);
+// True from when a generated question is shown until it is answered or
+// dismissed. Used to suppress off-script categorization during that window so a
+// new question can't be spawned while one is already outstanding.
+const generatedQuestionPendingRef = useRef(false);
 const [revealedQuestion, setRevealedQuestion] = useState('');
 
 const SPEECH_CHARS_PER_SEC = 14;
@@ -522,12 +514,6 @@ const finishGeneratedPlayback = useCallback((questionText) => {
   endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
   if (questionText) lastAskedQuestionRef.current = questionText;
   setAwaitingQuestionAnswer(true);
-  // Keep the narrator avatar on screen in its "listening" pose while we wait
-  // for the child's answer (and during reinforcement). Do NOT slide back, so
-  // the generated question stays the latest bubble and the page question is
-  // not re-shown. Entering the reinforcement loop swaps the avatar to its -L
-  // pose while idle, and the changeFrame effect animates the talking frames
-  // during reinforcement.
   setShowAvatar(true);
   setInReinforcementLoop(true);
 }, [endAudio, isMuted, remoteAudioRef]);
@@ -561,6 +547,7 @@ const startGeneratedQuestion = useCallback((questionText) => {
   }
 
   fullQuestionTextRef.current = text;
+  generatedQuestionPendingRef.current = true;
   cumulativeAudioMsRef.current = 0;
   generatedQuestionAudioChunksRef.current = [];
   generatedQuestionAudioEndedRef.current = false;
@@ -679,16 +666,7 @@ const stopReinforcementAudio = useCallback(() => {
   endAudio(AUDIO_SOURCES.REINFORCEMENT);
 }, [endAudio]);
 
-// Barge-in: if the child starts speaking while a reinforcement turn is active
-// (generating or playing), stop talking over them. We bump the request
-// sequence so the in-flight reinforcement stream's callbacks bail out and
-// don't recreate the audio player from later chunks. The reinforcement loop
-// stays open, so the child's answer triggers the next turn as usual.
 useEffect(() => {
-  // Require a non-trivial transcript (>= MIN words) before barging in. Speaker
-  // echo from the reinforcement TTS leaking into the mic, with echo
-  // cancellation on, typically yields only a stray word or two, so this guards
-  // against the system cutting itself off.
   const BARGE_IN_MIN_WORDS = 2;
   const wordCount = (deepgramTranscript || '').trim().split(/\s+/).filter(Boolean).length;
   if (reinforcementActiveRef.current && wordCount >= BARGE_IN_MIN_WORDS) {
@@ -696,10 +674,6 @@ useEffect(() => {
     reinforcementRequestSeqRef.current += 1;
     stopReinforcementAudio();
   }
-  // Intentionally only depends on deepgramTranscript so it fires on each new
-  // transcript, not when reinforcement state toggles (which would risk acting
-  // on a stale transcript).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [deepgramTranscript]);
 
 const closeReinforcementMode = useCallback(() => {
@@ -708,41 +682,13 @@ const closeReinforcementMode = useCallback(() => {
   reinforcementRequestSeqRef.current += 1;
   resetReinforcementSnapshot();
   stopReinforcementAudio();
+  generatedQuestionPendingRef.current = false;
   setInReinforcementLoop(false);
   setAwaitingQuestionAnswer(false);
   if (remoteAudioRef.current && !isMuted) {
     remoteAudioRef.current.muted = false;
   }
 }, [isMuted, remoteAudioRef, stopReinforcementAudio]);
-
-const finishQuestionInteraction = useCallback(() => {
-  closeReinforcementMode();
-  setAwaitingQuestionAnswer(false);
-  generatedQuestionPlayRequestedRef.current = false;
-  suppressGeneratedAudioStreamRef.current = false;
-  teardownStreamingPlayer();
-  endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
-  setIsGeneratedQuestionPlaying(false);
-  setIsSlidingBack(false);
-  dismissingQuestionRef.current = null;
-
-  const latestGenerated = fullQuestionTextRef.current || generatedQuestion;
-  if (latestGenerated) {
-    setGeneratedQuestion(latestGenerated);
-    setRevealedQuestion(latestGenerated);
-    pendingGeneratedQuestionRef.current = latestGenerated;
-    setShowAvatar(true);
-  }
-
-  if (generatedQuestionAudioRef.current) {
-    generatedQuestionAudioRef.current.pause();
-    generatedQuestionAudioRef.current = null;
-  }
-  if (generatedQuestionAudioUrlRef.current) {
-    URL.revokeObjectURL(generatedQuestionAudioUrlRef.current);
-    generatedQuestionAudioUrlRef.current = null;
-  }
-}, [closeReinforcementMode, endAudio, generatedQuestion, teardownStreamingPlayer]);
 
 const clearQuestionUI = () => {
   closeReinforcementMode();
@@ -763,6 +709,11 @@ const clearQuestionUI = () => {
   setIsCategorizationPending(false);
   setShowAvatar(false);
   setIsGeneratedQuestionPlaying(false);
+  // Clear all question bubbles (generated and page). On a page turn the
+  // [state.page] effect re-adds the new page's question; on a same-page
+  // reading-resume nothing remains, so no bubble lingers.
+  setQuestionHistory([]);
+  setIsThoughtRevealed(false);
   hasSlidCloserRef.current = false;
   dismissingQuestionRef.current = null;
   if (generatedQuestionAudioRef.current) {
@@ -774,6 +725,11 @@ const clearQuestionUI = () => {
     generatedQuestionAudioUrlRef.current = null;
   }
 };
+
+// Latest clearQuestionUI, read from the line/page-change effect without adding it
+// to that effect's deps (it is re-created each render).
+const clearQuestionUIRef = useRef(clearQuestionUI);
+React.useEffect(() => { clearQuestionUIRef.current = clearQuestionUI; });
 
 const getCurrentPageReinforcementContext = () => {
   const currentState = stateRef.current;
@@ -800,6 +756,9 @@ const playReinforcement = async (reply) => {
 
   reinforcementRequestSeqRef.current = requestSeq;
   reinforcementModeRef.current = true;
+  // Answer captured — reinforcement mode now suppresses categorization, so the
+  // "question pending" gate is no longer needed.
+  generatedQuestionPendingRef.current = false;
   reinforcementSessionRef.current = {
     question,
     turns: reinforcementSessionRef.current.turns || [],
@@ -935,10 +894,6 @@ const speakGenerated = () => {
 
   generatedQuestionPlayRequestedRef.current = true;
   setIsGeneratedQuestionPlaying(true);
-  // Reveal the actual question text now that the user has tapped the bubble.
-  // If the full TTS stream has already buffered, show the full text at once;
-  // otherwise the existing handleAudioChunk typewriter takes over as remaining
-  // chunks arrive.
   setIsThoughtRevealed(true);
   if (generatedQuestionAudioEndedRef.current && fullQuestionTextRef.current) {
     setRevealedQuestion(fullQuestionTextRef.current);
@@ -1136,10 +1091,6 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
 * or move to the next page.
 */
 const handleNextClick = React.useCallback((trigger = "manual") => {
- if (reinforcementModeRef.current) {
-   clearQuestionUI();
- }
-
  const markLineChange = trigger === "auto"
    ? markNextLineChangeAutomatic
    : markNextLineChangeManual;
@@ -1250,6 +1201,13 @@ const currentPageRef = useRef(state.page);
 React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
 React.useEffect(() => {
+  // A line change or page change is the single teardown point for an outstanding
+  // generated question: dismiss it (avatar + bubble) when the child reads on.
+  // Covers both the reinforcement phase and a shown-but-unanswered question.
+  // (Previously this happened the moment the speech matcher detected reading.)
+  if (reinforcementModeRef.current || generatedQuestionPendingRef.current) {
+    clearQuestionUIRef.current();
+  }
   // No explicit trigger set means the change wasn't driven by a user click.
   // Targeted triggers prevent a later auto advance from overwriting a manual
   // trigger that was queued for a different page/index.
@@ -1337,9 +1295,9 @@ React.useEffect(() => {
     onAudioError: handleAudioError,
     questionGenEnabledRef,
     isReinforcementModeRef: reinforcementModeRef,
+    generatedQuestionPendingRef,
     onQuestionAnswered: playReinforcement,
-    onReinforcementUtterance: playReinforcement,
-    onReadingResumed: finishQuestionInteraction
+    onReinforcementUtterance: playReinforcement
   });
   }, [userUtterance]);
 
@@ -1556,7 +1514,6 @@ function stripSSMLTags(text) {
 
     // Disable button if it's child's turn and they haven't played yet
     const shouldDisableButton = isButtonDisabled || isAnyAudioPlaying;
-    // const shouldDisableButton = isButtonDisabled || isAudioPlaying || (isChildTurn && !childHasPlayed);
 
     let buttonText;
     let buttonClass = "";
