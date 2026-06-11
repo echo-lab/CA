@@ -487,6 +487,11 @@ const suppressGeneratedAudioStreamRef = useRef(false);
 // new question can't be spawned while one is already outstanding.
 const generatedQuestionPendingRef = useRef(false);
 const [revealedQuestion, setRevealedQuestion] = useState('');
+// Reinforcement reveal — parallels the generated-question reveal so the
+// reinforcement bubble types out in sync with its TTS audio.
+const fullReinforcementTextRef = useRef('');
+const cumulativeReinforcementMsRef = useRef(0);
+const [revealedReinforcement, setRevealedReinforcement] = useState('');
 
 const SPEECH_CHARS_PER_SEC = 14;
 const computeRevealLength = useCallback((fullText, cumulativeMs) => {
@@ -709,11 +714,14 @@ const clearQuestionUI = () => {
   setIsCategorizationPending(false);
   setShowAvatar(false);
   setIsGeneratedQuestionPlaying(false);
-  // Clear all question bubbles (generated and page). On a page turn the
-  // [state.page] effect re-adds the new page's question; on a same-page
+  // Clear all question bubbles (generated, reinforcement, and page). On a page
+  // turn the [state.page] effect re-adds the new page's question; on a same-page
   // reading-resume nothing remains, so no bubble lingers.
   setQuestionHistory([]);
   setIsThoughtRevealed(false);
+  setRevealedReinforcement('');
+  fullReinforcementTextRef.current = '';
+  cumulativeReinforcementMsRef.current = 0;
   hasSlidCloserRef.current = false;
   dismissingQuestionRef.current = null;
   if (generatedQuestionAudioRef.current) {
@@ -726,8 +734,6 @@ const clearQuestionUI = () => {
   }
 };
 
-// Latest clearQuestionUI, read from the line/page-change effect without adding it
-// to that effect's deps (it is re-created each render).
 const clearQuestionUIRef = useRef(clearQuestionUI);
 React.useEffect(() => { clearQuestionUIRef.current = clearQuestionUI; });
 
@@ -768,6 +774,10 @@ const playReinforcement = async (reply) => {
   reinforcementAudioBlockedRef.current = false;
   // Mark this reinforcement turn active so barge-in can interrupt it.
   reinforcementActiveRef.current = true;
+  // Reset the reinforcement text reveal for this turn.
+  fullReinforcementTextRef.current = '';
+  cumulativeReinforcementMsRef.current = 0;
+  setRevealedReinforcement('');
 
   console.log("Generating reinforcement. Question:", question, "Reply:", reply);
 
@@ -781,6 +791,8 @@ const playReinforcement = async (reply) => {
       reinforcementAudioBlockedRef.current = false;
       reinforcementActiveRef.current = false;
       setIsReinforcementPlaying(false);
+      // Make sure the full reinforcement text is shown once audio ends.
+      if (fullReinforcementTextRef.current) setRevealedReinforcement(fullReinforcementTextRef.current);
       endAudio(AUDIO_SOURCES.REINFORCEMENT);
       if (remoteAudioRef.current && !isMuted) {
         remoteAudioRef.current.muted = false;
@@ -799,14 +811,29 @@ const playReinforcement = async (reply) => {
           ...reinforcementSessionRef.current.turns,
           { user: reply, response: reinforcement },
         ];
+        // Show the reinforcement as a bubble (same way as the generated
+        // question). One rolling reinforcement bubble updated in place per turn.
+        fullReinforcementTextRef.current = reinforcement;
+        cumulativeReinforcementMsRef.current = 0;
+        setRevealedReinforcement('');
+        setQuestionHistory(prev => {
+          const last = prev[prev.length - 1];
+          if (last && last.type === 'reinforcement') {
+            return [...prev.slice(0, -1), { ...last, text: reinforcement }];
+          }
+          return [...prev, { id: `reinf-${Date.now()}`, text: reinforcement, type: 'reinforcement' }];
+        });
       },
-      onAudioChunk: (seq, audioContent) => {
+      onAudioChunk: (seq, audioContent, durationMs) => {
         if (requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
         if (reinforcementAudioBlockedRef.current) return;
         if (!reinforcementStreamingPlayerRef.current) {
           if (!tryBeginAudio(AUDIO_SOURCES.REINFORCEMENT)) {
             reinforcementAudioBlockedRef.current = true;
             setIsReinforcementPlaying(false);
+            // Audio can't play — show the full reinforcement text so the bubble
+            // doesn't stay blank (it never gets typed out by audio chunks).
+            if (fullReinforcementTextRef.current) setRevealedReinforcement(fullReinforcementTextRef.current);
             return;
           }
           if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
@@ -824,6 +851,13 @@ const playReinforcement = async (reply) => {
           });
         }
         reinforcementStreamingPlayerRef.current.pushChunk(seq, audioContent);
+        // Advance the reinforcement text reveal in sync with audio (mirrors
+        // the generated-question reveal in handleAudioChunk).
+        cumulativeReinforcementMsRef.current += Number(durationMs) || 0;
+        if (fullReinforcementTextRef.current) {
+          const cut = computeRevealLength(fullReinforcementTextRef.current, cumulativeReinforcementMsRef.current);
+          setRevealedReinforcement(fullReinforcementTextRef.current.slice(0, cut));
+        }
       },
       onAudioEnd: () => {
         if (requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
@@ -848,6 +882,8 @@ const playReinforcement = async (reply) => {
     if (requestSeq === reinforcementRequestSeqRef.current) {
       reinforcementAudioBlockedRef.current = false;
       setIsReinforcementPlaying(false);
+      // Surface whatever reinforcement text we have so the bubble isn't blank.
+      if (fullReinforcementTextRef.current) setRevealedReinforcement(fullReinforcementTextRef.current);
       endAudio(AUDIO_SOURCES.REINFORCEMENT);
       if (remoteAudioRef.current && !isMuted) {
         remoteAudioRef.current.muted = false;
@@ -1408,13 +1444,15 @@ function stripSSMLTags(text) {
 
 
   function renderQuestion() {
-    if (questionHistory.length === 0) return null;
-    const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying;
+    if (questionHistory.length === 0 ) return null;
+    const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying || isReinforcementPlaying;
     const latestIdx = questionHistory.length - 1;
     const latest = questionHistory[latestIdx];
 
     const handleLatestClick = () => {
       if (latest.type === 'generated') speakGenerated();
+      // Reinforcement plays automatically; tapping it does nothing.
+      else if (latest.type === 'reinforcement') { /* no-op */ }
       else playSound();
     };
 
@@ -1456,22 +1494,33 @@ function stripSSMLTags(text) {
             // chunks arrive; older generated questions and page questions
             // always show their full text.
             const isLatestGenerated = isLatest && msg.type === 'generated';
+            // The latest reinforcement bubble reveals in sync with its TTS audio,
+            // the same way as the generated question.
+            const isLatestReinforcement = isLatest && msg.type === 'reinforcement';
             // Until the user taps the bubble, show a teaser instead of the
             // actual question. After tap, reveal full text (if audio already
             // buffered) or typewriter-reveal as chunks arrive.
             const showThoughtTeaser = isLatestGenerated && !isThoughtRevealed;
             const displayText = showThoughtTeaser
               ? 'I have a thought.'
-              : (isLatestGenerated ? (revealedQuestion || msg.text) : msg.text);
-            const isRevealing = isLatestGenerated && isThoughtRevealed && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length;
+              : isLatestGenerated
+                ? (revealedQuestion || msg.text)
+                // Reinforcement types out from empty; failure/blocked paths set
+                // revealedReinforcement to the full text so it can't stay blank.
+                : isLatestReinforcement
+                  ? revealedReinforcement
+                  : msg.text;
+            const isRevealing =
+              (isLatestGenerated && isThoughtRevealed && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length) ||
+              (isLatestReinforcement && Boolean(revealedReinforcement) && revealedReinforcement.length < msg.text.length);
             // While a generated question is shown, fully hide all other
             // messages (the page question disappears rather than peeking above).
             const latestIsGenerated = latest?.type === 'generated';
-            // During the reinforcement loop the narrator avatar stays on
-            // screen but no question bubble is shown (neither the generated
-            // question nor the page question).
+            // During the reinforcement loop only the latest reinforcement bubble
+            // is shown alongside the narrator avatar; the generated question and
+            // page question are hidden.
             const positionClass = inReinforcementLoop
-              ? 'hidden'
+              ? (isLatestReinforcement ? 'latest' : 'hidden')
               : isLatest
                 ? (isSlidingBack && msg.type === 'generated' ? 'exiting' : 'latest')
                 : (latestIsGenerated ? 'hidden' : (isPrevious ? 'previous' : 'hidden'));
@@ -1674,7 +1723,10 @@ function stripSSMLTags(text) {
       <div className="col-md-5">
         <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
           <img src={state.pagesValues[state.page].img} alt="current page" style={{ width: '100%', display: 'block' }} />
-            {imageTags.map((tag, i) => {
+            {(imageTags || []).map((tag, i) => {
+              // The model occasionally returns a tag without a valid 4-number
+              // box_2d; skip those rather than crash on array destructuring.
+              if (!Array.isArray(tag?.box_2d) || tag.box_2d.length < 4) return null;
               const [y0, x0, y1, x1] = tag.box_2d;
               return (
                 <div
