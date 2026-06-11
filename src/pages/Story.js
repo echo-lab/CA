@@ -1152,10 +1152,13 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
      // If there's no more text on the current page, check if there are more pages to go to
       if (state.page < state.pagesValues.length - 1) {
         //userUtterancesRef.current = []; // Clear user utterances when moving to next page
-        clearQuestionUI();
         if (isPlaying) {
+         // Last line just finished by voice — reveal the "Next Page" button but
+         // stay on the page. Do NOT clear here, or the page question would
+         // disappear the moment the button appears.
          setIsPlaying(false);
         } else {
+         clearQuestionUI();
          resetOffScriptStateForPage(offScriptLogRef);
          for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
            state.pagesValues[state.page].text[i].Reading=false;

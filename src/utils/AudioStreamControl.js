@@ -80,7 +80,11 @@ export function AudioStreamControlProvider({ children }) {
     try {
 
       // Get user's microphone stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }, });
 
       // Derive WebSocket URL from REACT_APP_API_BASE
       // ws:// for http, wss:// for https
