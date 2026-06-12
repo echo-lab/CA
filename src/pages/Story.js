@@ -463,6 +463,13 @@ const playSound = () => {
       setIsPageQuestionPlaying(true);
       isPageQuestionPlayingRef.current = true;
       lastAskedQuestionRef.current = question;
+      // Bring the narrator avatar in (slide-in) while the page question plays,
+      // same as the generated question. Replay the slide-in only if it wasn't
+      // already on screen.
+      if (!showAvatarRef.current) {
+        hasSlidCloserRef.current = false;
+      }
+      setShowAvatar(true);
     },
     onError: () => {
       setIsPageQuestionPlaying(false);
@@ -1034,6 +1041,11 @@ async function speak(
 
     if (isPageQuestionPlayingRef.current && questionGenEnabledRef.current) {
       setAwaitingQuestionAnswer(true);
+      // Enter the same reinforcement-loop state as the generated question so the
+      // child's answer plays back identically (listening-pose avatar, page bubble
+      // tucked away, reinforcement bubble typing out by the avatar).
+      setShowAvatar(true);
+      setInReinforcementLoop(true);
       isPageQuestionPlayingRef.current = false;
     } else if (isPageQuestionPlayingRef.current) {
       setAwaitingQuestionAnswer(false);
@@ -1240,11 +1252,14 @@ const currentPageRef = useRef(state.page);
 React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
 React.useEffect(() => {
-  // A line change or page change is the single teardown point for an outstanding
-  // generated question: dismiss it (avatar + bubble) when the child reads on.
-  // Covers both the reinforcement phase and a shown-but-unanswered question.
-  // (Previously this happened the moment the speech matcher detected reading.)
-  if (reinforcementModeRef.current || generatedQuestionPendingRef.current) {
+  // A line/page change is the single teardown point for an outstanding question
+  // interaction: dismiss it (avatar + bubble) when the child reads on. showAvatar
+  // is the umbrella signal — true whenever a generated question, a played page
+  // question, an awaiting answer, or a reinforcement turn is on screen, and false
+  // during plain reading (so an un-played page question persists as the child
+  // reads). This covers the page-question reinforcement loop, which has no
+  // generatedQuestionPendingRef of its own.
+  if (showAvatarRef.current) {
     clearQuestionUIRef.current();
   }
   // No explicit trigger set means the change wasn't driven by a user click.

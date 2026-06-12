@@ -12,6 +12,11 @@ server/cache/tts/
 server/cache/image/
 logs/
 
+# Runtime session log — generated/appended while the app runs (e.g. on the VM).
+# Already untracked; ignored here so its live churn never re-enters git or causes
+# modify/delete conflicts. The file stays on disk; export the data out-of-band.
+server/session-log.csv
+
 # production
 /build
 
