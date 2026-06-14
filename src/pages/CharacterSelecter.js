@@ -281,7 +281,7 @@ export default function CharaterSelecter() {
         img: role.img,
       })
     );
-    navigate("/story", { state: { selectedOptions, id, condition } });
+    navigate("/story", { state: { selectedOptions, id, condition, userName } });
   };
 
 

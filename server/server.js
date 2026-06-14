@@ -1006,6 +1006,7 @@ app.post('/synthesize', async (req, res) => {
     }
 });
 
+//Code to log sessions and track data
 // Log session info (name, book, condition) to CSV
 app.post('/api/log-session', (req, res) => {
     const { name, book, condition } = req.body;
@@ -1036,6 +1037,24 @@ app.get('/api/log-session/download', (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=session-log.csv');
     res.sendFile(csvPath);
+});
+
+// Log detailed page turn session CSV
+app.post('/api/log-generation-session', (req, res) => {
+    const { sessionId, csv } = req.body;
+    if (!sessionId || !csv) {
+        return res.status(400).json({ message: 'Missing sessionId or csv' });
+    }
+
+    const logsDir = path.join(__dirname, 'logs');
+    const safeSessionId = String(sessionId).replace(/[^0-9a-zA-Z_-]/g, '');
+    const csvPath = path.join(logsDir, `session_${safeSessionId}.csv`);
+
+    fs.mkdirSync(logsDir, { recursive: true });
+    fs.writeFileSync(csvPath, csv);
+
+    console.log(`[log-generation-session] saved session_${safeSessionId}.csv`);
+    res.json({ success: true });
 });
 
 // Log user experience survey to CSV
