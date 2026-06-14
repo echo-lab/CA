@@ -184,8 +184,7 @@ function Reader() {
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
   useEffect(() => { isGeneratedQuestionPlayingRef.current = isGeneratedQuestionPlaying; }, [isGeneratedQuestionPlaying]);
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
-  const [isSlidingBack, setIsSlidingBack] = useState(false);
-
+  // const [isSlidingBack, setIsSlidingBack] = useState(false); TODO: Remove
   const hasSlidCloserRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
   const generatedQuestionAudioUrlRef = useRef(null);
@@ -499,6 +498,11 @@ const [revealedQuestion, setRevealedQuestion] = useState('');
 const fullReinforcementTextRef = useRef('');
 const cumulativeReinforcementMsRef = useRef(0);
 const [revealedReinforcement, setRevealedReinforcement] = useState('');
+// True while the active question interaction is a clicked page question (not a
+// generated question). For page questions, the reinforcement bubble is removed
+// once it finishes playing — keeping the narrator avatar — instead of lingering
+// until the child reads on (the generated-question behavior).
+const reinforcementFromPageQuestionRef = useRef(false);
 
 const SPEECH_CHARS_PER_SEC = 14;
 const computeRevealLength = useCallback((fullText, cumulativeMs) => {
@@ -560,6 +564,8 @@ const startGeneratedQuestion = useCallback((questionText) => {
 
   fullQuestionTextRef.current = text;
   generatedQuestionPendingRef.current = true;
+  // A generated question is now the active prompt — not a page question.
+  reinforcementFromPageQuestionRef.current = false;
   cumulativeAudioMsRef.current = 0;
   generatedQuestionAudioChunksRef.current = [];
   generatedQuestionAudioEndedRef.current = false;
@@ -717,7 +723,7 @@ const clearQuestionUI = () => {
   suppressGeneratedAudioStreamRef.current = false;
   teardownStreamingPlayer();
   endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
-  setIsSlidingBack(false);
+  // setIsSlidingBack(false); TODO: Remove
   setIsCategorizationPending(false);
   setShowAvatar(false);
   setIsGeneratedQuestionPlaying(false);
@@ -729,6 +735,7 @@ const clearQuestionUI = () => {
   setRevealedReinforcement('');
   fullReinforcementTextRef.current = '';
   cumulativeReinforcementMsRef.current = 0;
+  reinforcementFromPageQuestionRef.current = false;
   hasSlidCloserRef.current = false;
   dismissingQuestionRef.current = null;
   if (generatedQuestionAudioRef.current) {
@@ -798,8 +805,19 @@ const playReinforcement = async (reply) => {
       reinforcementAudioBlockedRef.current = false;
       reinforcementActiveRef.current = false;
       setIsReinforcementPlaying(false);
-      // Make sure the full reinforcement text is shown once audio ends.
-      if (fullReinforcementTextRef.current) setRevealedReinforcement(fullReinforcementTextRef.current);
+      if (reinforcementFromPageQuestionRef.current) {
+        // Page question: once the reinforcement has played, remove the bubble but
+        // keep the narrator avatar (listening pose). Same questionHistory filter
+        // the generated question uses to drop a bubble, applied to 'reinforcement'.
+        setQuestionHistory(prev => prev.filter(m => m.type !== 'reinforcement'));
+        setRevealedReinforcement('');
+        fullReinforcementTextRef.current = '';
+        cumulativeReinforcementMsRef.current = 0;
+      } else if (fullReinforcementTextRef.current) {
+        // Generated question: leave the bubble up (full text) until the child
+        // reads on.
+        setRevealedReinforcement(fullReinforcementTextRef.current);
+      }
       endAudio(AUDIO_SOURCES.REINFORCEMENT);
       if (remoteAudioRef.current && !isMuted) {
         remoteAudioRef.current.muted = false;
@@ -902,7 +920,7 @@ const playReinforcement = async (reply) => {
 useEffect(() => {
   const wasPlaying = wasGeminiAudioPlayingRef.current;
   if (wasPlaying && !isGeminiAudioPlaying && dismissingQuestionRef.current) {
-    setIsSlidingBack(true);
+    // setIsSlidingBack(true); TODO: Remove
   }
   wasGeminiAudioPlayingRef.current = isGeminiAudioPlaying;
 }, [isGeminiAudioPlaying]);
@@ -1046,6 +1064,7 @@ async function speak(
       // tucked away, reinforcement bubble typing out by the avatar).
       setShowAvatar(true);
       setInReinforcementLoop(true);
+      reinforcementFromPageQuestionRef.current = true;
       isPageQuestionPlayingRef.current = false;
     } else if (isPageQuestionPlayingRef.current) {
       setAwaitingQuestionAnswer(false);
@@ -1475,7 +1494,8 @@ function stripSSMLTags(text) {
     };
 
     return (
-      <div className={`question-area ${showAvatar ? 'has-avatar' : ''} ${isSlidingBack ? 'avatar-dismissing' : ''}`}>
+      // ${isSlidingBack ? 'avatar-dismissing' : ''} TODO: Remove
+      <div className={`question-area ${showAvatar ? 'has-avatar' : ''}`}>
         {showAvatar && (
           <div className="role-image-container">
             <img
@@ -1484,23 +1504,23 @@ function stripSSMLTags(text) {
               alt="Narrator"
               onClick={handleLatestClick}
               style={{ cursor: 'pointer' }}
-              className={isSlidingBack ? 'slide-back' : (hasSlidCloserRef.current ? 'slide-closer-hold' : 'slide-closer')}
-              onAnimationEnd={(e) => {
-                if (e.animationName === 'slide-closer') {
-                  hasSlidCloserRef.current = true;
-                } else if (e.animationName === 'slide-back') {
-                  dismissingQuestionRef.current = null;
-                  setIsSlidingBack(false);
-                  setShowAvatar(false);
-                  hasSlidCloserRef.current = false;
-                  // Remove the generated-question bubble(s), keeping only the
-                  // original page question on screen.
-                  setQuestionHistory(prev => prev.filter(m => m.type !== 'generated'));
-                  setGeneratedQuestion(null);
-                  setIsThoughtRevealed(false);
-                  setRevealedQuestion('');
-                }
-              }}
+              // className={isSlidingBack ? 'slide-back' : (hasSlidCloserRef.current ? 'slide-closer-hold' : 'slide-closer')} TODO: Remove
+              // onAnimationEnd={(e) => {
+              //   if (e.animationName === 'slide-closer') {
+              //     hasSlidCloserRef.current = true;
+              //   } else if (e.animationName === 'slide-back') {
+              //     dismissingQuestionRef.current = null;
+              //     // setIsSlidingBack(false); TODO: Remove
+              //     setShowAvatar(false);
+              //     hasSlidCloserRef.current = false;
+              //     // Remove the generated-question bubble(s), keeping only the
+              //     // original page question on screen.
+              //     setQuestionHistory(prev => prev.filter(m => m.type !== 'generated'));
+              //     setGeneratedQuestion(null);
+              //     setIsThoughtRevealed(false);
+              //     setRevealedQuestion('');
+              //   }
+              // }}
             />
           </div>
         )}
@@ -1540,13 +1560,13 @@ function stripSSMLTags(text) {
             const positionClass = inReinforcementLoop
               ? (isLatestReinforcement ? 'latest' : 'hidden')
               : isLatest
-                ? (isSlidingBack && msg.type === 'generated' ? 'exiting' : 'latest')
+                ? 'latest' // (isSlidingBack && msg.type === 'generated' ? 'exiting' : 'latest') TODO: Remove
                 : (latestIsGenerated ? 'hidden' : (isPrevious ? 'previous' : 'hidden'));
             const classes = [
               'question-message',
               msg.type,
               positionClass,
-              isLatest && isSpeaking && !isSlidingBack ? 'speaking' : '',
+              isLatest && isSpeaking ? 'speaking' : '', // && !isSlidingBack TODO: Remove
             ].filter(Boolean).join(' ');
             return (
               <div

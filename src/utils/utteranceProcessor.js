@@ -11,8 +11,8 @@ const MID_SENTENCE_TAGS = new Set([
   'Conjunction',     // "and", "but", "because"
   'Auxiliary',        // "is", "was", "have"
 ]);
-const MIN_OFFSCRIPT_FLUSH_WORDS = 4;
-const MAX_OFFSCRIPT_BUFFER = 20;
+// const MIN_OFFSCRIPT_FLUSH_WORDS = 4; TODO: Remove
+// const MAX_OFFSCRIPT_BUFFER = 20; TODO: Remove
 let pendingPOSBuffer = [];
 let currentAbortController = null;
 let deferredOffScriptEntries = [];
@@ -164,56 +164,56 @@ export function getIsCategorizationPending() {
   return isCategorizationPending;
 }
 
-function flushStableOffScriptPhrase(lineIndex, context, force = false) { // returns true if flush was sent for categorization
-  if (!context || pendingPOSBuffer.length === 0) return false; // nothing to flush or no context to send to
+// function flushStableOffScriptPhrase(lineIndex, context, force = false) { // TODO: Remove
+//   if (!context || pendingPOSBuffer.length === 0) return false; // nothing to flush or no context to send to
 
-  const bufferText = pendingPOSBuffer.join(' ');
-  const isLargeEnough = pendingPOSBuffer.length >= MIN_OFFSCRIPT_FLUSH_WORDS;
-  const isFull = pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER;
+//   const bufferText = pendingPOSBuffer.join(' ');
+//   const isLargeEnough = pendingPOSBuffer.length >= MIN_OFFSCRIPT_FLUSH_WORDS;
+//   const isFull = pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER;
 
-  if (!force && !isLargeEnough && !isFull) { // too short to flush, hold off until we have a more stable phrase (or buffer fills up)
-    debugLog({ type: 'offscript_hold', reason: 'min_words', text: bufferText, wordCount: pendingPOSBuffer.length });
-    return false;
-  }
+//   if (!force && !isLargeEnough && !isFull) { // too short to flush, hold off until we have a more stable phrase (or buffer fills up)
+//     debugLog({ type: 'offscript_hold', reason: 'min_words', text: bufferText, wordCount: pendingPOSBuffer.length });
+//     return false;
+//   }
 
-  if (!force && !isUtteranceComplete(bufferText) && !isFull) { // still mid-sentence and buffer isn't full, hold off on flushing to avoid chopping off stable phrases
-    debugLog({ type: 'offscript_hold', reason: 'mid_sentence', text: bufferText, wordCount: pendingPOSBuffer.length });
-    return false;
-  }
+//   if (!force && !isUtteranceComplete(bufferText) && !isFull) { // still mid-sentence and buffer isn't full, hold off on flushing to avoid chopping off stable phrases
+//     debugLog({ type: 'offscript_hold', reason: 'mid_sentence', text: bufferText, wordCount: pendingPOSBuffer.length });
+//     return false;
+//   }
 
-  debugLog({ type: 'pos_flush', reason: isFull ? 'buffer_full' : force ? 'forced' : 'sentence_complete', text: bufferText });
+//   debugLog({ type: 'pos_flush', reason: isFull ? 'buffer_full' : force ? 'forced' : 'sentence_complete', text: bufferText });
 
-  if (!isCategorizationPending) { // only send if there's not already a categorization in flight, to avoid overwhelming the categorizer with partial phrases. If there's an active categorization, defer this flush until it completes.
-    const snapshot = [
-      ...deferredOffScriptEntries,
-      { lineIndex: lineIndex, text: bufferText },
-    ];
-    deferredOffScriptEntries = [];
-    deferredContext = null;
-    clearLiveOffScriptState();
-    sendOffScriptLog(
-      { current: snapshot },
-      context.state.page,
-      context.state,
-      context.onCategorizationResult,
-      context.imageDescriptionRef,
-      context.userAttentionRef?.current,
-      context.onCategorizationStart,
-      context.pendingGeneratedQuestionRef?.current || null,
-      context.ttsVoiceName || null,
-      context.onAudioChunk || null,
-      context.onAudioEnd || null,
-      context.onAudioError || null,
-      context.onQuestionReady || null
-    );
-  } else {
-    deferredOffScriptEntries.push({ lineIndex, text: bufferText });
-    deferredContext = context;
-    clearLiveOffScriptState();
-    debugLog({ type: 'offscript_deferred', lineIndex, text: bufferText, bufferSize: deferredOffScriptEntries.length });
-  }
-  return true;
-}
+//   if (!isCategorizationPending) { // only send if there's not already a categorization in flight, to avoid overwhelming the categorizer with partial phrases. If there's an active categorization, defer this flush until it completes.
+//     const snapshot = [
+//       ...deferredOffScriptEntries,
+//       { lineIndex: lineIndex, text: bufferText },
+//     ];
+//     deferredOffScriptEntries = [];
+//     deferredContext = null;
+//     clearLiveOffScriptState();
+//     sendOffScriptLog(
+//       { current: snapshot },
+//       context.state.page,
+//       context.state,
+//       context.onCategorizationResult,
+//       context.imageDescriptionRef,
+//       context.userAttentionRef?.current,
+//       context.onCategorizationStart,
+//       context.pendingGeneratedQuestionRef?.current || null,
+//       context.ttsVoiceName || null,
+//       context.onAudioChunk || null,
+//       context.onAudioEnd || null,
+//       context.onAudioError || null,
+//       context.onQuestionReady || null
+//     );
+//   } else {
+//     deferredOffScriptEntries.push({ lineIndex, text: bufferText });
+//     deferredContext = context;
+//     clearLiveOffScriptState();
+//     debugLog({ type: 'offscript_deferred', lineIndex, text: bufferText, bufferSize: deferredOffScriptEntries.length });
+//   }
+//   return true;
+// } 
 
 function computeSpeculativeDelta(previous, current) {
   if (!previous) return current;

@@ -38,9 +38,9 @@ Audience: toddlers and young children, roughly ages 3-6, reading with a caregive
 Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
 Style requirements:
 - Use concrete, child-friendly language.
-- Prefer short responses.
+- Prefer short responses. Max one or two sentences for questions, one sentence for reinforcements.
 - Do not invent story facts, objects, names, or emotions not supported by the provided text or image context.
-- Character grounding: Zoe is the bird. Clara is the chameleon. Use character names when known.
+- Character grounding: Zoe is the parrot. Clara is the chameleon. Use character names when known.
 Prompt version: ${PROMPT_VERSION}`;
 
 const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page. When classifying put more weight on the latest part of the utterance.
@@ -82,7 +82,7 @@ Output only the reinforcement response. No explanation, no preface.`;
 
 const GEMINI_IMAGE_CHARACTER_RULES = `You are working with TaleMate children's picture book illustrations.
 Character rules:
-- Zoe is the bird. Any bird you see is always Zoe.
+- Zoe is the parrot. Any bird you see is always Zoe.
 - Clara is the chameleon. Any chameleon or lizard you see will most likely be Clara.
 - Always call them by name when referring to those characters.`;
 
