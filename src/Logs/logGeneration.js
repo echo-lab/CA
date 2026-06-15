@@ -105,6 +105,7 @@ function resetSessionState() {
 function logEvent({
   event_type,
   page_number = "",
+  line_number = "",
   page_turn_type = "",
   page_turn_direction = "",
   latency_ms = "",
@@ -118,6 +119,7 @@ function logEvent({
     event_type: event_type,
     timestamp: now(),
     page_number: page_number,
+    line_number: line_number,
     page_turn_type: page_turn_type,
     page_turn_direction: page_turn_direction,
     latency_ms: latency_ms,
@@ -197,6 +199,19 @@ function manualPageTurn(pageNumber, wentBack = false) {
   pendingBackNavigation = false;
 }
 
+//logging line advances within a page (not page turns)
+function logLineChange(lineNumber, type = "") {
+  if (sessionEnded) return;
+  if (!sessionStarted) startSession();
+
+  logEvent({
+    event_type: "line_change",
+    page_number: currentPageNumber,
+    line_number: lineNumber,
+    page_turn_type: type // "auto" | "manual"
+  });
+}
+
 function escapeCSV(value) {
   //makes values safe to write into csv
   const stringValue = value === null || value === undefined ? "" : String(value);
@@ -227,6 +242,7 @@ function saveCSVToFile() {
     "event_type",
     "timestamp",
     "page_number",
+    "line_number",
     "page_turn_type",
     "page_turn_direction",
     "latency_ms",
@@ -541,6 +557,7 @@ const api = {
   aiDecidedToTurnPage,
   autoPageTurn,
   manualPageTurn,
+  logLineChange,
   saveCSVToFile,
   initializeLogging,
   teardownLogging
@@ -565,6 +582,7 @@ export {
   aiDecidedToTurnPage,
   autoPageTurn,
   manualPageTurn,
+  logLineChange,
   saveCSVToFile,
   initializeLogging,
   teardownLogging

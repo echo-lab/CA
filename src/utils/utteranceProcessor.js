@@ -37,7 +37,7 @@ function getSentenceSearchVariants(expectedText) {
   for (const pct of percentages) {
     const keepCount = Math.ceil(totalWords * pct);
     if (keepCount < 3 && pct < 1.0) break;
-    if (totalWords <= 8 && pct < 1.0) break;
+    if (totalWords <= 6 && pct < 1.0) break;
 
     const startIdx = totalWords - keepCount;
     const slicedText = expectedText.map(variant => {
@@ -125,7 +125,7 @@ function jumpToFutureLine(jumpToLine, checkIndex, totalLines) {
 }
 
 function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef }) {
-  for (let offset = 1; offset <= 3; offset++) {
+  for (let offset = 1; offset <= 2; offset++) {
     const checkIndex = currentLineIndex + offset;
     if (checkIndex >= totalLines) break;
 
@@ -167,7 +167,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
             for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
               const windowWords = allSpokenWords.slice(startIdx, startIdx + variant.wordCount);
               const fwdDetail = calculateConfidenceDetail(windowWords, variant.text);
-              if (fwdDetail.confidence >= 0.6) {
+              if (fwdDetail.confidence >= 0.70) {
                 console.log(`Match found at future line ${checkIndex} (${variant.label} of "${target}") with window at ${startIdx}! Jumping ahead.`);
                 debugLog({ type: 'forward_hybrid_match', label: variant.label, lineIndex: checkIndex, confidence: (fwdDetail.confidence * 100).toFixed(1), fuzzyScore: ((1 - fwdDetail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - fwdDetail.phoneticScore) * 100).toFixed(1) });
                 captureOffScriptWords(offScriptLogRef, checkIndex, allSpokenWords.slice(0, startIdx));
@@ -178,7 +178,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
             }
           } else {
             // Queue shorter than future line — use full queue
-            if (calculateConfidence(allSpokenWords, variant.text) >= 0.6) {
+            if (calculateConfidence(allSpokenWords, variant.text) >= 0.75) {
               captureOffScriptWords(offScriptLogRef, checkIndex, []);
               clearMatchState(refs, allSpokenWordCount);
               jumpToFutureLine(jumpToLine, checkIndex, totalLines);
@@ -308,7 +308,7 @@ export async function processUserUtterance({
       }
 
       // Sliding window hybrid (fuzzy + phonetic)
-      if (condition === "C1" || condition === "C2" && allSpokenWords.length >= variant.wordCount && variant.wordCount > 2) {
+      if (condition !== "C3" && allSpokenWords.length >= variant.wordCount && variant.wordCount > 2) {
         const maxStartIndex = allSpokenWords.length - variant.wordCount;
         for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
           const window = allSpokenWords.slice(startIdx, startIdx + variant.wordCount);
@@ -319,7 +319,7 @@ export async function processUserUtterance({
           else {             
             detail = calculateConfidenceDetail(window, variant.text);
           }
-          if (detail.confidence >= 0.6) {
+          if (detail.confidence >= 0.75) {
             console.log(`Sliding window hybrid match (${variant.label}) at position ${startIdx}! Confidence: ${(detail.confidence * 100).toFixed(1)}%`);
             debugLog({ type: 'hybrid_match', label: variant.label, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
             captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx));
@@ -334,7 +334,7 @@ export async function processUserUtterance({
         }
       }
       // Merged-string fallback for short lines (e.g., "Clara said" transcribed as "Claraiset")
-      else if (condition === "C1" || condition === "C2" && allSpokenWords.length >= variant.wordCount) {
+      else if (condition !== "C3" && allSpokenWords.length >= variant.wordCount) {
         for (let i = 0; i < allSpokenWords.length; i++) {
           let detail;
           if (condition === "C2") {
@@ -344,7 +344,7 @@ export async function processUserUtterance({
             detail = calculateConfidenceDetail([allSpokenWords[i]], variant.text);
           }
           debugLog({ type: 'merged_check', label: variant.label, spokenWord: allSpokenWords[i], target: variant.text[0], confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
-          if (detail.confidence >= 0.6) {
+          if (detail.confidence >= 0.75) {
             console.log(`Merged-string match (${variant.label}) — "${allSpokenWords[i]}" ≈ "${variant.text[0]}" (${(detail.confidence * 100).toFixed(1)}%)`);
             debugLog({ type: 'merged_match', label: variant.label, spokenWord: allSpokenWords[i], confidence: (detail.confidence * 100).toFixed(1) });
             captureOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, i));

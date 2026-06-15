@@ -14,9 +14,8 @@ import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { processUserUtterance, sendOffScriptLog } from "../utils/utteranceProcessor";
-import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { openDebugMonitor } from "../utils/debugMonitor";
-import "../Logs/logGeneration";
+import { logLineChange } from "../Logs/logGeneration";
 
 class Book {
   constructor(data) {
@@ -104,7 +103,6 @@ function Reader() {
   const [isDismissingBubble, setIsDismissingBubble] = useState(false);
   const generatedQuestionAudioRef = useRef(null);
   const imageDescriptionRef = useRef(null);
-  const [imageTags, setImageTags] = useState([]);
   const userAttentionRef = useRef(null);
   const pagesWithoutPageQuestionRef = useRef(0);
   const pendingPageQuestionFlag = useRef(false);
@@ -145,19 +143,10 @@ function Reader() {
     };
   }, []);
 
-  // Pre-fetch image analysis on page change so it's ready for off-script categorization
+  // Reset per-page question-gen inputs on page change.
   useEffect(() => {
-    const pageText = state.pagesValues[state.page]?.text
-      ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
     userAttentionRef.current = null;
-    setImageTags([]);
-    if (state.page > 0) {
-      imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
-      ImageTagging({ book: id, page: state.page, pageText }).then(tags => setImageTags(tags));
-      prefetchPage(id, state.pagesValues, state.page);
-    } else {
-      imageDescriptionRef.current = Promise.resolve(null);
-    }
+    imageDescriptionRef.current = Promise.resolve(null);
   }, [state.page, id]);
 
   // Warm/preload TTS for current + next page
@@ -552,7 +541,7 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
 * This function determines if we should continue reading from the current page
 * or move to the next page.
 */
-const handleNextClick = React.useCallback(() => {
+const handleNextClick = React.useCallback((source = "manual") => {
 
  // Check if there's more text on the current page to read
  if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
@@ -566,6 +555,8 @@ const handleNextClick = React.useCallback(() => {
          state.CharacterRoles,
          isLastLine
        );
+       // Log advancing to the line now being read (1-based), tagged by caller.
+       logLineChange(prevState.index + 1, source);
        const newState = {...prevState, index: prevState.index+1};
        return newState;
      });
@@ -687,7 +678,7 @@ React.useEffect(() => {
   };
 
   if (audioHasEnded && isPlaying) {
-      handleNextClick();
+      handleNextClick("auto");  // TTS narration finished → auto-advance
       setAudioHasEnded(false);  // Reset the flag
   }
 }, [audioHasEnded, isPlaying, handleNextClick]);
@@ -726,6 +717,9 @@ const jumpToLine = useCallback((lineIndex) => {
 
     // Call continueReading to properly set up the new line (Reading flags, audio, etc.)
     continueReading(page, lineIndex - 1, prevState.CharacterRoles, isLastLine);
+
+    // Speech-match jump (user read ahead and the system advanced to a matched line).
+    logLineChange(lineIndex, "speech");
 
     return { ...prevState, index: lineIndex };
   });
@@ -992,7 +986,7 @@ function stripSSMLTags(text) {
       console.log("current index", state.index);
       if (state.index === 0 || state.pagesValues[state.page]?.text?.length === state.index) {
         console.log("start reading");
-        handleNextClick();
+        handleNextClick("manual");
       } else {
         console.log("resume reading");
         var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index - 1].Character);
@@ -1001,7 +995,7 @@ function stripSSMLTags(text) {
             currentCharacter[0].role === "Parent" ||
             currentCharacter[0].role === "Child" ||
             currentCharacter[0].role === "Dummy") {
-          handleNextClick();
+          handleNextClick("manual");
         }
       }
     } else {
@@ -1093,22 +1087,6 @@ function stripSSMLTags(text) {
       <div className="col-md-5">
         <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
           <img src={state.pagesValues[state.page].img} alt="current page" style={{ width: '100%', display: 'block' }} />
-            {imageTags.map((tag, i) => {
-              const [y0, x0, y1, x1] = tag.box_2d;
-              return (
-                <div
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    top: `${y0 / 10}%`, left: `${x0 / 10}%`,
-                    height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
-                    cursor: 'crosshair',
-                  }}
-                  title={tag.label}
-                  onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
-                />
-              );
-            })}
         </div>
         {(state.pagesValues[state.page].question !== undefined) && renderQuestion()}
         </div>
