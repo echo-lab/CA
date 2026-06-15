@@ -128,6 +128,7 @@ function Reader() {
     disconnectDeepgram,
     isGeminiAudioPlaying,
     isAnyAudioPlaying,
+    activeAudioSource,
     tryBeginAudio,
     endAudio,
   } = useAudioStreamControl();
@@ -1326,6 +1327,20 @@ const jumpToLine = useCallback((lineIndex) => {
 }, [continueReading, markNextLineChangeAutomatic]);
 
 React.useEffect(() => {
+  // Drop transcripts produced while non-interruptible (cached) audio is
+  // playing — these are almost certainly our own TTS leaking back through the
+  // mic (residual echo after AEC), not the child. Feeding them into the
+  // speech matcher would falsely advance reading lines or get categorized as
+  // an answer. Reinforcement is intentionally excluded so its barge-in still
+  // listens during playback.
+  const CACHED_AUDIO_SOURCES = [
+    AUDIO_SOURCES.TTS,
+    AUDIO_SOURCES.STORY_NARRATION,
+    AUDIO_SOURCES.PAGE_QUESTION,
+    AUDIO_SOURCES.GENERATED_QUESTION,
+  ];
+  if (CACHED_AUDIO_SOURCES.includes(activeAudioSource)) return;
+
   processUserUtterance({
     userUtterance,
     lastProcessedUtteranceRef,
