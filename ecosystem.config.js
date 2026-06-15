@@ -46,7 +46,7 @@ module.exports = {
       // `serve` must be installed globally (sudo npm i -g serve). If PM2 reports
       // "script not found", replace "serve" with the absolute path from
       // `which serve` (e.g. /usr/local/bin/serve).
-      script: "serve",
+      script: "/usr/bin/serve",
       args: "-s build --ssl-cert ../cert/talemate.cs.vt.edu.crt --ssl-key ../cert/talemate.cs.vt.edu.key -l 3005",
       interpreter: "none",     // run serve's own shebang, don't wrap with node
       cwd: __dirname,          // repo root: resolves `build` and `../cert/*`
