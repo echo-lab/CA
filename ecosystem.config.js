@@ -29,7 +29,7 @@ module.exports = {
     {
       name: "ca-backend",
       // Equivalent to `cd server && node server.js` (paths are __dirname-based).
-      script: "server.js",
+      script: "/usr/bin/serve",
       cwd: path.join(__dirname, "server"),
       autorestart: true,
       max_restarts: 10,        // give up only after 10 rapid crashes
