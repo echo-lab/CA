@@ -29,7 +29,6 @@ class Book {
 };
 
 function Reader() {
-  // If env true then limit to first three pages
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,21 +39,18 @@ function Reader() {
   const [childHasPlayed, setChildHasPlayed] = useState(false);
   const selectedOptions = location.state ? location.state.selectedOptions : {};
   const id = location.state ? location.state.id : {};
-  const condition = location.state?.condition || null;
   const name = location.state?.name || null;
   const isTraining = location.state?.training === true;
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-  // How many warm requests to run in parallel
   const PRELOAD_CONCURRENCY = 1;
   const TEST_GENERATED_QUESTION = "How do you think Zoe is feeling?";
-  // Hardcoded feature flags
   const REALTIME_ENABLED = true;
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
   
-  const QUESTION_GEN_ENABLED = condition === "C1";
+  const QUESTION_GEN_ENABLED = true;
 
   const mateFrames = {
     "Green Grant": [
@@ -94,9 +90,7 @@ function Reader() {
       require("../Pictures/Mate05/Mates-05-3.png"),
     ],
   };
-  // "Listening" pose shown while the narrator avatar is held open after a
-  // generated question (waiting for the child's answer / between reinforcement
-  // turns). Mirrors the mateFrames role mapping.
+
   const mateListeningImages = {
     "Green Grant": require("../Pictures/Mate01/Mates-01-L.png"),
     "Yellow Yancey": require("../Pictures/Mate02/Mates-02-L.png"),
@@ -163,7 +157,7 @@ function Reader() {
     pagesKeys,
     pagesValues,
     isVolumnOn: false,
-    hasReachedEnd: false // New state variable
+    hasReachedEnd: false
   });
   const stateRef = useRef(state);
 
@@ -185,7 +179,6 @@ function Reader() {
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
   useEffect(() => { isGeneratedQuestionPlayingRef.current = isGeneratedQuestionPlaying; }, [isGeneratedQuestionPlaying]);
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
-  // const [isSlidingBack, setIsSlidingBack] = useState(false); TODO: Remove
   const hasSlidCloserRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
   const generatedQuestionAudioUrlRef = useRef(null);
@@ -309,7 +302,6 @@ function Reader() {
     };
   }, []);
 
-  // Pre-fetch image analysis on page change so it's ready for off-script categorization
   useEffect(() => {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
@@ -331,31 +323,27 @@ function Reader() {
     setShowAvatar(false);
   }, [state.page]);
 
-  // Warm/preload TTS for current + next page
   useEffect(() => {
     const current = state.pagesValues[state.page];
     const next = state.pagesValues[state.page + 1];
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     if (!current?.text?.length) return;
 
-    // Build Character → voiceName map (skip muted roles: Parent/Child)
     const voiceByChar = new Map();
     for (const opt of state.CharacterRoles || []) {
       if (opt.role === "Parent") continue;
       if (opt.VA) voiceByChar.set(opt.Character, { voiceName: opt.VA, role: opt.role });
     }
 
-    // Collect pages to warm: current + look-ahead (next)
     const pagesToWarm = [current];
     if (next?.text?.length) pagesToWarm.push(next);
 
-    // Build a flat list of warm tasks for ALL lines from valid speakers
     const narratorInfo = voiceByChar.get('Narrator');
     const tasks = [];
     for (const page of pagesToWarm) {
       for (const line of page.text) {
         const charInfo = voiceByChar.get(line.Character);
-        if (!charInfo) continue; // ignore Parent/Child/unassigned
+        if (!charInfo) continue;
         const text = canon(line.Dialogue);
         if (!text) continue;
         tasks.push({
@@ -364,7 +352,6 @@ function Reader() {
           role: charInfo.role
         });
       }
-      // Also warm the page question (uses narrator voice)
       if (page.question && narratorInfo) {
         tasks.push({
           text: page.question,
@@ -375,7 +362,6 @@ function Reader() {
     }
     if (!tasks.length) return;
 
-    // Tiny concurrency pump (best-effort warming)
     let i = 0;
     let running = 0;
     let stopped = false;
@@ -386,7 +372,7 @@ function Reader() {
         const t = tasks[i++];
         running++;
         warmSay(t)
-          .catch(() => {}) // warming is best-effort
+          .catch(() => {})
           .finally(async () => {
             running--;
             await sleep(400);
@@ -422,7 +408,7 @@ const gotoNextPage = () => {
     });
   } else {
     if (isTraining) navigate('/Home', { state: { name } });
-    else navigate('/Survey', { state: { id, name, condition } });
+    else navigate('/Survey', { state: { id, name } });
   }
 };
 
@@ -431,8 +417,6 @@ const gotoPreviousPage = () => {
   if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
   clearQuestionUI();
 
-  // Same rationale as gotoNextPage: don't let off-script fragments from the
-  // page being left behind affect the page we're navigating back to.
   resetOffScriptStateForPage(offScriptLogRef);
 
   setIsPlaying(prevIsPlaying => {
@@ -448,12 +432,11 @@ const gotoPreviousPage = () => {
       markNextLineChangeManual({ page: nextState.page, index: nextState.index });
       return nextState;
     });
-    // Add any other state resets or logic needed when changing pages here
+
   }
 };
 
 const playSound = () => {
-  // Try narrator voice if assigned; fallback to "kore"
   const narratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
   const voiceName = narratorRole?.VA || "kore";
   const role = narratorRole?.role || null;
@@ -463,9 +446,6 @@ const playSound = () => {
       setIsPageQuestionPlaying(true);
       isPageQuestionPlayingRef.current = true;
       lastAskedQuestionRef.current = question;
-      // Bring the narrator avatar in (slide-in) while the page question plays,
-      // same as the generated question. Replay the slide-in only if it wasn't
-      // already on screen.
       if (!showAvatarRef.current) {
         hasSlidCloserRef.current = false;
       }
@@ -478,9 +458,6 @@ const playSound = () => {
   });
 };
 
-// Streaming generated-question audio. Gemini emits PCM chunks via SSE; we keep
-// them buffered until the user clicks the generated question, then feed them to
-// Web Audio in sequence.
 const streamingPlayerRef = useRef(null);
 const fullQuestionTextRef = useRef('');
 const cumulativeAudioMsRef = useRef(0);
@@ -489,20 +466,11 @@ const generatedQuestionAudioEndedRef = useRef(false);
 const generatedQuestionAudioErrorRef = useRef(null);
 const generatedQuestionPlayRequestedRef = useRef(false);
 const suppressGeneratedAudioStreamRef = useRef(false);
-// True from when a generated question is shown until it is answered or
-// dismissed. Used to suppress off-script categorization during that window so a
-// new question can't be spawned while one is already outstanding.
 const generatedQuestionPendingRef = useRef(false);
 const [revealedQuestion, setRevealedQuestion] = useState('');
-// Reinforcement reveal — parallels the generated-question reveal so the
-// reinforcement bubble types out in sync with its TTS audio.
 const fullReinforcementTextRef = useRef('');
 const cumulativeReinforcementMsRef = useRef(0);
 const [revealedReinforcement, setRevealedReinforcement] = useState('');
-// True while the active question interaction is a clicked page question (not a
-// generated question). For page questions, the reinforcement bubble is removed
-// once it finishes playing — keeping the narrator avatar — instead of lingering
-// until the child reads on (the generated-question behavior).
 const reinforcementFromPageQuestionRef = useRef(false);
 
 const SPEECH_CHARS_PER_SEC = 14;
@@ -565,7 +533,6 @@ const startGeneratedQuestion = useCallback((questionText) => {
 
   fullQuestionTextRef.current = text;
   generatedQuestionPendingRef.current = true;
-  // A generated question is now the active prompt — not a page question.
   reinforcementFromPageQuestionRef.current = false;
   cumulativeAudioMsRef.current = 0;
   generatedQuestionAudioChunksRef.current = [];
@@ -579,9 +546,6 @@ const startGeneratedQuestion = useCallback((questionText) => {
   setGeneratedQuestion(text);
   setQuestionHistory(prev => {
     const last = prev[prev.length - 1];
-    // If a generated-question bubble is already on screen, update it in place
-    // (same React key) so neither the bubble slide-in nor the avatar
-    // slide-closer animations re-trigger. Only the underlying text/audio swap.
     if (last && last.type === "generated") {
       if (last.text === text) return prev;
       return [...prev.slice(0, -1), { ...last, text }];
@@ -595,9 +559,6 @@ const startGeneratedQuestion = useCallback((questionText) => {
       },
     ];
   });
-  // Only replay the avatar slide-closer when the avatar wasn't already shown.
-  // Otherwise we'd snap the narrator back to its origin and re-slide on every
-  // new generated question.
   if (!showAvatarRef.current) {
     hasSlidCloserRef.current = false;
   }
@@ -724,13 +685,9 @@ const clearQuestionUI = () => {
   suppressGeneratedAudioStreamRef.current = false;
   teardownStreamingPlayer();
   endAudio(AUDIO_SOURCES.GENERATED_QUESTION);
-  // setIsSlidingBack(false); TODO: Remove
   setIsCategorizationPending(false);
   setShowAvatar(false);
   setIsGeneratedQuestionPlaying(false);
-  // Clear all question bubbles (generated, reinforcement, and page). On a page
-  // turn the [state.page] effect re-adds the new page's question; on a same-page
-  // reading-resume nothing remains, so no bubble lingers.
   setQuestionHistory([]);
   setIsThoughtRevealed(false);
   setRevealedReinforcement('');
@@ -755,7 +712,6 @@ React.useEffect(() => { clearQuestionUIRef.current = clearQuestionUI; });
 const getCurrentPageReinforcementContext = () => {
   const currentState = stateRef.current;
   const page = currentState.pagesValues[currentState.page];
-  // Include the previous and next page alongside the current one for context.
   const bookText = buildBookContext(currentState.pagesValues, currentState.page);
 
   return {
@@ -777,8 +733,6 @@ const playReinforcement = async (reply) => {
 
   reinforcementRequestSeqRef.current = requestSeq;
   reinforcementModeRef.current = true;
-  // Answer captured — reinforcement mode now suppresses categorization, so the
-  // "question pending" gate is no longer needed.
   generatedQuestionPendingRef.current = false;
   reinforcementSessionRef.current = {
     question,
@@ -787,9 +741,7 @@ const playReinforcement = async (reply) => {
   setAwaitingQuestionAnswer(false);
   stopReinforcementAudio();
   reinforcementAudioBlockedRef.current = false;
-  // Mark this reinforcement turn active so barge-in can interrupt it.
   reinforcementActiveRef.current = true;
-  // Reset the reinforcement text reveal for this turn.
   fullReinforcementTextRef.current = '';
   cumulativeReinforcementMsRef.current = 0;
   setRevealedReinforcement('');
@@ -807,16 +759,11 @@ const playReinforcement = async (reply) => {
       reinforcementActiveRef.current = false;
       setIsReinforcementPlaying(false);
       if (reinforcementFromPageQuestionRef.current) {
-        // Page question: once the reinforcement has played, remove the bubble but
-        // keep the narrator avatar (listening pose). Same questionHistory filter
-        // the generated question uses to drop a bubble, applied to 'reinforcement'.
         setQuestionHistory(prev => prev.filter(m => m.type !== 'reinforcement'));
         setRevealedReinforcement('');
         fullReinforcementTextRef.current = '';
         cumulativeReinforcementMsRef.current = 0;
       } else if (fullReinforcementTextRef.current) {
-        // Generated question: leave the bubble up (full text) until the child
-        // reads on.
         setRevealedReinforcement(fullReinforcementTextRef.current);
       }
       endAudio(AUDIO_SOURCES.REINFORCEMENT);
@@ -837,8 +784,6 @@ const playReinforcement = async (reply) => {
           ...reinforcementSessionRef.current.turns,
           { user: reply, response: reinforcement },
         ];
-        // Show the reinforcement as a bubble (same way as the generated
-        // question). One rolling reinforcement bubble updated in place per turn.
         fullReinforcementTextRef.current = reinforcement;
         cumulativeReinforcementMsRef.current = 0;
         setRevealedReinforcement('');
@@ -857,8 +802,6 @@ const playReinforcement = async (reply) => {
           if (!tryBeginAudio(AUDIO_SOURCES.REINFORCEMENT)) {
             reinforcementAudioBlockedRef.current = true;
             setIsReinforcementPlaying(false);
-            // Audio can't play — show the full reinforcement text so the bubble
-            // doesn't stay blank (it never gets typed out by audio chunks).
             if (fullReinforcementTextRef.current) setRevealedReinforcement(fullReinforcementTextRef.current);
             return;
           }
@@ -877,8 +820,6 @@ const playReinforcement = async (reply) => {
           });
         }
         reinforcementStreamingPlayerRef.current.pushChunk(seq, audioContent);
-        // Advance the reinforcement text reveal in sync with audio (mirrors
-        // the generated-question reveal in handleAudioChunk).
         cumulativeReinforcementMsRef.current += Number(durationMs) || 0;
         if (fullReinforcementTextRef.current) {
           const cut = computeRevealLength(fullReinforcementTextRef.current, cumulativeReinforcementMsRef.current);
@@ -908,7 +849,6 @@ const playReinforcement = async (reply) => {
     if (requestSeq === reinforcementRequestSeqRef.current) {
       reinforcementAudioBlockedRef.current = false;
       setIsReinforcementPlaying(false);
-      // Surface whatever reinforcement text we have so the bubble isn't blank.
       if (fullReinforcementTextRef.current) setRevealedReinforcement(fullReinforcementTextRef.current);
       endAudio(AUDIO_SOURCES.REINFORCEMENT);
       if (remoteAudioRef.current && !isMuted) {
@@ -921,7 +861,6 @@ const playReinforcement = async (reply) => {
 useEffect(() => {
   const wasPlaying = wasGeminiAudioPlayingRef.current;
   if (wasPlaying && !isGeminiAudioPlaying && dismissingQuestionRef.current) {
-    // setIsSlidingBack(true); TODO: Remove
   }
   wasGeminiAudioPlayingRef.current = isGeminiAudioPlaying;
 }, [isGeminiAudioPlaying]);
@@ -1028,8 +967,6 @@ async function speak(
 
   useHotkeys("space", (event) => {
     event.preventDefault();
-
-    // Only play audio if it's the child's turn (yellow highlighted line)
     const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
     if (!currentLine || !currentLine.Reading) return;
 
@@ -1048,7 +985,7 @@ async function speak(
 
   useHotkeys("enter", (event) => {
     event.preventDefault();
-    handlePlayClick(); // Acts as "Next" button
+    handlePlayClick();
   });
 
 
@@ -1060,9 +997,6 @@ async function speak(
 
     if (isPageQuestionPlayingRef.current && questionGenEnabledRef.current) {
       setAwaitingQuestionAnswer(true);
-      // Enter the same reinforcement-loop state as the generated question so the
-      // child's answer plays back identically (listening-pose avatar, page bubble
-      // tucked away, reinforcement bubble typing out by the avatar).
       setShowAvatar(true);
       setInReinforcementLoop(true);
       reinforcementFromPageQuestionRef.current = true;
@@ -1093,7 +1027,6 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
   setChildHasPlayed(false);
 
   if (currentRole === "Parent" || currentRole === "Child" || currentRole === "Dummy") {
-    // keep highlighting behavior but do not play audio
     if (index > 0) page.text[index - 1].Reading = false;
     page.text[index].Reading = true;
 
@@ -1152,20 +1085,12 @@ const continueReading = React.useCallback(async (page, index, roles, isLastLine 
   }
 }, [audioEnded]);
 
-
-/**
-* Handle the "Next" button click.
-* This function determines if we should continue reading from the current page
-* or move to the next page.
-*/
 const handleNextClick = React.useCallback((trigger = "manual") => {
  const markLineChange = trigger === "auto"
    ? markNextLineChangeAutomatic
    : markNextLineChangeManual;
 
- // Check if there's more text on the current page to read
  if (state.pagesValues[state.page]?.text?.length - 1 >= state.index) {
-     // Continue reading the current page
      setAudioHasEnded(false);
      setState(prevState => {
        const isLastLine = prevState.index === prevState.pagesValues[prevState.page].text.length - 1;
@@ -1180,14 +1105,8 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
        return newState;
      });
  } else {
-
-     // If there's no more text on the current page, check if there are more pages to go to
       if (state.page < state.pagesValues.length - 1) {
-        //userUtterancesRef.current = []; // Clear user utterances when moving to next page
         if (isPlaying) {
-         // Last line just finished by voice — reveal the "Next Page" button but
-         // stay on the page. Do NOT clear here, or the page question would
-         // disappear the moment the button appears.
          setIsPlaying(false);
         } else {
          clearQuestionUI();
@@ -1211,11 +1130,9 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
           }
         }
       } else {
-         // If we're on the last page, mark the last text as not being read
          if(state.pagesValues[state.page]?.text && state.pagesValues[state.page].text[state.index - 1]){
              state.pagesValues[state.page].text[state.index-1].Reading = false;
          }
-         // Set hasReachedEnd to true if at the end of the last page
          setState(prevState => ({
            ...prevState,
            hasReachedEnd: state.page === state.pagesValues.length - 1 && state.pagesValues[state.page].text.length === state.index
@@ -1224,8 +1141,6 @@ const handleNextClick = React.useCallback((trigger = "manual") => {
       }
  }
 
-
- // If a table container reference exists, scroll it into view
  if (dialogueRefs.current[state.index]) {
      dialogueRefs.current[state.index].scrollIntoView({
          behavior: "smooth",
@@ -1253,9 +1168,6 @@ React.useEffect(() => {
         setIsButtonDisabled(false);
         return;
       }
-
-      // audioHasEnded becomes true via either natural audio-end OR the
-      // utterance matcher's advanceToNextLine — never via a user click.
       handleNextClick("auto");
       setAudioHasEnded(false);
   }
@@ -1272,19 +1184,9 @@ const currentPageRef = useRef(state.page);
 React.useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
 React.useEffect(() => {
-  // A line/page change is the single teardown point for an outstanding question
-  // interaction: dismiss it (avatar + bubble) when the child reads on. showAvatar
-  // is the umbrella signal — true whenever a generated question, a played page
-  // question, an awaiting answer, or a reinforcement turn is on screen, and false
-  // during plain reading (so an un-played page question persists as the child
-  // reads). This covers the page-question reinforcement loop, which has no
-  // generatedQuestionPendingRef of its own.
   if (showAvatarRef.current) {
     clearQuestionUIRef.current();
   }
-  // No explicit trigger set means the change wasn't driven by a user click.
-  // Targeted triggers prevent a later auto advance from overwriting a manual
-  // trigger that was queued for a different page/index.
   const key = `${state.page}:${state.index}`;
   const targetedTrigger = pendingLineTriggersRef.current.get(key);
   if (targetedTrigger) {
@@ -1299,7 +1201,6 @@ React.useEffect(() => {
 
 React.useEffect(() => { stateRef.current = state; });
 
-// Jump to a specific line index
 const jumpToLine = useCallback((lineIndex) => {
   setAudioHasEnded(false);
   setIsPlaying(true);
@@ -1327,12 +1228,6 @@ const jumpToLine = useCallback((lineIndex) => {
 }, [continueReading, markNextLineChangeAutomatic]);
 
 React.useEffect(() => {
-  // Drop transcripts produced while non-interruptible (cached) audio is
-  // playing — these are almost certainly our own TTS leaking back through the
-  // mic (residual echo after AEC), not the child. Feeding them into the
-  // speech matcher would falsely advance reading lines or get categorized as
-  // an answer. Reinforcement is intentionally excluded so its barge-in still
-  // listens during playback.
   const CACHED_AUDIO_SOURCES = [
     AUDIO_SOURCES.TTS,
     AUDIO_SOURCES.STORY_NARRATION,
@@ -1350,7 +1245,6 @@ React.useEffect(() => {
     currentLineTrackingRef,
     offScriptLogRef,
     state: stateRef.current,
-    condition,
     speakerLabels,
     gotoNextPage,
     jumpToLine,
@@ -1362,9 +1256,6 @@ React.useEffect(() => {
       if (!questionGenEnabledRef.current) return;
       if (result?.sourcePage !== stateRef.current.page) return;
       setIsCategorizationPending(false);
-      // Note: setGeneratedQuestion is fired earlier via onQuestionReady (on
-      // the SSE `done` event) so the text reveal can keep up with the
-      // incoming chunks. This handler just clears the pending UI flag.
     },
     onQuestionReady: (questionText) => {
       if (!questionGenEnabledRef.current) return;  
@@ -1396,15 +1287,11 @@ function stripSSMLTags(text) {
 }
 
   function parseText(text) {
-     // Strip SSML tags
-    const strippedText = stripSSMLTags(text);
-    // Replace **bold** and *italic* and ***bold italic*** markers with corresponding HTML tags
     const htmlText = text
-      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')  // ***bold italic***
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **bold**
-      .replace(/\*(.*?)\*/g, '<em>$1</em>');  // *italic*
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-    // Use dangerouslySetInnerHTML to inject HTML tags into the React component
     return <div dangerouslySetInnerHTML={{__html: htmlText}}></div>;
   }
 
@@ -1519,23 +1406,6 @@ function stripSSMLTags(text) {
               alt="Narrator"
               onClick={handleLatestClick}
               style={{ cursor: 'pointer' }}
-              // className={isSlidingBack ? 'slide-back' : (hasSlidCloserRef.current ? 'slide-closer-hold' : 'slide-closer')} TODO: Remove
-              // onAnimationEnd={(e) => {
-              //   if (e.animationName === 'slide-closer') {
-              //     hasSlidCloserRef.current = true;
-              //   } else if (e.animationName === 'slide-back') {
-              //     dismissingQuestionRef.current = null;
-              //     // setIsSlidingBack(false); TODO: Remove
-              //     setShowAvatar(false);
-              //     hasSlidCloserRef.current = false;
-              //     // Remove the generated-question bubble(s), keeping only the
-              //     // original page question on screen.
-              //     setQuestionHistory(prev => prev.filter(m => m.type !== 'generated'));
-              //     setGeneratedQuestion(null);
-              //     setIsThoughtRevealed(false);
-              //     setRevealedQuestion('');
-              //   }
-              // }}
             />
           </div>
         )}
@@ -1543,45 +1413,30 @@ function stripSSMLTags(text) {
           {questionHistory.map((msg, i) => {
             const isLatest = i === latestIdx;
             const isPrevious = i === latestIdx - 1;
-            // The latest generated question reveals incrementally as TTS audio
-            // chunks arrive; older generated questions and page questions
-            // always show their full text.
             const isLatestGenerated = isLatest && msg.type === 'generated';
-            // The latest reinforcement bubble reveals in sync with its TTS audio,
-            // the same way as the generated question.
             const isLatestReinforcement = isLatest && msg.type === 'reinforcement';
-            // Until the user taps the bubble, show a teaser instead of the
-            // actual question. After tap, reveal full text (if audio already
-            // buffered) or typewriter-reveal as chunks arrive.
             const showThoughtTeaser = isLatestGenerated && !isThoughtRevealed;
             const displayText = showThoughtTeaser
               ? 'I have a thought.'
               : isLatestGenerated
                 ? (revealedQuestion || msg.text)
-                // Reinforcement types out from empty; failure/blocked paths set
-                // revealedReinforcement to the full text so it can't stay blank.
                 : isLatestReinforcement
                   ? revealedReinforcement
                   : msg.text;
             const isRevealing =
               (isLatestGenerated && isThoughtRevealed && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length) ||
               (isLatestReinforcement && Boolean(revealedReinforcement) && revealedReinforcement.length < msg.text.length);
-            // While a generated question is shown, fully hide all other
-            // messages (the page question disappears rather than peeking above).
             const latestIsGenerated = latest?.type === 'generated';
-            // During the reinforcement loop only the latest reinforcement bubble
-            // is shown alongside the narrator avatar; the generated question and
-            // page question are hidden.
             const positionClass = inReinforcementLoop
               ? (isLatestReinforcement ? 'latest' : 'hidden')
               : isLatest
-                ? 'latest' // (isSlidingBack && msg.type === 'generated' ? 'exiting' : 'latest') TODO: Remove
+                ? 'latest'
                 : (latestIsGenerated ? 'hidden' : (isPrevious ? 'previous' : 'hidden'));
             const classes = [
               'question-message',
               msg.type,
               positionClass,
-              isLatest && isSpeaking ? 'speaking' : '', // && !isSlidingBack TODO: Remove
+              isLatest && isSpeaking ? 'speaking' : '',
             ].filter(Boolean).join(' ');
             return (
               <div
@@ -1606,15 +1461,7 @@ function stripSSMLTags(text) {
     const isLastIndex = state.pagesValues[state.page].text.length === state.index;
     const isLastPage = state.page === state.pagesValues.length - 1;
 
-    
-    // Check if current line is child's turn
     const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
-    const currentRoleNav = currentLine ? state.CharacterRoles.find(
-      (option) => option.Character === currentLine.Character
-    ) : null;
-    const isChildTurn = currentRoleNav?.role === "Child" && currentLine?.Reading;
-
-    // Disable button if it's child's turn and they haven't played yet
     const shouldDisableButton = isButtonDisabled || isAnyAudioPlaying;
 
     let buttonText;
@@ -1654,18 +1501,12 @@ function stripSSMLTags(text) {
       return;
     }
 
-    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
-    const currentRoleCheck = currentLine ? state.CharacterRoles.find(
-      (option) => option.Character === currentLine.Character
-    ) : null;
-
     if (state.hasReachedEnd) {
       if (isTraining) navigate('/Home', { state: { name } });
-      else navigate('/Survey', { state: { id, name, condition } });
+      else navigate('/Survey', { state: { id, name } });
       return;
     }
 
-    // if this happens to be last line, no option to pause it, just wait until the playing is done.
     if(state.pagesValues[state.page].text.length === state.index && isPlaying){
       console.log("Too late pause the audio cuz it's the last line. ")
       return;
@@ -1777,8 +1618,6 @@ function stripSSMLTags(text) {
         <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
           <img src={state.pagesValues[state.page].img} alt="current page" style={{ width: '100%', display: 'block' }} />
             {(imageTags || []).map((tag, i) => {
-              // The model occasionally returns a tag without a valid 4-number
-              // box_2d; skip those rather than crash on array destructuring.
               if (!Array.isArray(tag?.box_2d) || tag.box_2d.length < 4) return null;
               const [y0, x0, y1, x1] = tag.box_2d;
               return (

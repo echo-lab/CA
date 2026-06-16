@@ -86,13 +86,10 @@ export function AudioStreamControlProvider({ children }) {
           autoGainControl: true,
         }, });
 
-      // Derive WebSocket URL from REACT_APP_API_BASE
-      // ws:// for http, wss:// for https
       const base = new URL(BASE_URL);
       const wsProtocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${wsProtocol}//${base.host}/api/deepgram-proxy`;
 
-      // Connect to our server's WebSocket proxy (no API key needed on client!)
       const ws = new WebSocket(wsUrl);
       deepgramSocketRef.current = ws;
 
@@ -151,13 +148,11 @@ export function AudioStreamControlProvider({ children }) {
         try {
           const data = JSON.parse(event.data);
 
-          // Handle server status messages
           if (data.type === 'server_status') {
             console.log('Server status:', data.message);
             return;
           }
 
-          // Handle transcription results from Deepgram (via server)
           if (data.type === 'Results') {
             const transcript = data.channel?.alternatives?.[0]?.transcript;
             const isFinal = data.is_final;
@@ -166,10 +161,8 @@ export function AudioStreamControlProvider({ children }) {
 
             if (transcript && transcript.trim()) {
 
-              // Extract speaker information from words
               let currentSpeaker = null;
               if (words && words.length > 0) {
-                // Get the most recent speaker (last word's speaker)
                 const lastWord = words[words.length - 1];
                 currentSpeaker = lastWord?.speaker !== undefined ? `Speaker ${lastWord.speaker}` : null;
               }
@@ -177,7 +170,6 @@ export function AudioStreamControlProvider({ children }) {
               setDeepgramTranscript(transcript);
               setSpeakerLabels(currentSpeaker || "");
 
-              // Only update userUtterance if we have a final transcript
               if (isFinal) {
                 const endsTerminal = /[.?!]\s*$/.test(transcript);
                 console.log(`Final transcript received: "${transcript}"${speechFinal ? ' [speech_final]' : ''}${endsTerminal ? ' [terminal_punct]' : ''}`);
@@ -205,14 +197,12 @@ export function AudioStreamControlProvider({ children }) {
 
     } catch (err) {
       console.error('Failed to connect to Deepgram proxy:', err);
-      // Don't throw - allow OpenAI connection to proceed even if Deepgram fails
     }
   };
 
   const disconnectDeepgram = () => {
     console.log("Disconnecting from Deepgram...");
 
-    // Stop AudioWorklet
     if (mediaRecorderRef.current) {
       try {
         const { audioContext, workletNode, source } = mediaRecorderRef.current;
@@ -247,7 +237,6 @@ export function AudioStreamControlProvider({ children }) {
       }
     }
 
-    // Stop media stream tracks
     if (deepgramStreamRef.current) {
       try {
         deepgramStreamRef.current.getTracks().forEach(track => track.stop());
@@ -277,7 +266,6 @@ export function AudioStreamControlProvider({ children }) {
       geminiSocketRef.current = ws;
       geminiSetupCompleteRef.current = false;
 
-      // 24 kHz playback matches Gemini Live audio output rate.
       const playbackCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
       geminiPlaybackRef.current = { ctx: playbackCtx, nextStart: playbackCtx.currentTime };
 
@@ -309,8 +297,6 @@ export function AudioStreamControlProvider({ children }) {
 
       ws.onmessage = async (evt) => {
         try {
-          // Proxy forwards upstream frames as Buffers, which arrive as Blobs in
-          // the browser. Decode to text before JSON.parse.
           let raw;
           if (evt.data instanceof Blob) raw = await evt.data.text();
           else if (evt.data instanceof ArrayBuffer) raw = new TextDecoder().decode(evt.data);
@@ -352,8 +338,6 @@ export function AudioStreamControlProvider({ children }) {
                     continue;
                   }
                 }
-                // Browser autoplay policy starts AudioContext suspended; resume
-                // on first audio chunk (silently no-ops if no user gesture).
                 if (ctx.state === 'suspended') ctx.resume().catch(() => {});
                 console.log(`Gemini audio chunk: ${int16.length} samples, ctx.state=${ctx.state}`);
                 const buffer = ctx.createBuffer(1, float32.length, ctx.sampleRate);
@@ -376,7 +360,6 @@ export function AudioStreamControlProvider({ children }) {
               }
             }
 
-            // Flush queued playback on barge-in so we don't keep playing stale audio.
             if (sc.interrupted) {
               resetGeminiPlaybackState();
             }
@@ -493,7 +476,6 @@ Image description: ${imageDescription || ''}
       
       const contentType = tokenResp.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        const responseText = await tokenResp.text();
         console.error("Expected JSON but got:", contentType);
         throw new Error(`Server returned ${contentType} instead of JSON`);
       }
@@ -530,7 +512,6 @@ Image description: ${imageDescription || ''}
         }
       };
 
-      // Connection state changes
       pc.onconnectionstatechange = () => {
         console.log("Connection state:", pc.connectionState);
         if (pc.connectionState === "failed" || pc.connectionState === "closed") {
@@ -546,12 +527,6 @@ Image description: ${imageDescription || ''}
         }
       };
 
-      // // Audio stream captured and sent to OpenAI through RTCPeerConnection
-      // const voiceInput = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // localStreamRef.current = voiceInput;
-      // voiceInput.getAudioTracks().forEach((t) => pc.addTrack(t, voiceInput));
-
-      // Create data channel AFTER adding tracks
       const dc = pc.createDataChannel("oai-events");
       dataChannelRef.current = dc;
 
@@ -559,7 +534,6 @@ Image description: ${imageDescription || ''}
         console.log("DataChannel opened");
         setConnected(true);
 
-        // Configure session to enable input audio transcription
         const sessionUpdate = {
           type: "session.update",
           session: {
@@ -575,7 +549,6 @@ Image description: ${imageDescription || ''}
         dc.send(JSON.stringify(sessionUpdate));
         console.log("Session configured with transcription enabled");
 
-      // Send system instruction immediately when channel opens
        const systemInstruction = {
          type: "conversation.item.create",
          item: {
@@ -622,8 +595,6 @@ Image description: ${imageDescription || ''}
       };
 
       dc.onmessage = (evt) => {
-        //console.log(`EVENT: ${evt.data}`);
-
         try {
           const event = JSON.parse(evt.data);
 

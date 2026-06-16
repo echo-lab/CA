@@ -8,7 +8,6 @@ let sessionLogs = [];
 let sessionId = Date.now();
 let userId = "";
 let bookId = "";
-let condition = "";
 let manualInterventions = 0;
 let lastDecisionTime = null;
 let sessionStarted = false;
@@ -58,10 +57,6 @@ function updateSessionMetadata() {
     bookId = normalizeBookId(routeState.id);
   }
 
-  if (routeState.condition !== undefined && routeState.condition !== null) {
-    condition = String(routeState.condition);
-  }
-
   const routeUserId = routeState.userName || routeState.name;
   if (routeUserId !== undefined && routeUserId !== null && routeUserId !== "") {
     userId = String(routeUserId);
@@ -96,7 +91,6 @@ function logEvent({
     session_id: sessionId,
     user_id: userId,
     book_id: bookId,
-    condition: condition,
     event_type: event_type,
     timestamp: now(),
     page_number: page_number,

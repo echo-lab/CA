@@ -11,15 +11,12 @@ const MID_SENTENCE_TAGS = new Set([
   'Conjunction',     // "and", "but", "because"
   'Auxiliary',        // "is", "was", "have"
 ]);
-// const MIN_OFFSCRIPT_FLUSH_WORDS = 4; TODO: Remove
-// const MAX_OFFSCRIPT_BUFFER = 20; TODO: Remove
 let pendingPOSBuffer = [];
 let currentAbortController = null;
 let deferredOffScriptEntries = [];
 let deferredContext = null;
 let isCategorizationPending = false;
 let awaitingQuestionAnswer = false;
-let lastFlushLineIndex = 0;
 let lastCategorizationContext = null;
 let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
@@ -42,7 +39,6 @@ export function resetOffScriptStateForPage(offScriptLogRef) {
   pendingPOSBuffer = [];
   lastSpeculativeSnapshot = '';
   speculativeLineEntries = [];
-  lastFlushLineIndex = 0;
   if (offScriptLogRef) {
     offScriptLogRef.current = [];
   }
@@ -57,10 +53,6 @@ function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
 }
 
-// Build the book-context string sent to the model. Includes the page before
-// and after `centerPage` (clamped to valid bounds, so the window naturally
-// shrinks to 2 pages at the start/end). Each page keeps its own "Page N:"
-// header so the model knows the ordering and which page is current.
 export function buildBookContext(pagesValues, centerPage) {
   if (!Array.isArray(pagesValues) || !pagesValues.length) return '';
   const start = Math.max(0, centerPage - 1);
@@ -164,57 +156,6 @@ export function getIsCategorizationPending() {
   return isCategorizationPending;
 }
 
-// function flushStableOffScriptPhrase(lineIndex, context, force = false) { // TODO: Remove
-//   if (!context || pendingPOSBuffer.length === 0) return false; // nothing to flush or no context to send to
-
-//   const bufferText = pendingPOSBuffer.join(' ');
-//   const isLargeEnough = pendingPOSBuffer.length >= MIN_OFFSCRIPT_FLUSH_WORDS;
-//   const isFull = pendingPOSBuffer.length >= MAX_OFFSCRIPT_BUFFER;
-
-//   if (!force && !isLargeEnough && !isFull) { // too short to flush, hold off until we have a more stable phrase (or buffer fills up)
-//     debugLog({ type: 'offscript_hold', reason: 'min_words', text: bufferText, wordCount: pendingPOSBuffer.length });
-//     return false;
-//   }
-
-//   if (!force && !isUtteranceComplete(bufferText) && !isFull) { // still mid-sentence and buffer isn't full, hold off on flushing to avoid chopping off stable phrases
-//     debugLog({ type: 'offscript_hold', reason: 'mid_sentence', text: bufferText, wordCount: pendingPOSBuffer.length });
-//     return false;
-//   }
-
-//   debugLog({ type: 'pos_flush', reason: isFull ? 'buffer_full' : force ? 'forced' : 'sentence_complete', text: bufferText });
-
-//   if (!isCategorizationPending) { // only send if there's not already a categorization in flight, to avoid overwhelming the categorizer with partial phrases. If there's an active categorization, defer this flush until it completes.
-//     const snapshot = [
-//       ...deferredOffScriptEntries,
-//       { lineIndex: lineIndex, text: bufferText },
-//     ];
-//     deferredOffScriptEntries = [];
-//     deferredContext = null;
-//     clearLiveOffScriptState();
-//     sendOffScriptLog(
-//       { current: snapshot },
-//       context.state.page,
-//       context.state,
-//       context.onCategorizationResult,
-//       context.imageDescriptionRef,
-//       context.userAttentionRef?.current,
-//       context.onCategorizationStart,
-//       context.pendingGeneratedQuestionRef?.current || null,
-//       context.ttsVoiceName || null,
-//       context.onAudioChunk || null,
-//       context.onAudioEnd || null,
-//       context.onAudioError || null,
-//       context.onQuestionReady || null
-//     );
-//   } else {
-//     deferredOffScriptEntries.push({ lineIndex, text: bufferText });
-//     deferredContext = context;
-//     clearLiveOffScriptState();
-//     debugLog({ type: 'offscript_deferred', lineIndex, text: bufferText, bufferSize: deferredOffScriptEntries.length });
-//   }
-//   return true;
-// } 
-
 function computeSpeculativeDelta(previous, current) {
   if (!previous) return current;
   const prevWords = previous.split(/\s+/).filter(Boolean);
@@ -285,7 +226,6 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
 
   if (!context) return;
 
-  lastFlushLineIndex = lineIndex;
   lastCategorizationContext = context;
 
   pendingPOSBuffer.push(...words);
@@ -296,14 +236,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   if (!offScriptLogRef?.current?.length) return;
 
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
-  // Include the previous and next page alongside the current one for context.
   const bookText = buildBookContext(state.pagesValues, oldPage);
-
-  // Two formatting paths:
-  //   - turn-stamped entries (speculative path) are kept as separate lines so the
-  //     categorizer sees distinct utterance turns within the same script line.
-  //   - non-turn entries (queue-slide / page-turn dumps) are micro-fragments from
-  //     transcription chunking; merge them by lineIndex as before.
   const turnLines = [];
   const lineMap = new Map();
   for (const { lineIndex, text, turn } of offScriptLogRef.current) {
@@ -335,7 +268,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
-    if (err.name === 'AbortError') return;  // clean exit, no error log
+    if (err.name === 'AbortError') return;
     console.error('Categorization error:', err);
     if (!controller.signal.aborted) {
       onResult?.({ sourcePage: oldPage });
@@ -503,7 +436,6 @@ export async function processUserUtterance({
   currentLineTrackingRef,
   offScriptLogRef,
   state,
-  condition,
   speakerLabels,
   jumpToLine,
   setAudioHasEnded,
@@ -570,8 +502,6 @@ export async function processUserUtterance({
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   }
 
-  // After all lines on the page are read, collect into offScriptLogRef for post-page categorization
-  // But only if the last line is no longer highlighted (i.e., already matched)
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
@@ -583,10 +513,6 @@ export async function processUserUtterance({
 
     captureStableOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
 
-    // Speculative-style cumulative send for post-last-line speech. Each terminal-
-    // punctuation transcript becomes its own turn; the categorizer receives the
-    // full history of post-last-line turns. lineIndex = totalLines marks them as
-    // post-last-line ("[Line {totalLines+1}, Turn K]").
     if (categorizationContext) {
       const text = userUtterance.trim();
       const transcriptEndedTerminal = /[.?!]\s*$/.test(text);
@@ -643,7 +569,6 @@ export async function processUserUtterance({
   utteranceQueuesRef.current[0].push(...uttSlot0);
   utteranceQueuesRef.current[1].push(...uttSlot1);
 
-  // Prepare expected text — same 2-slot structure: slot 0 expanded, slot 1 original.
   const rawDialogue = stripSSMLTags(currentLine.Dialogue)?.trim();
   if (!rawDialogue) {
     if (reinforcementActiveAtStart) {
@@ -683,22 +608,20 @@ export async function processUserUtterance({
         return;
       }
 
-      // Sliding window hybrid (fuzzy + phonetic) — same scoring in C1 and C2.
-      if (condition === "C1" || condition === "C2") {
-        const maxStartIndex = allSpokenWords.length - divSentence.wordCount;
-        for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
-          const window = allSpokenWords.slice(startIdx, startIdx + divSentence.wordCount);
-          const detail = calculateConfidenceDetail(window, divSentence.text);
-          if (detail.confidence >= 0.6) {
-            debugLog({ type: 'hybrid_match', label: labelTag, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
-            captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
-            clearMatchState(refs, startIdx + divSentence.wordCount);
-            if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
-            advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
-            return;
-          }
-          if (detail.confidence > bestDetail.confidence) bestDetail = detail;
+      // Sliding window hybrid (fuzzy + phonetic) match.
+      const maxStartIndex = allSpokenWords.length - divSentence.wordCount;
+      for (let startIdx = 0; startIdx <= maxStartIndex; startIdx++) {
+        const window = allSpokenWords.slice(startIdx, startIdx + divSentence.wordCount);
+        const detail = calculateConfidenceDetail(window, divSentence.text);
+        if (detail.confidence >= 0.6) {
+          debugLog({ type: 'hybrid_match', label: labelTag, startIdx, confidence: (detail.confidence * 100).toFixed(1), fuzzyScore: ((1 - detail.fuzzyScore) * 100).toFixed(1), phoneticScore: ((1 - detail.phoneticScore) * 100).toFixed(1) });
+          captureStableOffScriptWords(offScriptLogRef, currentLineIndex, allSpokenWords.slice(0, startIdx), categorizationContext);
+          clearMatchState(refs, startIdx + divSentence.wordCount);
+          if (currentLineIndex === totalLines - 1) currentLine.Reading = false;
+          advanceToNextLine(setAudioHasEnded, setIsPlaying, onAutoLineAdvance);
+          return;
         }
+        if (detail.confidence > bestDetail.confidence) bestDetail = detail;
       }
 
       debugLog({
@@ -713,11 +636,8 @@ export async function processUserUtterance({
 
   debugLog({ type: 'no_match', variantsTried: allTriedLabels.join(', ') });
 
-  // Step 3: Check if user skipped ahead (next 3 lines) — runs in both C1 and C2.
-  let foundMatch;
-  if (condition === "C1" || condition === "C2") {
-    foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance });
-  }
+  // Step 3: Check if user skipped ahead (next 3 lines).
+  const foundMatch = checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, state, refs, jumpToLine, offScriptLogRef, categorizationContext, onAutoLineAdvance });
 
   if (foundMatch) {
     return;

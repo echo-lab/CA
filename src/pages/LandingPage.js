@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import "../styles/LandingPage.css";
-import labLogos from "../Pictures/labImg.png"; 
 import labLogo1 from "../Pictures/CoDeS.png"; 
 import labLogo2 from "../Pictures/L&D.png"; 
 import vtLogo from "../Pictures/vt.png";

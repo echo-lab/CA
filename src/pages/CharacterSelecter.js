@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Modal from "react-modal";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
@@ -18,27 +18,21 @@ import { data as data3 } from "../Book/Book3";
 import { say } from "../utils/ttsClient";
 import { prefetchImageAnalysis } from "../utils/imageAnalysis";
 
-const url = process.env.REACT_APP_TTSURL;
-const port = process.env.REACT_APP_PORT;
-const TTSurl = url + (port ? `:${port}` : "");
 const ROLE_PRIORITY = { Parent: 0, Child: 1 };
 
 Modal.setAppElement("#root");
 
 const DIFFICULTY_MAP = {
-  // 1 = Birthday
   1: {
     Narrator: "",
     Clara: "Child",
     Zoe: "Parent",
   },
-  // 2 = Sleepover
   2: {
     Narrator: "",
     Clara: "Child",
     Zoe: "Parent",
   },
-  // 3 = Levels
   3: {
     Narrator: "",
     Clara: "Child",
@@ -172,7 +166,6 @@ export default function CharaterSelecter() {
   const location = useLocation();
   const id = location.state?.id;
   const userName = location.state?.name || location.state?.userName || "";
-  const condition = location.state?.condition;
   const training = location.state?.training === true;
   const navigate = useNavigate();
 
@@ -281,7 +274,7 @@ export default function CharaterSelecter() {
         img: role.img,
       })
     );
-    navigate("/story", { state: { selectedOptions, id, condition, name: userName, training } });
+    navigate("/story", { state: { selectedOptions, id, name: userName, training } });
   };
 
 
@@ -313,10 +306,7 @@ export default function CharaterSelecter() {
             </button>
           </div>
 
-          {/* CHANGED: replaced the generic Bootstrap row with a named wrapper
-              so the CSS can enforce a fixed left rail width and keep two columns */}
           <div className="flex-body">
-            {/* CHANGED: left rail now uses a fixed-width container to guarantee 2-up deck */}
             <aside className="left-rail">
               <Droppable droppableId="roles">
                 {(provided) => (
@@ -340,7 +330,6 @@ export default function CharaterSelecter() {
               </Droppable>
             </aside>
 
-            {/* CHANGED: main content now in a flexible column that can shrink without breaking layout */}
             <main className="main-column">
               <div className="character-cards-container">
                 {book.characters.map((char) => (

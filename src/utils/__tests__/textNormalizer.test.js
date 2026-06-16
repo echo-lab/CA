@@ -1,4 +1,4 @@
-import { normalizeText, splitIntoSentences, isMultiSentenceLong } from '../textNormalizer';
+import { normalizeText, splitIntoSentences } from '../textNormalizer';
 
 // --- Combinatorial test data ---
 

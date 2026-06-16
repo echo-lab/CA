@@ -22,25 +22,27 @@ const QUESTION_TEMPLATES = [
   "{C} presents too much information at once.",
 ];
 
+const SYSTEM_LABEL = "TaleMate";
+
 export default function Survey() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { id, name, condition } = location.state || {};
+  const { id, name } = location.state || {};
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
   const BASE_URL = process.env.REACT_APP_API_BASE || "http://localhost:5001";
 
-  const hasSession = Boolean(condition);
+  const hasSession = Boolean(id && name);
 
   const questions = QUESTION_TEMPLATES.map((q) =>
-    q.replace(/\{C\}/g, condition || "C?")
+    q.replace(/\{C\}/g, SYSTEM_LABEL)
   );
 
   const allAnswered = hasSession && questions.every((_, i) => answers[i]);
 
   const handleSubmit = () => {
-    console.log('[Survey] handleSubmit fired', { allAnswered, name, id, condition, answers, BASE_URL });
+    console.log('[Survey] handleSubmit fired', { allAnswered, name, id, answers, BASE_URL });
     if (!allAnswered) {
       console.warn('[Survey] not all answered, aborting');
       return;
@@ -49,7 +51,7 @@ export default function Survey() {
     fetch(`${BASE_URL}/api/log-survey`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, book: id, condition, answers }),
+      body: JSON.stringify({ name, book: id, answers }),
     })
       .then(res => res.json().then(data => {
         console.log('[Survey] log-survey response', res.status, data);
@@ -67,7 +69,7 @@ export default function Survey() {
         </button>
         <div style={{ textAlign: "center" }}>
           <h1 style={{ margin: 0 }}>User Experience Survey</h1>
-          <p style={{ margin: 0, color: "#666" }}>Rate your experience with the reading condition.</p>
+          <p style={{ margin: 0, color: "#666" }}>Rate your experience with {SYSTEM_LABEL}.</p>
         </div>
         <div style={{ width: 70 }} />
       </div>
@@ -91,11 +93,6 @@ export default function Survey() {
           </div>
         ) : (
           <>
-            <div style={{ background: "#fff", padding: "16px 20px", borderRadius: "8px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-              <span style={{ fontWeight: 600, marginRight: "8px" }}>Rating condition:</span>
-              <span>{condition}</span>
-            </div>
-
             {questions.map((q, i) => (
               <div key={i} style={{ background: "#fff", padding: "16px 20px", borderRadius: "8px", marginBottom: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                 <p style={{ margin: "0 0 12px", fontWeight: 500 }}>

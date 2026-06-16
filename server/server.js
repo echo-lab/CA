@@ -1152,13 +1152,13 @@ app.post('/synthesize', async (req, res) => {
 });
 
 // Two payload shapes share this endpoint:
-//   1. {name, book, condition}     — single-row session metadata (study setup)
+//   1. {name, book}                — single-row session metadata (study setup)
 //                                    appended to server/session-log.csv
 //   2. {sessionId, rows}           — full event log for a session (from
 //                                    src/logGeneration.js); overwrites
 //                                    server/logs/session_<sessionId>.csv
 app.post('/api/log-session', (req, res) => {
-    const { name, book, condition, sessionId, rows } = req.body || {};
+    const { name, book, sessionId, rows } = req.body || {};
 
     // Shape 2: per-session event log
     if (sessionId && Array.isArray(rows)) {
@@ -1166,7 +1166,7 @@ app.post('/api/log-session', (req, res) => {
             return res.status(400).json({ message: 'rows must be non-empty' });
         }
         const headers = [
-            'session_id', 'user_id', 'book_id', 'condition', 'event_type', 'timestamp',
+            'session_id', 'user_id', 'book_id', 'event_type', 'timestamp',
             'page_number', 'latency_ms', 'manual_interventions',
             'line_index', 'direction', 'trigger'
         ];
@@ -1187,32 +1187,32 @@ app.post('/api/log-session', (req, res) => {
     }
 
     // Shape 1: study-setup metadata row
-    if (!name || !book || !condition) {
+    if (!name || !book) {
         return res.status(400).json({
-            message: 'Provide either {name, book, condition} or {sessionId, rows}'
+            message: 'Provide either {name, book} or {sessionId, rows}'
         });
     }
     const csvPath = path.join(__dirname, 'session-log.csv');
     const timestamp = new Date().toISOString();
-    const header = 'timestamp,name,book,condition\n';
-    const row = `${timestamp},${name},${book},${condition}\n`;
+    const header = 'timestamp,name,book\n';
+    const row = `${timestamp},${name},${book}\n`;
 
     if (!fs.existsSync(csvPath)) {
         fs.writeFileSync(csvPath, header + row);
     } else {
         fs.appendFileSync(csvPath, row);
     }
-    console.log(`[session-log] ${name}, book ${book}, ${condition}`);
+    console.log(`[session-log] ${name}, book ${book}`);
     res.json({ success: true });
 });
 
 // Survey responses — appended to server/survey-log.csv
-// Payload: { name, book, condition, answers }
+// Payload: { name, book, answers }
 // answers: { "0": 1..5, "1": 1..5, ... } (one entry per question index)
 app.post('/api/log-survey', (req, res) => {
-    const { name, book, condition, answers } = req.body || {};
-    if (!name || !book || !condition || !answers || typeof answers !== 'object') {
-        return res.status(400).json({ message: 'Provide {name, book, condition, answers}' });
+    const { name, book, answers } = req.body || {};
+    if (!name || !book || !answers || typeof answers !== 'object') {
+        return res.status(400).json({ message: 'Provide {name, book, answers}' });
     }
 
     const NUM_QUESTIONS = 9;
@@ -1220,17 +1220,17 @@ app.post('/api/log-survey', (req, res) => {
     const timestamp = new Date().toISOString();
 
     const qHeaders = Array.from({ length: NUM_QUESTIONS }, (_, i) => `q${i + 1}`).join(',');
-    const header = `timestamp,name,book,condition,${qHeaders}\n`;
+    const header = `timestamp,name,book,${qHeaders}\n`;
 
     const qValues = Array.from({ length: NUM_QUESTIONS }, (_, i) => answers[i] ?? '').join(',');
-    const row = `${timestamp},${name},${book},${condition},${qValues}\n`;
+    const row = `${timestamp},${name},${book},${qValues}\n`;
 
     if (!fs.existsSync(csvPath)) {
         fs.writeFileSync(csvPath, header + row);
     } else {
         fs.appendFileSync(csvPath, row);
     }
-    console.log(`[survey-log] ${name}, book ${book}, ${condition}`);
+    console.log(`[survey-log] ${name}, book ${book}`);
     res.json({ success: true });
 });
 
