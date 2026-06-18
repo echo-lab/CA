@@ -58,6 +58,7 @@ function Reader() {
     deepgramTranscript,
     connectToDeepgram,
     disconnectDeepgram,
+    setMicSuppressed,
   } = useAudioStreamControl();
 
   let bookData
@@ -142,6 +143,12 @@ function Reader() {
       disconnect();
     };
   }, []);
+
+  // Mute the mic while narrator/TTS audio is playing so playback isn't
+  // captured and transcribed as the child's input.
+  useEffect(() => {
+    setMicSuppressed?.(isAudioPlaying);
+  }, [isAudioPlaying]);
 
   // Reset per-page question-gen inputs on page change.
   useEffect(() => {

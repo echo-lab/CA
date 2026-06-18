@@ -24,11 +24,23 @@ export function AudioStreamControlProvider({ children }) {
   const mediaRecorderRef = useRef(null);
   const deepgramStreamRef = useRef(null);
 
+  // When true, mic audio is not forwarded to Deepgram (e.g. while the narrator
+  // is speaking) so TTS playback isn't transcribed as the child's input.
+  const micSuppressedRef = useRef(false);
+  const setMicSuppressed = (suppressed) => {
+    micSuppressedRef.current = Boolean(suppressed);
+  };
+
   const connectToDeepgram = async () => {
     try {
 
-      // Get user's microphone stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Get user's microphone stream with echo cancellation so the narrator's
+      // own TTS playback isn't picked back up by the mic.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }, });
 
       // Derive WebSocket URL from REACT_APP_API_BASE
       // ws:// for http, wss:// for https
@@ -78,6 +90,9 @@ export function AudioStreamControlProvider({ children }) {
           const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
 
           workletNode.port.onmessage = (event) => {
+            // Stop the mic while the narrator/TTS is speaking so playback isn't
+            // captured and transcribed as the child's input.
+            if (micSuppressedRef.current) return;
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(event.data);
             }
@@ -535,6 +550,7 @@ export function AudioStreamControlProvider({ children }) {
     sendMessage,
     sendContentMessage,
     toggleMute,
+    setMicSuppressed,
     remoteAudioRef,
   };
 
