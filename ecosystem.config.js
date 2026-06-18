@@ -27,7 +27,7 @@ const path = require("path");
 module.exports = {
   apps: [
     {
-      name: "ca-backend",
+      name: "TM5-backend",
       // Equivalent to `cd server && node server.js` (paths are __dirname-based).
       script: "server.js",
       cwd: path.join(__dirname, "server"),
@@ -41,14 +41,14 @@ module.exports = {
       // server/.env.local (the string "false" is truthy and stays in HTTP mode).
     },
     {
-      name: "ca-frontend",
+      name: "TM5-frontend",
       // Mirrors:  sudo serve -s build --ssl-cert ../cert/talemate.cs.vt.edu.crt \
-      //                --ssl-key ../cert/talemate.cs.vt.edu.key -l 3005
+      //                --ssl-key ../cert/talemate.cs.vt.edu.key -l 3004
       // `serve` must be installed globally (sudo npm i -g serve). If PM2 reports
       // "script not found", replace "serve" with the absolute path from
       // `which serve` (e.g. /usr/local/bin/serve).
       script: "/usr/bin/serve",
-      args: "-s build --ssl-cert ../cert/talemate.cs.vt.edu.crt --ssl-key ../cert/talemate.cs.vt.edu.key -l 3005",
+      args: "-s build --ssl-cert ../cert/talemate.cs.vt.edu.crt --ssl-key ../cert/talemate.cs.vt.edu.key -l 3004",
       interpreter: "none",     // run serve's own shebang, don't wrap with node
       cwd: __dirname,          // repo root: resolves `build` and `../cert/*`
       autorestart: true,
