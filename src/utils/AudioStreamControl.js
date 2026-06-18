@@ -13,6 +13,13 @@ Keep responses short, encouraging, concrete, and natural for a child ages 3-6.
 Do not introduce unrelated topics.
 Speak directly and stop after the reinforcement.`;
 
+const MIC_SUPPRESSED_SOURCES = [
+  AUDIO_SOURCES.TTS,
+  AUDIO_SOURCES.STORY_NARRATION,
+  AUDIO_SOURCES.PAGE_QUESTION,
+  AUDIO_SOURCES.GENERATED_QUESTION,
+];
+
 export const AudioStreamControlContext = createContext(null);
 
 export function AudioStreamControlProvider({ children }) {
@@ -46,6 +53,11 @@ export function AudioStreamControlProvider({ children }) {
   if (!audioPlaybackLockRef.current) {
     audioPlaybackLockRef.current = createAudioPlaybackLock(setActiveAudioSource);
   }
+
+  const micSuppressedRef = useRef(false);
+  useEffect(() => {
+    micSuppressedRef.current = MIC_SUPPRESSED_SOURCES.includes(activeAudioSource);
+  }, [activeAudioSource]);
 
   const tryBeginAudio = useCallback((source) => {
     return audioPlaybackLockRef.current.tryBeginAudio(source);
@@ -129,6 +141,9 @@ export function AudioStreamControlProvider({ children }) {
           const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
 
           workletNode.port.onmessage = (event) => {
+            // Stop the mic while the narrator/TTS is speaking so playback isn't
+            // captured and transcribed as the child's input.
+            if (micSuppressedRef.current) return;
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(event.data);
             }
@@ -440,11 +455,11 @@ export function AudioStreamControlProvider({ children }) {
     const message = {
       realtimeInput: {
         text: `<reinforcement_context>
-Last question: ${question || ''}
-Reply: ${reply || ''}
-Book/page context: ${bookText || ''}
-Image description: ${imageDescription || ''}
-</reinforcement_context>`,
+        Last question: ${question || ''}
+        Reply: ${reply || ''}
+        Book/page context: ${bookText || ''}
+        Image description: ${imageDescription || ''}
+        </reinforcement_context>`,
       },
     };
 

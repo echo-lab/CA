@@ -11,17 +11,11 @@ function stripSSMLTags(text) {
 
 const SPEECH_CHARS_PER_SEC = 14;
 
-// Owns generated-question + page-question playback, the streaming player, the
-// `speak` primitive, and per-line reading playback. Cross-cutting state
-// (showAvatar, questionHistory, generatedQuestion, etc.) is owned by Story and
-// passed in; shared refs touched by more than one slice are also Story-owned.
 export function useAudioPlayback({
-  // audio-control (from useAudioStreamControl)
   tryBeginAudio,
   endAudio,
   remoteAudioRef,
   isMuted,
-  // core playback state
   audio,
   setAudio,
   isPlaying,
@@ -30,7 +24,6 @@ export function useAudioPlayback({
   setAudioHasEnded,
   setIsButtonDisabled,
   setChildHasPlayed,
-  // cross-cutting UI state (Story-owned)
   generatedQuestion,
   setGeneratedQuestion,
   setQuestionHistory,
@@ -38,14 +31,12 @@ export function useAudioPlayback({
   showAvatarRef,
   setInReinforcementLoop,
   setIsCategorizationPending,
-  // shared refs (Story-owned)
   hasSlidCloserRef,
   lastAskedQuestionRef,
   pendingGeneratedQuestionRef,
   reinforcementFromPageQuestionRef,
   generatedQuestionPendingRef,
   questionGenEnabledRef,
-  // story data
   state,
   narratorRole,
   TEST_GENERATED_QUESTION,
@@ -443,8 +434,6 @@ export function useAudioPlayback({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioEnded]);
 
-  // Reset only the generated-question-owned state. Story's clearQuestionUI
-  // composes this with the reinforcement reset and its own cross-cutting state.
   const resetGeneratedQuestionState = useCallback(() => {
     setRevealedQuestion('');
     fullQuestionTextRef.current = '';
