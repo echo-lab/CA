@@ -28,6 +28,7 @@ export function useStoryNavigation({
   generatedQuestion,
   showAvatar,
   showAvatarRef,
+  inReinforcementLoopRef,
 }) {
   const pendingLineTriggersRef = useRef(new Map());
   const pendingUntargetedLineTriggerRef = useRef(null);
@@ -193,7 +194,10 @@ export function useStoryNavigation({
   }, [audioHasEnded, isPlaying, handleNextClick, generatedQuestion, showAvatar, state.page, state.index, state.pagesValues]);
 
   useEffect(() => {
-    if (showAvatarRef.current) {
+    // Only clear the question UI on line change once the reinforcement session
+    // has started. While a question is merely shown (not yet clicked/played),
+    // keep it alive so it doesn't vanish as reading auto-advances.
+    if (showAvatarRef.current && inReinforcementLoopRef?.current) {
       clearQuestionUIRef.current();
     }
     const key = `${state.page}:${state.index}`;

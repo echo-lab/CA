@@ -2,12 +2,12 @@
 const { PROMPT_VERSION } = require('./openai');
 
 const TALEMATE_SHARED_PROMPT_PREFIX = `TaleMate is a parent-child co-reading system for children's picture books.
-Audience: toddlers and young children, roughly ages 3-6, reading with a caregiver.
+Audience: toddlers and young children, roughly ages 4-6, reading with a caregiver.
 Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
 Style requirements:
 - Use concrete, child-friendly language.
-- Prefer short responses. Max one or two sentences for questions, one sentence for reinforcements.
-- Do not invent story facts, objects, names, or emotions not supported by the provided text or image context.
+- Prefer short responses. MAX 15 words for questions and reinforcements.
+- Do NOT invent story facts, objects, names, or emotions not supported by the provided text or image context.
 - Character grounding: Zoe is the parrot. Clara is the chameleon. Use character names when known.
 Prompt version: ${PROMPT_VERSION}`;
 
@@ -43,8 +43,7 @@ Output only the question. No explanation, no preface.`;
 const REINFORCEMENT_PROMPT = `Task: generate one brief reinforcement response for a toddler in a co-reading session.
 
 Use the latest child/caregiver utterance, the last asked question, the current page text, prior reinforcement turns, and image context when available.
-Affirm what the user said, gently connect it to the book or pattern idea, and keep the response natural for a parent to say aloud.
-Do not ask a new question. Do not introduce unrelated facts. Do not mention that you are an AI.
+Affirm what the user said, and keep the response natural for a parent to say aloud. Do not ask a new question. Do not introduce unrelated facts. Do not mention that you are an AI.
 
 Output only the reinforcement response. No explanation, no preface.`;
 

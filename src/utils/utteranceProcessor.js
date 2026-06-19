@@ -22,6 +22,10 @@ let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
 let lastReinforcementSnapshot = '';
 
+// Minimum number of words the child must speak before a generated-question
+// answer (or reinforcement reply) is accepted. Below this we keep waiting.
+const MIN_ANSWER_WORDS = 3;
+
 export function resetReinforcementSnapshot() {
   lastReinforcementSnapshot = '';
 }
@@ -470,6 +474,14 @@ export async function processUserUtterance({
   const fireReinforcement = () => {
     const text = (userUtterance || '').trim();
     if (!text) return;
+    // Wait until the child has spoken a sufficient amount before accepting the
+    // answer. If too short while awaiting a question answer, keep waiting.
+    const answerWordCount = text.split(/\s+/).filter(Boolean).length;
+    if (answerWordCount < MIN_ANSWER_WORDS) {
+      if (wasAwaiting) awaitingQuestionAnswer = true;
+      debugLog({ type: 'reinforcement_gate_skip', reason: 'too_few_words', utterance: text, wordCount: answerWordCount });
+      return;
+    }
     if (!/[.?!]\s*$/.test(text)) {
       debugLog({ type: 'reinforcement_gate_skip', reason: 'no_terminal_punct', utterance: text });
       return;

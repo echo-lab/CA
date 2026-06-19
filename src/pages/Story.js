@@ -174,6 +174,11 @@ function Reader() {
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
 
+  // Mirror inReinforcementLoop into a ref so the line-change effect (which only
+  // depends on page/index) can read its current value without going stale.
+  const inReinforcementLoopRef = useRef(false);
+  useEffect(() => { inReinforcementLoopRef.current = inReinforcementLoop; }, [inReinforcementLoop]);
+
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const hasSlidCloserRef = useRef(false);
   const dismissingQuestionRef = useRef(null);
@@ -318,6 +323,7 @@ function Reader() {
     generatedQuestion,
     showAvatar,
     showAvatarRef,
+    inReinforcementLoopRef,
   });
 
   const handleTextSelection = () => {
