@@ -25,6 +25,14 @@ class Book {
   }
 };
 
+// Classify the role of a line by its speaking character: the Narrator, or the
+// character's assigned Parent/Child role from CharacterRoles.
+function getLineRole(character, characterRoles) {
+  if (character === "Narrator") return "Narrator";
+  const cr = (characterRoles || []).find((o) => o.Character === character);
+  return cr?.role || "";
+}
+
 function Reader() {
   // If env true then limit to first three pages
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
@@ -563,7 +571,8 @@ const handleNextClick = React.useCallback((source = "manual") => {
          isLastLine
        );
        // Log advancing to the line now being read (1-based), tagged by caller.
-       logLineChange(prevState.index + 1, source);
+       const advancedLine = prevState.pagesValues[prevState.page].text[prevState.index];
+       logLineChange(prevState.index + 1, source, getLineRole(advancedLine?.Character, state.CharacterRoles));
        const newState = {...prevState, index: prevState.index+1};
        return newState;
      });
@@ -726,7 +735,8 @@ const jumpToLine = useCallback((lineIndex) => {
     continueReading(page, lineIndex - 1, prevState.CharacterRoles, isLastLine);
 
     // Speech-match jump (user read ahead and the system advanced to a matched line).
-    logLineChange(lineIndex, "speech");
+    const jumpedLine = page.text[lineIndex - 1];
+    logLineChange(lineIndex, "speech", getLineRole(jumpedLine?.Character, prevState.CharacterRoles));
 
     return { ...prevState, index: lineIndex };
   });

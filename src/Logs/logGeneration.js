@@ -106,10 +106,8 @@ function logEvent({
   event_type,
   page_number = "",
   line_number = "",
-  page_turn_type = "",
-  page_turn_direction = "",
-  latency_ms = "",
-  false_positive = ""
+  line_role = "",
+  page_turn_type = ""
 }) {
   sessionLogs.push({
     session_id: sessionId,
@@ -120,10 +118,8 @@ function logEvent({
     timestamp: now(),
     page_number: page_number,
     line_number: line_number,
+    line_role: line_role,
     page_turn_type: page_turn_type,
-    page_turn_direction: page_turn_direction,
-    latency_ms: latency_ms,
-    false_positive: false_positive,
     manual_interventions: manualInterventions
   });
 }
@@ -160,22 +156,14 @@ function aiDecidedToTurnPage() {
 function autoPageTurn(pageNumber) {
   if (!sessionStarted) startSession();
 
-  const turnTime = now();
-  const latency = lastDecisionTime ? turnTime - lastDecisionTime : "";
-
   currentPageNumber = pageNumber;
   lastAutoTurnPage = pageNumber;
 
   logEvent({
     event_type: "page_turn",
     page_number: pageNumber,
-    page_turn_type: "auto",
-    page_turn_direction: "next",
-    latency_ms: latency,
-    false_positive: false
+    page_turn_type: "auto"
   });
-
-  lastDecisionTime = null;
 }
 
 //logging manual page turns
@@ -185,22 +173,17 @@ function manualPageTurn(pageNumber, wentBack = false) {
   manualInterventions += 1;
   currentPageNumber = pageNumber;
 
-  const falsePositive = Boolean(wentBack && lastAutoTurnPage === pageNumber + 1);
-
   logEvent({
     event_type: "page_turn",
     page_number: pageNumber,
-    page_turn_type: "manual",
-    page_turn_direction: wentBack ? "prev" : "next",
-    latency_ms: "",
-    false_positive: falsePositive
+    page_turn_type: "manual"
   });
 
   pendingBackNavigation = false;
 }
 
 //logging line advances within a page (not page turns)
-function logLineChange(lineNumber, type = "") {
+function logLineChange(lineNumber, type = "", lineRole = "") {
   if (sessionEnded) return;
   if (!sessionStarted) startSession();
 
@@ -208,6 +191,7 @@ function logLineChange(lineNumber, type = "") {
     event_type: "line_change",
     page_number: currentPageNumber,
     line_number: lineNumber,
+    line_role: lineRole,
     page_turn_type: type // "auto" | "manual"
   });
 }
@@ -243,10 +227,8 @@ function saveCSVToFile() {
     "timestamp",
     "page_number",
     "line_number",
+    "line_role",
     "page_turn_type",
-    "page_turn_direction",
-    "latency_ms",
-    "false_positive",
     "manual_interventions"
   ];
 
