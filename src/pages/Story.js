@@ -8,6 +8,7 @@ import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
+import { data as data4 } from "../Book/Book4";
 import parentImage from "../Pictures/Virtual.png";
 import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
@@ -80,6 +81,9 @@ function Reader() {
       break;
     case 3:
       bookData = data3;
+      break;
+    case 4: // Training Book — reuses "Levels in the Library" content
+      bookData = data4;
       break;
     default:
       throw new Error("Invalid book id");
