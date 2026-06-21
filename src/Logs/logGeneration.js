@@ -1,20 +1,6 @@
-let fs = null;
-let path = null;
-
-//environment set up
-//checking if supports node modules
-//if so load fs and path modules so we can wrie csv file
-//if no fs paths are unavailable so no file writing
-try {
-  const req = typeof require === "function" ? require : null;
-  if (req) {
-    fs = req("fs");
-    path = req("path");
-  }
-} catch (error) {
-  fs = null;
-  path = null;
-}
+// This module runs in the browser, which can't write files directly. Session
+// CSVs are persisted by POSTing them to the server (see saveCSVToServer); the
+// server writes them into server/logs/.
 
 //variables that are going to be tracked throughout the current session
 let sessionLogs = []; //arr of all logged events
@@ -205,12 +191,6 @@ function escapeCSV(value) {
   return stringValue;
 }
 
-function getLogsDirectory() {
-  //where csv logs are saved
-  if (!path) return null;
-  return path.resolve(__dirname, "../../frontend/logs");
-}
-
 //writes all current session logs to one csv file
 function saveCSVToFile() {
   if (!sessionLogs.length) {
@@ -242,22 +222,6 @@ function saveCSVToFile() {
 
   //send csv to server so it can save the file
   saveCSVToServer(csv);
-
-  if (!fs || !path) {
-    hasPendingCSVFlush = false;
-    return;
-  }
-
-  const logsDir = getLogsDirectory();
-
-  if (!logsDir) return;
-
-  //make logs folder if it does not exist
-  fs.mkdirSync(logsDir, { recursive: true });
-
-  //each session gets its own csv named with session id
-  const filePath = path.join(logsDir, `session_${sessionId}.csv`);
-  fs.writeFileSync(filePath, csv);
   hasPendingCSVFlush = false;
 }
 

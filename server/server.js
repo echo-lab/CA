@@ -6,6 +6,7 @@ const https = require('https');
 const WebSocket = require('ws');
 const OpenAI = require('openai');
 const path = require('path');
+const zlib = require('zlib');
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 const { registerLiveTtsRoutes } = require('./liveTTS');
 const { setupEducationalQuestionRoutes } = require('./ModelsCommunication');
@@ -1037,6 +1038,105 @@ app.get('/api/log-session/download', (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=session-log.csv');
     res.sendFile(csvPath);
+});
+
+// Minimal dependency-free ZIP builder (DEFLATE via Node's built-in zlib).
+// Good enough to bundle the handful of small CSV logs in server/logs/.
+const ZIP_CRC_TABLE = (() => {
+    const table = new Array(256);
+    for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        table[n] = c >>> 0;
+    }
+    return table;
+})();
+
+function zipCrc32(buf) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < buf.length; i++) crc = ZIP_CRC_TABLE[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildZip(files) {
+    const parts = [];
+    const central = [];
+    let offset = 0;
+
+    for (const { name, data } of files) {
+        const nameBuf = Buffer.from(name, 'utf8');
+        const compressed = zlib.deflateRawSync(data);
+        const crc = zipCrc32(data);
+
+        const local = Buffer.alloc(30);
+        local.writeUInt32LE(0x04034b50, 0); // local file header signature
+        local.writeUInt16LE(20, 4);         // version needed
+        local.writeUInt16LE(0, 6);          // flags
+        local.writeUInt16LE(8, 8);          // method: deflate
+        local.writeUInt16LE(0, 10);         // mod time
+        local.writeUInt16LE(0, 12);         // mod date
+        local.writeUInt32LE(crc, 14);
+        local.writeUInt32LE(compressed.length, 18);
+        local.writeUInt32LE(data.length, 22);
+        local.writeUInt16LE(nameBuf.length, 26);
+        local.writeUInt16LE(0, 28);         // extra length
+        parts.push(local, nameBuf, compressed);
+
+        const cd = Buffer.alloc(46);
+        cd.writeUInt32LE(0x02014b50, 0);    // central dir signature
+        cd.writeUInt16LE(20, 4);            // version made by
+        cd.writeUInt16LE(20, 6);            // version needed
+        cd.writeUInt16LE(0, 8);
+        cd.writeUInt16LE(8, 10);            // method: deflate
+        cd.writeUInt16LE(0, 12);
+        cd.writeUInt16LE(0, 14);
+        cd.writeUInt32LE(crc, 16);
+        cd.writeUInt32LE(compressed.length, 20);
+        cd.writeUInt32LE(data.length, 24);
+        cd.writeUInt16LE(nameBuf.length, 28);
+        cd.writeUInt16LE(0, 30);            // extra length
+        cd.writeUInt16LE(0, 32);            // comment length
+        cd.writeUInt16LE(0, 34);            // disk number
+        cd.writeUInt16LE(0, 36);            // internal attrs
+        cd.writeUInt32LE(0, 38);            // external attrs
+        cd.writeUInt32LE(offset, 42);       // local header offset
+        central.push(cd, nameBuf);
+
+        offset += local.length + nameBuf.length + compressed.length;
+    }
+
+    const centralBuf = Buffer.concat(central);
+    const end = Buffer.alloc(22);
+    end.writeUInt32LE(0x06054b50, 0);       // end of central dir signature
+    end.writeUInt16LE(0, 4);
+    end.writeUInt16LE(0, 6);
+    end.writeUInt16LE(files.length, 8);
+    end.writeUInt16LE(files.length, 10);
+    end.writeUInt32LE(centralBuf.length, 12);
+    end.writeUInt32LE(offset, 16);
+    end.writeUInt16LE(0, 20);               // comment length
+
+    return Buffer.concat([...parts, centralBuf, end]);
+}
+
+// Download all per-session logs in server/logs/ as a single ZIP
+app.get('/api/logs/download', (req, res) => {
+    const logsDir = path.join(__dirname, 'logs');
+    if (!fs.existsSync(logsDir)) {
+        return res.status(404).json({ message: 'No logs found' });
+    }
+    const fileNames = fs.readdirSync(logsDir).filter(f => f.endsWith('.csv'));
+    if (fileNames.length === 0) {
+        return res.status(404).json({ message: 'No logs found' });
+    }
+    const files = fileNames.map(name => ({
+        name,
+        data: fs.readFileSync(path.join(logsDir, name)),
+    }));
+    const zip = buildZip(files);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename=logs.zip');
+    res.send(zip);
 });
 
 // Log detailed page turn session CSV

@@ -1058,12 +1058,6 @@ function stripSSMLTags(text) {
     <div className="navigation-buttons-container">
 
       <button
-        onClick={openDebugMonitor}
-        className="btn btn-outline-secondary"
-        style={{ fontSize: '12px', padding: '4px 10px' }}
-      >Debug</button>
-
-      <button
         onClick={gotoPreviousPage}
         className="btn btn-primary previous-page-button"
         disabled={state.page === 0}
