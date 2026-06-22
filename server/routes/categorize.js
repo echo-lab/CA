@@ -208,7 +208,6 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
         let generatedQuestion = null;
 
         if (hasOnTopic) {
-            console.log("Generating question based on ON_TOPIC utterance(s)");
             const qResult = await questionPromise;
             tlog('question generation complete');
             logOpenAIUsage('cat-stream/question', qResult?.usage);

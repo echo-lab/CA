@@ -141,8 +141,6 @@ export function AudioStreamControlProvider({ children }) {
           const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
 
           workletNode.port.onmessage = (event) => {
-            // Stop the mic while the narrator/TTS is speaking so playback isn't
-            // captured and transcribed as the child's input.
             if (micSuppressedRef.current) return;
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(event.data);
@@ -187,7 +185,6 @@ export function AudioStreamControlProvider({ children }) {
 
               if (isFinal) {
                 const endsTerminal = /[.?!]\s*$/.test(transcript);
-                console.log(`Final transcript received: "${transcript}"${speechFinal ? ' [speech_final]' : ''}${endsTerminal ? ' [terminal_punct]' : ''}`);
                 setUserUtterance(transcript);
               }
             }
@@ -443,7 +440,6 @@ export function AudioStreamControlProvider({ children }) {
   };
 
   const sendContentMessageGemini = (question, reply, bookText, imageDescription) => {
-    console.log('Sending content message to Gemini Live');
     if (audioPlaybackLockRef.current.isAnyAudioPlaying()) {
       console.log('Skipping Gemini Live message because audio is already playing');
       return;

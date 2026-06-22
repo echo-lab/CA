@@ -23,7 +23,6 @@ let speculativeLineEntries = [];
 let lastReinforcementSnapshot = '';
 
 // Minimum number of words the child must speak before a generated-question
-// answer (or reinforcement reply) is accepted. Below this we keep waiting.
 const MIN_ANSWER_WORDS = 3;
 
 export function resetReinforcementSnapshot() {
@@ -60,7 +59,7 @@ function stripSSMLTags(text) {
 export function buildBookContext(pagesValues, centerPage) {
   if (!Array.isArray(pagesValues) || !pagesValues.length) return '';
   const start = Math.max(0, centerPage - 1);
-  const end = Math.min(pagesValues.length - 1, centerPage + 1);
+  const end = Math.min(pagesValues.length - 1, centerPage);
   const sections = [];
   for (let p = start; p <= end; p++) {
     const lines = pagesValues[p]?.text || [];

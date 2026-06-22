@@ -423,7 +423,11 @@ export function useAudioPlayback({
       {
         onBegin: () => console.log("TTS audio ready, starting playback..."),
         onEnded: () => {
-          if (isLastLine) line.Reading = false;
+          console.log("TTS ended");
+          if (isLastLine) {
+            console.log("[reading done] last line of page finished");
+            line.Reading = false;
+          }
         },
       }
     );

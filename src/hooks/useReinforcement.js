@@ -117,8 +117,6 @@ export function useReinforcement({
     cumulativeReinforcementMsRef.current = 0;
     setRevealedReinforcement('');
 
-    console.log("Generating reinforcement. Question:", question, "Reply:", reply);
-
     try {
       const context = getCurrentPageReinforcementContext();
 

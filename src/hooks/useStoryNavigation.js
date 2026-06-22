@@ -56,6 +56,7 @@ export function useStoryNavigation({
 
     clearQuestionUI();
     resetOffScriptStateForPage(offScriptLogRef);
+    setAudioHasEnded(false);
 
     if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
 
@@ -128,6 +129,7 @@ export function useStoryNavigation({
           } else {
            clearQuestionUI();
            resetOffScriptStateForPage(offScriptLogRef);
+           setAudioHasEnded(false);
            for (let i=0; i<state.pagesValues[state.page]?.text?.length; i++){
              state.pagesValues[state.page].text[i].Reading=false;
            }

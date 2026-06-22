@@ -140,9 +140,6 @@ async function liveSayHandler(req, res) {
         config.speechConfig.speakingRate = speechRate;
       }
 
-      console.log(`[vertex-tts] Generating with model=${model}, voice=${voiceToUse}`);
-      console.log(`[vertex-tts] Prompt: "${ttsPrompt.substring(0, 100)}..."`);
-
       // Call API
       const response = await withRetries(
         () => client.models.generateContent({

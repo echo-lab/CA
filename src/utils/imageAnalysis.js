@@ -8,7 +8,6 @@ const taggingCache = new Map();
 
 export async function ImageTagging({ book, page, pageText }) {
   if (!IMAGE_PIPELINE_ENABLED) return [];
-  console.log(`Fetching image tags for Book ${book}, Page ${page}...`);
   const key = `${book}-${page}`;
   if (taggingCache.has(key)) return taggingCache.get(key);
   const promise = (async () => {
@@ -34,7 +33,6 @@ export async function ImageTagging({ book, page, pageText }) {
 
 export async function ImageAnalysis({ book, page, pageText }) {
   if (!IMAGE_PIPELINE_ENABLED) return null;
-  console.log(`Fetching image analysis for Book ${book}, Page ${page}...`);
   const key = `${book}-${page}`;
   if (analysisCache.has(key)) return analysisCache.get(key);
   const promise = (async () => {
@@ -100,7 +98,6 @@ function enqueuePage(book, page, pageText) {
 // Called from CharacterSelecter — prefetches first 3 pages
 export function prefetchImageAnalysis(book, pages) {
   if (!IMAGE_PIPELINE_ENABLED) return;
-  console.log(`Prefetching image analysis for Book ${book}...`);
   pages.slice(1, 4).forEach((pageData, sliceIndex) => {
     const page = sliceIndex + 1; // slice starts at pages[1], so page 1, 2, 3
     const pageText = pageData.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';

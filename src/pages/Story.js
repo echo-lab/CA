@@ -294,7 +294,7 @@ function Reader() {
 
   const clearQuestionUIRef = useRef(clearQuestionUI);
   useEffect(() => { clearQuestionUIRef.current = clearQuestionUI; });
-
+  
   const {
     gotoNextPage,
     gotoPreviousPage,
