@@ -766,30 +766,10 @@ function Reader() {
                     top: `${y0 / 10}%`, left: `${x0 / 10}%`,
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
                     cursor: 'crosshair',
-                    border: '2px solid rgba(255, 0, 80, 0.9)',
-                    boxShadow: '0 0 0 1px rgba(255,255,255,0.6)',
-                    boxSizing: 'border-box',
                   }}
                   title={tag.label}
                   onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
-                >
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: 0, left: 0,
-                      transform: 'translateY(-100%)',
-                      background: 'rgba(255, 0, 80, 0.9)',
-                      color: '#fff',
-                      fontSize: '10px',
-                      lineHeight: '12px',
-                      padding: '1px 4px',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    {tag.label}
-                  </span>
-                </div>
+                />
               );
             })}
         </div>
