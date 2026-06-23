@@ -32,6 +32,7 @@ function buildReinforcementPayload({
     imageDescription,
     userAttention,
     reinforcementHistory,
+    expectedAnswer,
 }) {
     const history = Array.isArray(reinforcementHistory)
         ? reinforcementHistory
@@ -47,6 +48,7 @@ Page Question: "${currentPageQuestion || ''}"
 </current_page>
 ${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<reinforcement_context>
 Last Asked Question: "${question || currentPageQuestion || ''}"
+Expected Answer: ${expectedAnswer ? `"${expectedAnswer}"` : '(open-ended — no single correct answer; affirm the child)'}
 Latest User Utterance: "${reply || ''}"
 ${history ? `Prior Reinforcement Turns:\n${history}` : 'Prior Reinforcement Turns: none'}
 </reinforcement_context>`;

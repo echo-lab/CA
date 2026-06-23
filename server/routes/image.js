@@ -6,11 +6,12 @@ const imageCache = require('../lib/cache/imageCache');
 const {
   GEMINI_IMAGE_CHARACTER_RULES,
   GEMINI_IMAGE_ANALYSIS_PROMPT,
-  GEMINI_IMAGE_TAGGING_PROMPT,
+  buildGeminiImageTaggingPrompt,
 } = require('../lib/prompts');
 const { parseJsonFromModelText } = require('../lib/modelParsing');
 
 const router = express.Router();
+const ANALYZE_IMAGE_ENABLED = process.env.ANALYZE_IMAGE === '1';
 
 const GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC = Number(process.env.GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC || 60 * 60);
 
@@ -213,13 +214,14 @@ router.post('/tag-image', async (req, res) => {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ vertexai: true, project: PROJECT_ID, location: LOCATION });
     const contextCache = await getGeminiImageContextCache({ ai, model: MODEL, book, page, pageText, imageData });
+    const taggingPrompt = buildGeminiImageTaggingPrompt({ pageText });
     const request = contextCache
       ? {
           model: MODEL,
           contents: [{
             role: 'user',
             parts: [{
-              text: `${GEMINI_IMAGE_TAGGING_PROMPT}
+              text: `${taggingPrompt}
 
 Return a JSON array only. Each item must be:
 {"label":"object name","box_2d":[y_min,x_min,y_max,x_max]}`,
@@ -237,21 +239,46 @@ Return a JSON array only. Each item must be:
             taskText: 'Tag this image using the required JSON schema.',
           }),
           config: {
-            systemInstruction: GEMINI_IMAGE_TAGGING_PROMPT,
+            systemInstruction: taggingPrompt,
             responseMimeType: 'application/json',
             responseSchema: {
               type: 'array',
               items: {
                 type: 'object',
+                required: ["label", "box_2d", "importance", "confidence"],
                 properties: {
-                  label: { type: 'string' },
-                  box_2d: {
-                    type: 'array',
-                    items: { type: 'integer' },
-                    description: '[y_min, x_min, y_max, x_max] normalized 0-1000',
+                  label: {
+                    type: "string",
+                    description:
+                      "Short, child-friendly label for the detected character or story-relevant object."
                   },
+                  box_2d: {
+                    type: "array",
+                    description:
+                      "Bounding box in [y_min, x_min, y_max, x_max] format, normalized 0–1000.",
+                    minItems: 4,
+                    maxItems: 4,
+                    items: {
+                      type: "integer",
+                      minimum: 0,
+                      maximum: 1000
+                    }
+                  },
+                  importance: {
+                    type: "integer",
+                    description:
+                      "Story relevance from 1 to 10. Characters and interacted-with objects should be highest.",
+                    minimum: 1,
+                    maximum: 10
+                  },
+                  confidence: {
+                    type: "number",
+                    description:
+                      "Confidence that the label and bounding box are correct.",
+                    minimum: 0,
+                    maximum: 1
+                  }
                 },
-                required: ['label', 'box_2d'],
               },
             },
           },

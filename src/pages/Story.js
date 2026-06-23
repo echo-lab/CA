@@ -22,7 +22,7 @@ import { openDebugMonitor } from "../utils/debugMonitor";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
-import { processUserUtterance, abortCurrentCategorization, setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
+import { processUserUtterance, abortCurrentCategorization, setAwaitingQuestionAnswer, setCurrentBookId } from "../utils/utteranceProcessor";
 
 class Book {
   constructor(data) {
@@ -188,6 +188,7 @@ function Reader() {
   const userAttentionRef = useRef(null);
   const pendingGeneratedQuestionRef = useRef(null);
   const lastAskedQuestionRef = useRef(null);
+  const lastExpectedAnswerRef = useRef(null);
   const generatedQuestionPendingRef = useRef(false);
   const reinforcementFromPageQuestionRef = useRef(false);
 
@@ -268,6 +269,7 @@ function Reader() {
     narratorRole,
     stateRef,
     lastAskedQuestionRef,
+    lastExpectedAnswerRef,
     reinforcementFromPageQuestionRef,
     generatedQuestionPendingRef,
     imageDescriptionRef,
@@ -288,6 +290,7 @@ function Reader() {
     setQuestionHistory([]);
     resetReinforcementRevealState();
     reinforcementFromPageQuestionRef.current = false;
+    lastExpectedAnswerRef.current = null;
     hasSlidCloserRef.current = false;
     dismissingQuestionRef.current = null;
   };
@@ -360,10 +363,13 @@ function Reader() {
     };
   }, []);
 
+  useEffect(() => { setCurrentBookId(id); }, [id]);
+
   useEffect(() => {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
     userAttentionRef.current = null;
+    lastExpectedAnswerRef.current = null;
     lastAskedQuestionRef.current = state.pagesValues[state.page]?.question || null;
     setImageTags([]);
     if (state.page > 0) {
@@ -488,12 +494,13 @@ function Reader() {
         if (result?.sourcePage !== stateRef.current.page) return;
         setIsCategorizationPending(false);
       },
-      onQuestionReady: (questionText) => {
+      onQuestionReady: (questionText, expectedAnswer = null) => {
         if (!questionGenEnabledRef.current) return;
         if (isGeneratedQuestionPlayingRef.current) {
           suppressGeneratedAudioStreamRef.current = true;
           return;
         }
+        lastExpectedAnswerRef.current = expectedAnswer;
         startGeneratedQuestion(questionText);
       },
       imageDescriptionRef,
@@ -759,10 +766,30 @@ function Reader() {
                     top: `${y0 / 10}%`, left: `${x0 / 10}%`,
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
                     cursor: 'crosshair',
+                    border: '2px solid rgba(255, 0, 80, 0.9)',
+                    boxShadow: '0 0 0 1px rgba(255,255,255,0.6)',
+                    boxSizing: 'border-box',
                   }}
                   title={tag.label}
                   onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
-                />
+                >
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: 0, left: 0,
+                      transform: 'translateY(-100%)',
+                      background: 'rgba(255, 0, 80, 0.9)',
+                      color: '#fff',
+                      fontSize: '10px',
+                      lineHeight: '12px',
+                      padding: '1px 4px',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {tag.label}
+                  </span>
+                </div>
               );
             })}
         </div>

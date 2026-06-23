@@ -21,6 +21,7 @@ let lastCategorizationContext = null;
 let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
 let lastReinforcementSnapshot = '';
+let currentBookId = null;
 
 // Minimum number of words the child must speak before a generated-question
 const MIN_ANSWER_WORDS = 3;
@@ -28,6 +29,10 @@ const MIN_ANSWER_WORDS = 3;
 export function resetReinforcementSnapshot() {
   lastReinforcementSnapshot = '';
 }
+
+// Book id for the active story, used so the server can attach the page
+// illustration to question + reinforcement generation.
+export function setCurrentBookId(v) { currentBookId = v; }
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
 
@@ -267,7 +272,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady, controller.signal);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady, controller.signal, currentBookId);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -317,6 +322,7 @@ export async function sendReinforcementLog({
   imageDescriptionRef,
   userAttention,
   reinforcementHistory,
+  expectedAnswer,
   ttsVoiceName,
   onReinforcementReady,
   onAudioChunk,
@@ -332,9 +338,11 @@ export async function sendReinforcementLog({
     currentPageQuestion,
     bookText,
     currentPageNumber,
+    book: currentBookId,
     imageDescription,
     userAttention,
     reinforcementHistory,
+    expectedAnswer,
     ttsVoiceName,
     onReinforcementReady,
     onAudioChunk,
@@ -473,23 +481,26 @@ export async function processUserUtterance({
   const fireReinforcement = () => {
     const text = (userUtterance || '').trim();
     if (!text) return;
-    // Wait until the child has spoken a sufficient amount before accepting the
-    // answer. If too short while awaiting a question answer, keep waiting.
+
     const answerWordCount = text.split(/\s+/).filter(Boolean).length;
+
     if (answerWordCount < MIN_ANSWER_WORDS) {
       if (wasAwaiting) awaitingQuestionAnswer = true;
       debugLog({ type: 'reinforcement_gate_skip', reason: 'too_few_words', utterance: text, wordCount: answerWordCount });
       return;
     }
     if (!/[.?!]\s*$/.test(text)) {
+      if (wasAwaiting) awaitingQuestionAnswer = true;
       debugLog({ type: 'reinforcement_gate_skip', reason: 'no_terminal_punct', utterance: text });
       return;
     }
     if (text === lastReinforcementSnapshot) {
+      if (wasAwaiting) awaitingQuestionAnswer = true;
       debugLog({ type: 'reinforcement_gate_skip', reason: 'duplicate', utterance: text });
       return;
     }
     if (!isUtteranceComplete(text)) {
+      if (wasAwaiting) awaitingQuestionAnswer = true;
       debugLog({ type: 'reinforcement_gate_skip', reason: 'pos_incomplete', utterance: text });
       return;
     }

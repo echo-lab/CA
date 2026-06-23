@@ -18,6 +18,7 @@ export function useReinforcement({
   narratorRole,
   stateRef,
   lastAskedQuestionRef,
+  lastExpectedAnswerRef,
   reinforcementFromPageQuestionRef,
   generatedQuestionPendingRef,
   imageDescriptionRef,
@@ -85,12 +86,19 @@ export function useReinforcement({
     const page = currentState.pagesValues[currentState.page];
     const bookText = buildBookContext(currentState.pagesValues, currentState.page);
 
+    // Expected answer only applies to a generated question. A page-question
+    // answer has no reference answer, so it should always just be affirmed.
+    const expectedAnswer = reinforcementFromPageQuestionRef.current
+      ? null
+      : (lastExpectedAnswerRef?.current ?? null);
+
     return {
       currentPageQuestion: page?.question || '',
       bookText,
       currentPageNumber: currentState.page + 1,
       imageDescriptionRef,
       userAttention: userAttentionRef.current,
+      expectedAnswer,
     };
   };
 
@@ -112,7 +120,6 @@ export function useReinforcement({
     setAwaitingQuestionAnswer(false);
     stopReinforcementAudio();
     reinforcementAudioBlockedRef.current = false;
-    reinforcementActiveRef.current = true;
     fullReinforcementTextRef.current = '';
     cumulativeReinforcementMsRef.current = 0;
     setRevealedReinforcement('');
@@ -183,6 +190,7 @@ export function useReinforcement({
               },
             });
             setIsReinforcementPlaying(true);
+            reinforcementActiveRef.current = true;
             Promise.resolve(reinforcementStreamingPlayerRef.current.resume()).catch((err) => {
               console.error("Reinforcement Gemini TTS playback error:", err);
               finishStreamingReinforcement();

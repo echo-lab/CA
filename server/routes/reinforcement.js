@@ -2,12 +2,14 @@ const express = require('express');
 const {
     openai,
     OPENAI_OFFSCRIPT_MODEL,
+    OPENAI_OFFSCRIPT_REASONING_EFFORT,
     OPENAI_PROMPT_CACHE_KEY,
     OPENAI_PROMPT_CACHE_RETENTION,
     logOpenAIUsage,
 } = require('../lib/openai');
 const { TALEMATE_SHARED_PROMPT_PREFIX, REINFORCEMENT_PROMPT } = require('../lib/prompts');
 const { buildReinforcementPayload } = require('../lib/payloads');
+const { buildPageImageMessage } = require('../lib/pageImage');
 const { generateGeminiTtsChunks } = require('../liveTTS');
 
 const router = express.Router();
@@ -23,22 +25,26 @@ router.post('/api/reinforcement', async (req, res) => {
             imageDescription,
             userAttention,
             reinforcementHistory,
+            expectedAnswer,
+            book,
         } = req.body;
 
         if (!reply) {
             return res.status(400).json({ message: 'Provide reply' });
         }
 
+        const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
         const response = await openai.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
-            max_completion_tokens: 80,
-            reasoning_effort: 'minimal',
+            max_completion_tokens: 256,
+            reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: [
                 { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
                 { role: "developer", content: REINFORCEMENT_PROMPT },
+                ...(pageImageMessage ? [pageImageMessage] : []),
                 {
                     role: "user",
                     content: buildReinforcementPayload({
@@ -50,6 +56,7 @@ router.post('/api/reinforcement', async (req, res) => {
                         imageDescription,
                         userAttention,
                         reinforcementHistory,
+                        expectedAnswer,
                     }),
                 },
             ],
@@ -81,6 +88,8 @@ router.post('/api/reinforcement-stream', async (req, res) => {
             userAttention,
             reinforcementHistory,
             ttsVoiceName,
+            expectedAnswer,
+            book,
         } = req.body;
 
         if (!reply) {
@@ -88,16 +97,18 @@ router.post('/api/reinforcement-stream', async (req, res) => {
             return res.end();
         }
 
+        const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
         const response = await openai.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
-            max_completion_tokens: 80,
-            reasoning_effort: 'minimal',
+            max_completion_tokens: 256,
+            reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: [
                 { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
                 { role: "developer", content: REINFORCEMENT_PROMPT },
+                ...(pageImageMessage ? [pageImageMessage] : []),
                 {
                     role: "user",
                     content: buildReinforcementPayload({
@@ -109,6 +120,7 @@ router.post('/api/reinforcement-stream', async (req, res) => {
                         imageDescription,
                         userAttention,
                         reinforcementHistory,
+                        expectedAnswer,
                     }),
                 },
             ],
@@ -116,6 +128,12 @@ router.post('/api/reinforcement-stream', async (req, res) => {
 
         logOpenAIUsage('reinforcement-stream', response?.usage);
         const reinforcement = response?.choices?.[0]?.message?.content?.trim() || '';
+        if (!reinforcement) {
+            console.warn('[reinforcement-stream] empty reinforcement', {
+                finishReason: response?.choices?.[0]?.finish_reason,
+                completionTokens: response?.usage?.completion_tokens,
+            });
+        }
         res.write(`data: ${JSON.stringify({ type: 'done', reinforcement })}\n\n`);
 
         if (reinforcement) {

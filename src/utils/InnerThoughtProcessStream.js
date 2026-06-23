@@ -13,11 +13,12 @@ const categorizeOffScriptUtterancesStreaming = async (
     onAudioEnd,
     onAudioError,
     onQuestionReady,
-    signal
+    signal,
+    book
 ) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
-    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName };
+    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, book };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/categorize-utterances-stream', payload });
 
     const t0 = performance.now();
@@ -64,7 +65,7 @@ const categorizeOffScriptUtterancesStreaming = async (
                     } else if (parsed.type === 'done') {
                         generatedQuestion = parsed.generatedQuestion;
                         if (generatedQuestion && typeof onQuestionReady === 'function') {
-                            try { onQuestionReady(generatedQuestion); }
+                            try { onQuestionReady(generatedQuestion, parsed.expectedAnswer ?? null); }
                             catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
                         }
                         if (!generatedQuestion) {
@@ -131,9 +132,11 @@ const streamReinforcement = async ({
     currentPageQuestion,
     bookText,
     currentPageNumber,
+    book,
     imageDescription,
     userAttention,
     reinforcementHistory,
+    expectedAnswer,
     ttsVoiceName,
     onReinforcementReady,
     onAudioChunk,
@@ -148,9 +151,11 @@ const streamReinforcement = async ({
         currentPageQuestion,
         bookText,
         currentPageNumber,
+        book,
         imageDescription,
         userAttention,
         reinforcementHistory,
+        expectedAnswer,
         ttsVoiceName,
     };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/reinforcement-stream', payload });

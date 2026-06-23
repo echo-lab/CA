@@ -10,7 +10,8 @@ const openai = new OpenAI({
 const PROMPT_VERSION = 'talemate-offscript-v1';
 const OPENAI_PROMPT_CACHE_KEY = PROMPT_VERSION;
 const OPENAI_PROMPT_CACHE_RETENTION = '24h';
-const OPENAI_OFFSCRIPT_MODEL = 'gpt-5-mini';
+const OPENAI_OFFSCRIPT_MODEL = 'gpt-5.4-nano';
+const OPENAI_OFFSCRIPT_REASONING_EFFORT = 'low';
 
 function getCachedPromptTokens(usage) {
     return usage?.prompt_tokens_details?.cached_tokens ?? usage?.promptTokensDetails?.cachedTokens ?? null;
@@ -34,6 +35,7 @@ module.exports = {
     OPENAI_PROMPT_CACHE_KEY,
     OPENAI_PROMPT_CACHE_RETENTION,
     OPENAI_OFFSCRIPT_MODEL,
+    OPENAI_OFFSCRIPT_REASONING_EFFORT,
     getCachedPromptTokens,
     logOpenAIUsage,
 };

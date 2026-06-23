@@ -2,6 +2,9 @@ const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 
 // Flip to false to disable image tagging + analysis (and their prefetch).
 const IMAGE_PIPELINE_ENABLED = true;
+// Independently gates only the text analysis (/analyze-image). Paused while the
+// raw page image is sent directly to OpenAI for grounding. Tagging stays on.
+const IMAGE_ANALYSIS_ENABLED = false;
 
 const analysisCache = new Map();
 const taggingCache = new Map();
@@ -32,7 +35,7 @@ export async function ImageTagging({ book, page, pageText }) {
 }
 
 export async function ImageAnalysis({ book, page, pageText }) {
-  if (!IMAGE_PIPELINE_ENABLED) return null;
+  if (!IMAGE_PIPELINE_ENABLED || !IMAGE_ANALYSIS_ENABLED) return null;
   const key = `${book}-${page}`;
   if (analysisCache.has(key)) return analysisCache.get(key);
   const promise = (async () => {

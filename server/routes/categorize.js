@@ -3,6 +3,7 @@ const {
     openai,
     OpenAI,
     OPENAI_OFFSCRIPT_MODEL,
+    OPENAI_OFFSCRIPT_REASONING_EFFORT,
     OPENAI_PROMPT_CACHE_KEY,
     OPENAI_PROMPT_CACHE_RETENTION,
     PROMPT_VERSION,
@@ -14,7 +15,8 @@ const {
     FOLLOWUP_QUESTION_PROMPT,
 } = require('../lib/prompts');
 const { buildOpenAIDynamicPagePayload } = require('../lib/payloads');
-const { parseCategorizationLine } = require('../lib/modelParsing');
+const { buildPageImageMessage } = require('../lib/pageImage');
+const { parseCategorizationLine, parseJsonFromModelText } = require('../lib/modelParsing');
 const { generateGeminiTtsChunks } = require('../liveTTS');
 
 const router = express.Router();
@@ -33,7 +35,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     let tLastItem = null;
     let categorizationUsage = null;
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, book } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -60,9 +62,13 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
                 }),
             },
         ];
+        // Page illustration grounds question generation. Kept as its own
+        // message before the dynamic payload so it stays a stable cache prefix.
+        const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
         const questionMessages = [
             { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
             { role: "developer", content: FOLLOWUP_QUESTION_PROMPT },
+            ...(pageImageMessage ? [pageImageMessage] : []),
             {
                 role: "user",
                 content: buildOpenAIDynamicPagePayload({
@@ -84,7 +90,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             stream: true,
             stream_options: { include_usage: true },
             max_completion_tokens: 512,
-            reasoning_effort: 'minimal',
+            reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',
             response_format: { type: 'json_object' },
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
@@ -94,9 +100,10 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
 
         const questionPromise = openai.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
-            max_completion_tokens: 48,
-            reasoning_effort: 'minimal',
+            max_completion_tokens: 120,
+            reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',
+            response_format: { type: 'json_object' },
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: questionMessages,
@@ -176,7 +183,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             const retryResult = await openai.chat.completions.create({
                 model: OPENAI_OFFSCRIPT_MODEL,
                 max_completion_tokens: 512,
-                reasoning_effort: 'minimal',
+                reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
                 verbosity: 'low',
                 response_format: { type: 'json_object' },
                 prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
@@ -206,18 +213,31 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
         // Categorization done — decide whether to use or cancel question generation
         // const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
         let generatedQuestion = null;
+        let expectedAnswer = null;
 
         if (hasOnTopic) {
             const qResult = await questionPromise;
             tlog('question generation complete');
             logOpenAIUsage('cat-stream/question', qResult?.usage);
-            generatedQuestion = qResult?.choices[0]?.message?.content?.trim() || null;
+            const rawQuestion = qResult?.choices[0]?.message?.content?.trim() || '';
+            if (rawQuestion) {
+                // Question gen returns { question, expected_answer }. Fall back to
+                // treating the whole output as the question if it isn't valid JSON.
+                const parsed = parseJsonFromModelText(rawQuestion, null);
+                if (parsed && typeof parsed.question === 'string') {
+                    generatedQuestion = parsed.question.trim() || null;
+                    const ea = parsed.expected_answer;
+                    expectedAnswer = (ea == null || ea === '') ? null : String(ea).trim();
+                } else {
+                    generatedQuestion = rawQuestion;
+                }
+            }
         } else {
             questionAbortController.abort();
             tlog('question generation aborted (no ON_TOPIC)');
         }
 
-        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion, expectedAnswer })}\n\n`);
 
         if (generatedQuestion && ttsVoiceName) {
             const tTtsStart = Date.now();

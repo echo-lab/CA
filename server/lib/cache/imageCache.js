@@ -3,16 +3,11 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 
-// Disk cache for /analyze-image and /tag-image responses.
-// Keyed by a sha256 of (kind, book, page, model, pageText, question, version),
-// so any change to dialogue text or the prompt version busts the entry.
 const CFG = {
   dir: path.join(__dirname, '..', '..', 'cache', 'image'),
   ttlSec: 30 * 24 * 60 * 60, // 30 days
   bypassHeader: 'x-bypass-cache',
-  // Bump this whenever the server-side prompt or post-processing changes,
-  // so older entries are treated as misses.
-  version: '1',
+  version: '3.1',
 };
 
 function ensureDirSync(p) {
