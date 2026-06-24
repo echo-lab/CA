@@ -30,6 +30,7 @@ export function useAudioPlayback({
   setShowAvatar,
   showAvatarRef,
   setInReinforcementLoop,
+  setAvatarPhase,
   setIsCategorizationPending,
   hasSlidCloserRef,
   lastAskedQuestionRef,
@@ -130,6 +131,7 @@ export function useAudioPlayback({
     pendingGeneratedQuestionRef.current = text;
     setRevealedQuestion('');
     setIsThoughtRevealed(false);
+    setAvatarPhase('question');
     setGeneratedQuestion(text);
     setQuestionHistory(prev => {
       const last = prev[prev.length - 1];

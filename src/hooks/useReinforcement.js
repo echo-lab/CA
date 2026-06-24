@@ -1,20 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
-import { sendReinforcementLog, resetReinforcementSnapshot, setAwaitingQuestionAnswer, buildBookContext } from "../utils/utteranceProcessor";
+import { sendReinforcementLog, resetReinforcementSnapshot, setAwaitingQuestionAnswer, buildBookContext, setReinforcementTurns } from "../utils/utteranceProcessor";
 
-// Owns the reinforcement loop: generating + streaming the spoken reinforcement,
-// barge-in detection, and reinforcement reveal state. computeRevealLength comes
-// from useAudioPlayback; cross-boundary refs are Story-owned and passed in.
 export function useReinforcement({
   computeRevealLength,
-  // audio-control
   isAnyAudioPlaying,
   tryBeginAudio,
   endAudio,
   remoteAudioRef,
   isMuted,
-  // story data / shared refs (Story-owned)
   narratorRole,
   stateRef,
   lastAskedQuestionRef,
@@ -24,9 +19,10 @@ export function useReinforcement({
   imageDescriptionRef,
   userAttentionRef,
   deepgramTranscript,
-  // cross-cutting setters
   setQuestionHistory,
   setInReinforcementLoop,
+  setAvatarPhase,
+  setShowAvatar,
 }) {
   const [isReinforcementPlaying, setIsReinforcementPlaying] = useState(false);
   const [revealedReinforcement, setRevealedReinforcement] = useState('');
@@ -63,13 +59,15 @@ export function useReinforcement({
       console.log("[barge-in] child speech detected during reinforcement, stopping:", deepgramTranscript);
       reinforcementRequestSeqRef.current += 1;
       stopReinforcementAudio();
+      reinforcementModeRef.current = false;
+      setAwaitingQuestionAnswer(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepgramTranscript]);
 
   const closeReinforcementMode = useCallback(() => {
     reinforcementModeRef.current = false;
     reinforcementSessionRef.current = { question: null, turns: [] };
+    setReinforcementTurns([]);
     reinforcementRequestSeqRef.current += 1;
     resetReinforcementSnapshot();
     stopReinforcementAudio();
@@ -85,9 +83,6 @@ export function useReinforcement({
     const currentState = stateRef.current;
     const page = currentState.pagesValues[currentState.page];
     const bookText = buildBookContext(currentState.pagesValues, currentState.page);
-
-    // Expected answer only applies to a generated question. A page-question
-    // answer has no reference answer, so it should always just be affirmed.
     const expectedAnswer = reinforcementFromPageQuestionRef.current
       ? null
       : (lastExpectedAnswerRef?.current ?? null);
@@ -112,6 +107,7 @@ export function useReinforcement({
 
     reinforcementRequestSeqRef.current = requestSeq;
     reinforcementModeRef.current = true;
+    setAvatarPhase('ack');
     generatedQuestionPendingRef.current = false;
     reinforcementSessionRef.current = {
       question,
@@ -133,15 +129,16 @@ export function useReinforcement({
         }
         reinforcementAudioBlockedRef.current = false;
         reinforcementActiveRef.current = false;
+        reinforcementModeRef.current = false;
+        setAwaitingQuestionAnswer(false);
         setIsReinforcementPlaying(false);
-        if (reinforcementFromPageQuestionRef.current) {
-          setQuestionHistory(prev => prev.filter(m => m.type !== 'reinforcement'));
-          setRevealedReinforcement('');
-          fullReinforcementTextRef.current = '';
-          cumulativeReinforcementMsRef.current = 0;
-        } else if (fullReinforcementTextRef.current) {
-          setRevealedReinforcement(fullReinforcementTextRef.current);
-        }
+        setQuestionHistory([]);
+        setRevealedReinforcement('');
+        fullReinforcementTextRef.current = '';
+        cumulativeReinforcementMsRef.current = 0;
+        setShowAvatar(false);
+        setInReinforcementLoop(false);
+        setAvatarPhase('question');
         endAudio(AUDIO_SOURCES.REINFORCEMENT);
         if (remoteAudioRef.current && !isMuted) {
           remoteAudioRef.current.muted = false;
@@ -160,6 +157,7 @@ export function useReinforcement({
             ...reinforcementSessionRef.current.turns,
             { user: reply, response: reinforcement },
           ];
+          setReinforcementTurns(reinforcementSessionRef.current.turns);
           fullReinforcementTextRef.current = reinforcement;
           cumulativeReinforcementMsRef.current = 0;
           setRevealedReinforcement('');
@@ -235,7 +233,6 @@ export function useReinforcement({
     }
   };
 
-  // Reset only the reinforcement reveal state, for Story's clearQuestionUI.
   const resetReinforcementRevealState = useCallback(() => {
     setRevealedReinforcement('');
     fullReinforcementTextRef.current = '';

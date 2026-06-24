@@ -100,6 +100,7 @@ function Reader() {
     "Ruby Randy": require("../Pictures/Mate06/Mates-06-L.png"),
     "Coral Carly": require("../Pictures/Mate05/Mates-05-L.png"),
   };
+  
   const narratorRole = Array.isArray(selectedOptions)
     ? selectedOptions.find(o => mateFrames[o.role])
     : null;
@@ -170,12 +171,11 @@ function Reader() {
   const [questionHistory, setQuestionHistory] = useState([]);
   const [showAvatar, setShowAvatar] = useState(false);
   const [inReinforcementLoop, setInReinforcementLoop] = useState(false);
+  const [avatarPhase, setAvatarPhase] = useState('question');
 
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
 
-  // Mirror inReinforcementLoop into a ref so the line-change effect (which only
-  // depends on page/index) can read its current value without going stale.
   const inReinforcementLoopRef = useRef(false);
   useEffect(() => { inReinforcementLoopRef.current = inReinforcementLoop; }, [inReinforcementLoop]);
 
@@ -240,6 +240,7 @@ function Reader() {
     setShowAvatar,
     showAvatarRef,
     setInReinforcementLoop,
+    setAvatarPhase,
     setIsCategorizationPending,
     hasSlidCloserRef,
     lastAskedQuestionRef,
@@ -277,6 +278,8 @@ function Reader() {
     deepgramTranscript,
     setQuestionHistory,
     setInReinforcementLoop,
+    setAvatarPhase,
+    setShowAvatar,
   });
 
   const clearQuestionUI = () => {
@@ -289,6 +292,7 @@ function Reader() {
     setShowAvatar(false);
     setQuestionHistory([]);
     resetReinforcementRevealState();
+    setAvatarPhase('question');
     reinforcementFromPageQuestionRef.current = false;
     lastExpectedAnswerRef.current = null;
     hasSlidCloserRef.current = false;
@@ -777,6 +781,7 @@ function Reader() {
           questionHistory={questionHistory}
           showAvatar={showAvatar}
           inReinforcementLoop={inReinforcementLoop}
+          avatarPhase={avatarPhase}
           isThoughtRevealed={isThoughtRevealed}
           revealedQuestion={revealedQuestion}
           revealedReinforcement={revealedReinforcement}

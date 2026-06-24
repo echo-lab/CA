@@ -5,6 +5,7 @@ export default function QuestionAvatar({
     questionHistory,
     showAvatar,
     inReinforcementLoop,
+    avatarPhase,
     isThoughtRevealed,
     revealedQuestion,
     revealedReinforcement,
@@ -107,7 +108,7 @@ export default function QuestionAvatar({
                     (isLatestGenerated && isThoughtRevealed && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length) ||
                     (isLatestReinforcement && Boolean(revealedReinforcement) && revealedReinforcement.length < msg.text.length);
                     const latestIsGenerated = latest?.type === 'generated';
-                    const positionClass = inReinforcementLoop
+                    const positionClass = avatarPhase === 'ack'
                     ? (isLatestReinforcement ? 'latest' : 'hidden')
                     : isLatest
                         ? 'latest'

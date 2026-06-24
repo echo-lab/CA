@@ -22,6 +22,11 @@ let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
 let lastReinforcementSnapshot = '';
 let currentBookId = null;
+let reinforcementTurns = [];
+
+export function setReinforcementTurns(turns) {
+  reinforcementTurns = Array.isArray(turns) ? turns : [];
+}
 
 // Minimum number of words the child must speak before a generated-question
 const MIN_ANSWER_WORDS = 3;
@@ -30,8 +35,6 @@ export function resetReinforcementSnapshot() {
   lastReinforcementSnapshot = '';
 }
 
-// Book id for the active story, used so the server can attach the page
-// illustration to question + reinforcement generation.
 export function setCurrentBookId(v) { currentBookId = v; }
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
@@ -47,6 +50,7 @@ export function resetOffScriptStateForPage(offScriptLogRef) {
   pendingPOSBuffer = [];
   lastSpeculativeSnapshot = '';
   speculativeLineEntries = [];
+  reinforcementTurns = [];
   if (offScriptLogRef) {
     offScriptLogRef.current = [];
   }
@@ -260,7 +264,15 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
     .sort((a, b) => a[0] - b[0])
     .map(([idx, text]) => `[Line ${idx + 1}] "${text}"`);
 
-  const formattedLog = [...mergedLines, ...turnLines].join('\n');
+  const refLine = (offScriptLogRef.current[0]?.lineIndex ?? oldPage) + 1;
+  const conversationLines = [];
+  let convTurn = 0;
+  for (const { user, response } of reinforcementTurns) {
+    if (user) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] "${user}"`);
+    if (response) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (System) "${response}"`);
+  }
+
+  const formattedLog = [...conversationLines, ...mergedLines, ...turnLines].join('\n');
 
   offScriptLogRef.current = [];
   debugLog({ type: 'offscript_clear' });
@@ -475,7 +487,7 @@ export async function processUserUtterance({
   if (!userUtterance) return;
 
   const wasAwaiting = awaitingQuestionAnswer;
-  const reinforcementActiveAtStart = wasAwaiting || isReinforcementModeRef?.current === true;
+  const ackInProgress = isReinforcementModeRef?.current === true;
   awaitingQuestionAnswer = false;
 
   const fireReinforcement = () => {
@@ -510,7 +522,7 @@ export async function processUserUtterance({
   };
 
   const generatedQuestionPending = generatedQuestionPendingRef?.current === true;
-  const canCategorizeLive = !reinforcementActiveAtStart && !generatedQuestionPending && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
+  const canCategorizeLive = !wasAwaiting && !ackInProgress && !generatedQuestionPending && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
     ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady }
     : null;
@@ -528,7 +540,7 @@ export async function processUserUtterance({
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
 
-    if (reinforcementActiveAtStart) {
+    if (wasAwaiting) {
       fireReinforcement();
       return;
     }
@@ -562,7 +574,7 @@ export async function processUserUtterance({
   }
 
   if (!currentLine?.Reading) {
-    if (reinforcementActiveAtStart) {
+    if (wasAwaiting) {
       lastProcessedUtteranceRef.current = userUtterance;
       fireReinforcement();
     }
@@ -574,7 +586,7 @@ export async function processUserUtterance({
 
   if (!isUserReadingRole) {
     lastProcessedUtteranceRef.current = userUtterance;
-    if (reinforcementActiveAtStart) {
+    if (wasAwaiting) {
       fireReinforcement();
     }
     return;
@@ -593,7 +605,7 @@ export async function processUserUtterance({
 
   const rawDialogue = stripSSMLTags(currentLine.Dialogue)?.trim();
   if (!rawDialogue) {
-    if (reinforcementActiveAtStart) {
+    if (wasAwaiting) {
       fireReinforcement();
     }
     return; // nothing to match against (pure SSML or empty line)
@@ -665,15 +677,13 @@ export async function processUserUtterance({
     return;
   }
 
-  // Step 4: Release only words that are no longer needed for current/future line matching.
   const queue = utteranceQueuesRef.current[0] || [];
   const wordsToRelease = Math.max(0, queue.length - maxReadableLookbackWords);
   const removedWords = utteranceQueuesRef.current[0].splice(0, wordsToRelease);
   utteranceQueuesRef.current[1].splice(0, wordsToRelease);
-  //captureStableOffScriptWords(offScriptLogRef, currentLineIndex, removedWords, categorizationContext);
   debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
 
-  if (reinforcementActiveAtStart) {
+  if (wasAwaiting) {
     fireReinforcement();
     return;
   }

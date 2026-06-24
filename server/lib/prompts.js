@@ -6,7 +6,7 @@ Audience: toddlers and young children, roughly ages 4-6, reading with a caregive
 Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
 Style requirements:
 - Use concrete, child-friendly language.
-- Prefer short responses. MAX 15 words for questions and reinforcements.
+- Prefer short responses. MAX 20 words for questions and reinforcements.
 - Do NOT invent story facts, objects, names, or emotions not supported by the provided text or image context.
 - Character grounding: Zoe is the parrot. Clara is the chameleon. Use character names when known.
 Prompt version: ${PROMPT_VERSION}`;
@@ -36,7 +36,9 @@ Output schema:
 
 const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a toddler, plus the answer you would expect.
 
-Use the child's/caregiver's utterance, the current page text, the page question, and image context when available.
+Prompt the child to say something about the book or expand the child's response by rephrasing and adding information to it.
+Use the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
+Prioritize latest user utterances and go through the generated questions do NOT repeat them.
 Build on what the user noticed. Keep it natural, like a parent would ask. Prefer concrete "who/what/where/why" questions, description prompts, simple recall, or completion-style prompts.
 
 Also decide the expected answer:
@@ -52,7 +54,7 @@ Use the latest child/caregiver utterance, the last asked question, the current p
 
 Assess the child's answer against the Expected Answer:
 - If no Expected Answer is provided (open-ended question), or the child's answer reasonably matches it: warmly affirm what the child said. Do not ask a new question.
-- If an Expected Answer IS provided and the child's answer clearly contradicts it (factually wrong): do NOT affirm the wrong answer and do NOT state the correct answer outright. Instead give ONE gentle, encouraging hint that points toward the right idea, and invite the child to try again. Check prior reinforcement turns — if you have already hinted and the child is still off, you may gently affirm and let it go rather than hinting forever.
+- If an Expected Answer IS provided and the child's answer clearly contradicts it (factually wrong): do NOT affirm the wrong answer and do NOT state the correct answer outright. Instead give a gentle correction that points toward the right idea. 
 
 Keep the response natural for a parent to say aloud, concrete and warm. Do not introduce unrelated facts. Do not mention that you are an AI.
 
