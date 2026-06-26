@@ -47,7 +47,6 @@ function Reader() {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const PRELOAD_CONCURRENCY = 1;
   const TEST_GENERATED_QUESTION = "How do you think Zoe is feeling?";
-  const REALTIME_ENABLED = true;
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
 
@@ -109,8 +108,6 @@ function Reader() {
   const listeningImage = (narratorRole && mateListeningImages[narratorRole.role]) || narratorImage;
 
   const {
-    connect,
-    disconnect,
     geminiLiveConnect,
     geminiLiveDisconnect,
     isMuted,
@@ -358,11 +355,9 @@ function Reader() {
 
   useEffect(() => {
     if (DEEPGRAM_ENABLED) connectToDeepgram();
-    if (REALTIME_ENABLED) connect();
     if (GEMINI_Enabled) geminiLiveConnect({ voiceName: narratorRole?.VA });
     return () => {
       disconnectDeepgram();
-      disconnect();
       geminiLiveDisconnect();
     };
   }, []);

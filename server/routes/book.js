@@ -5,7 +5,6 @@ const path = require('path');
 const router = express.Router();
 
 const GOOGLE_API_KEY = process.env.GOOGLEAPI_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 function stripSSML(text) {
     return text.replace(/<\/?[^>]+(>|$)/g, '').replace(/\s+/g, ' ').trim();
@@ -54,47 +53,6 @@ async function synthesizeSpeech({ text, voice }) {
     }
     return JSON.parse(raw);
 }
-
-// Realtime API token endpoint
-router.get('/api/rt-connection', async (req, res) => {
-    try {
-        const fetch = (await import('node-fetch')).default;
-        const r = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${OPENAI_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                session: {
-                    type: "realtime",
-                    model: "gpt-realtime",
-                    audio: {
-                        output: {
-                            voice: "marin",
-                        },
-                    },
-                }
-            })
-        });
-
-        if (!r.ok) {
-            const errorText = await r.text();
-            console.error(`OpenAI error (${r.status}):`, errorText);
-            return res.status(r.status).json({
-                error: "Failed to generate token",
-                detail: errorText
-            });
-        }
-
-        // Return the full JSON response from OpenAI
-        const tokenData = await r.json();
-        res.json(tokenData);
-    } catch (error) {
-        console.error("Token generation error:", error);
-        res.status(500).json({ error: "Request failed", detail: error.message });
-    }
-});
 
 // API: get book metadata (page names, text, questions)
 router.get('/api/book-data/:bookId', (req, res) => {

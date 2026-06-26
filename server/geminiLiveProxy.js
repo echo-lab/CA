@@ -11,10 +11,6 @@ function setupGeminiLiveProxy(server) {
     console.warn('[gemini-live-proxy] GEMINI_API_KEY not set — proxy will reject connections.');
   }
 
-  // Use noServer + a path-checking upgrade listener instead of
-  // `{ server, path }`. The latter causes ws to destroy any socket whose path
-  // doesn't match (via abortHandshake), which kills connections destined for
-  // other WS servers on the same HTTP server (e.g. /api/deepgram-proxy).
   const wss = new WebSocket.Server({ noServer: true });
   server.on('upgrade', (req, socket, head) => {
     const pathname = req.url.split('?')[0];

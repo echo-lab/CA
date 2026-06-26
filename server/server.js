@@ -5,8 +5,6 @@ const cors = require('cors');
 const https = require('https');
 const WebSocket = require('ws');
 const path = require('path');
-// Load env before requiring route modules — lib/openai.js and routes/book.js
-// read process.env at module-load time.
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 
 const { registerLiveTtsRoutes } = require('./liveTTS');
@@ -202,7 +200,6 @@ else{
         console.log(`Server started on https://localhost:${port}`);
     });
 
-    // Setup WebSocket proxy for Deepgram
     setupDeepgramProxy(server);
     setupGeminiLiveProxy(server);
 }
