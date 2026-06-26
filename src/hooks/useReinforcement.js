@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
-import { sendReinforcementLog, resetReinforcementSnapshot, setAwaitingQuestionAnswer, buildBookContext, setReinforcementTurns } from "../utils/utteranceProcessor";
+import { sendReinforcementLog, resetReinforcementSnapshot, setAwaitingQuestionAnswer, buildBookContext, setReinforcementTurns, clearSpeculativeOffScript } from "../utils/utteranceProcessor";
 
 export function useReinforcement({
   computeRevealLength,
@@ -102,7 +102,7 @@ export function useReinforcement({
 
     const currentState = stateRef.current;
     const pageQuestion = currentState.pagesValues[currentState.page]?.question || '';
-    const question = reinforcementSessionRef.current.question || lastAskedQuestionRef.current || pageQuestion;
+    const question = lastAskedQuestionRef.current || reinforcementSessionRef.current.question || pageQuestion;
     const requestSeq = reinforcementRequestSeqRef.current + 1;
 
     reinforcementRequestSeqRef.current = requestSeq;
@@ -155,9 +155,10 @@ export function useReinforcement({
           if (!reinforcement || requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
           reinforcementSessionRef.current.turns = [
             ...reinforcementSessionRef.current.turns,
-            { user: reply, response: reinforcement },
+            { question, user: reply, response: reinforcement },
           ];
           setReinforcementTurns(reinforcementSessionRef.current.turns);
+          clearSpeculativeOffScript();
           fullReinforcementTextRef.current = reinforcement;
           cumulativeReinforcementMsRef.current = 0;
           setRevealedReinforcement('');

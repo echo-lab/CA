@@ -35,6 +35,11 @@ export function resetReinforcementSnapshot() {
   lastReinforcementSnapshot = '';
 }
 
+export function clearSpeculativeOffScript() {
+  lastSpeculativeSnapshot = '';
+  speculativeLineEntries = [];
+}
+
 export function setCurrentBookId(v) { currentBookId = v; }
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
@@ -267,9 +272,10 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   const refLine = (offScriptLogRef.current[0]?.lineIndex ?? oldPage) + 1;
   const conversationLines = [];
   let convTurn = 0;
-  for (const { user, response } of reinforcementTurns) {
+  for (const { question, user, response } of reinforcementTurns) {
+    if (question) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (TaleMate Generated Question) "${question}"`);
     if (user) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] "${user}"`);
-    if (response) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (System) "${response}"`);
+    if (response) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (TaleMate Generated Response) "${response}"`);
   }
 
   const formattedLog = [...conversationLines, ...mergedLines, ...turnLines].join('\n');

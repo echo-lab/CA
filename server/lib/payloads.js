@@ -8,17 +8,17 @@ function buildOpenAIDynamicPagePayload({
     userAttention,
     utteranceTag,
     formattedUtterances,
-    pendingGeneratedQuestion,
+    lastGeneratedQuestion,
 }) {
-    const pendingBlock = pendingGeneratedQuestion
-        ? `<pending_question>\n"${pendingGeneratedQuestion}"\n(This question was generated for the child but has not yet been played/answered. Avoid producing another that would be redundant with it.)\n</pending_question>\n`
+    const lastQuestionBlock = lastGeneratedQuestion
+        ? `<last_question>\n"${lastGeneratedQuestion}"\n(This question was last generated for the child. Avoid producing another that would be redundant with it.)\n</last_question>\n`
         : '';
     return `<current_page>
 Page: ${currentPageNumber || ''}
 Book Text: ${bookText || ''}
 Question: "${currentPageQuestion || ''}"
 </current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}${pendingBlock}<${utteranceTag}>
+${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}${lastQuestionBlock}<${utteranceTag}>
 ${formattedUtterances}
 </${utteranceTag}>`;
 }

@@ -25,7 +25,6 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    // Send headers immediately so the browser starts parsing SSE before any data.
     res.flushHeaders();
 
     const t0 = Date.now();
@@ -35,7 +34,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     let tLastItem = null;
     let categorizationUsage = null;
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, book } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, lastGeneratedQuestion, ttsVoiceName, book } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -58,17 +57,16 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
                     userAttention,
                     utteranceTag: 'off_script_utterances',
                     formattedUtterances,
-                    pendingGeneratedQuestion,
+                    lastGeneratedQuestion: lastGeneratedQuestion,
                 }),
             },
         ];
-        // Page illustration grounds question generation. Kept as its own
-        // message before the dynamic payload so it stays a stable cache prefix.
+
         const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
         const questionMessages = [
             { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
             { role: "developer", content: FOLLOWUP_QUESTION_PROMPT },
-            ...(pageImageMessage ? [pageImageMessage] : []),
+            ...(pageImageMessage ? [pageImageMessage] : []), // 
             {
                 role: "user",
                 content: buildOpenAIDynamicPagePayload({
@@ -79,7 +77,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
                     userAttention,
                     utteranceTag: 'utterances',
                     formattedUtterances,
-                    pendingGeneratedQuestion,
+                    lastGeneratedQuestion: lastGeneratedQuestion,
                 }),
             },
         ];
@@ -100,7 +98,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
 
         const questionPromise = openai.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
-            max_completion_tokens: 120,
+            max_completion_tokens: 512,
             reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',
             response_format: { type: 'json_object' },

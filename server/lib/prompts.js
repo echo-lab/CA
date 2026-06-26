@@ -11,39 +11,42 @@ Style requirements:
 - Character grounding: Zoe is the parrot. Clara is the chameleon. Use character names when known.
 Prompt version: ${PROMPT_VERSION}`;
 
-const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page. When classifying put more weight on the latest part of the utterance.
+const OFFSCRIPT_CATEGORIZATION_PROMPT = `Task: classify off-script utterances for the current page. Each utterance is tagged with a [Line X, Turn Y] marker; the HIGHEST Turn number is the most recent. Anchor your categorization on the highest-Turn user utterance, using earlier turns only as supporting context.
+The page question is only the scripted starter for the page — it is ONE of many valid topics, not the subject the utterance must match. Judge against the whole page (text and illustration), not against the page question.
 
 Output one JSON object as one NDJSON line for each utterance, with no extra text.
 
 Categories:
 1. ON_TOPIC
-- Directly addresses the current page's narrative, character emotions, or visual details.
-- Shows accurate comprehension of the story, including correct character names/genders.
-- Can use pronouns or partial descriptions instead of character names when the meaning is clearly grounded in the current page.
 - Must be substantive. Do not use for one-word fillers.
-- Related to the current page question as long as it is not a regurgitation of existing page question.
+- Is about the book or the current page's illustration. It does NOT have to relate to the current page question — a different visual detail or object on the page (e.g. an item a character is wearing or holding) is ON_TOPIC.
+- Addresses the current page's narrative, character emotions, or visual details.
+- Shows accurate comprehension of the story, including correct character names.
+- Can use pronouns or partial descriptions instead of character names when the meaning is clearly grounded in the current page.
 - Talking about the current page's illustration, even if it is not directly related to the story text.
-- The utterance must open up a meaningfully NEW angle relative to any <pending_question>.
 
 2. OFF_TOPIC
 - NON_SUBSTANTIVE: Fillers, presence signals, or empty reactions.
 - EXTERNAL: Daily chat or physical environment comments.
-- RELVANCY: The latest addition to utterance is off-topic, even if earlier parts were on-topic.
-- REDUNDANT: The utterance is on-topic but would only prompt a follow-up question nearly identical to the <pending_question> still awaiting the child's response.
+- RELEVANCY: The latest utterance is off-topic, even if earlier parts were on-topic.
+- REPEAT: The latest utterance is a regurgitation of the current page question or a previously generated question.
 
 Output schema:
-{"category":"ON_TOPIC"|"OFF_TOPIC","reason":"<one short sentence, max 20 words, explaining the classification>"}`;
+{"category":"ON_TOPIC"|"OFF_TOPIC","reason":"<one short sentence, max 10 words, explaining the classification>"}`;
 
 const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a toddler, plus the answer you would expect.
 
 Prompt the child to say something about the book or expand the child's response by rephrasing and adding information to it.
 Use the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
-Prioritize latest user utterances and go through the generated questions do NOT repeat them.
-Build on what the user noticed. Keep it natural, like a parent would ask. Prefer concrete "who/what/where/why" questions, description prompts, simple recall, or completion-style prompts.
+Each utterance is tagged with a [Line X, Turn Y] marker; the HIGHEST Turn number is the most recent. Anchor your question on the highest-Turn user utterance, using earlier turns only as supporting context.
+The page question is only the scripted starter for the page — do NOT fixate on it. Follow what the child actually brought up; any detail on the page or its illustration is fair game.
+Previously generated questions appear in the same utterances marked (TaleMate Generated Question); go through them and do NOT repeat them.
+Build on what the user noticed. Keep it natural, like a parent would ask. Prefer concrete Wh-Questions, description prompts, simple recall, or completion-style prompts.
+User must be able to answer the question with words avoid questions requiring gestures, pointing, or physical actions.
 
 Also decide the expected answer:
-- If the question has a clear, correct answer grounded in the page text or illustration, set "expected_answer" to that answer in a few words.
 - If the question is open-ended, subjective, or about the child's own preference or imagination (no single correct answer), set "expected_answer" to null.
+- If the question has a clear, correct answer grounded in the page text or illustration, set "expected_answer" to that answer in a few words.
 
 Output JSON only. No explanation, no preface:
 {"question":"<the question>","expected_answer":"<short answer>" or null}`;
@@ -56,7 +59,7 @@ Assess the child's answer against the Expected Answer:
 - If no Expected Answer is provided (open-ended question), or the child's answer reasonably matches it: warmly affirm what the child said. Do not ask a new question.
 - If an Expected Answer IS provided and the child's answer clearly contradicts it (factually wrong): do NOT affirm the wrong answer and do NOT state the correct answer outright. Instead give a gentle correction that points toward the right idea. 
 
-Keep the response natural for a parent to say aloud, concrete and warm. Do not introduce unrelated facts. Do not mention that you are an AI.
+Keep the response natural, concrete, and warm. Do not introduce unrelated facts.
 
 Output only the spoken response. No explanation, no preface.`;
 

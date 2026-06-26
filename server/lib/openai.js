@@ -22,6 +22,7 @@ function logOpenAIUsage(label, usage) {
     console.log(`[${label}] OpenAI usage`, {
         promptTokens: usage.prompt_tokens,
         completionTokens: usage.completion_tokens,
+        reasoningTokens: usage.completion_tokens_details?.reasoning_tokens,
         totalTokens: usage.total_tokens,
         cachedTokens: getCachedPromptTokens(usage),
     });
