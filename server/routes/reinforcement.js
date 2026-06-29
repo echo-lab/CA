@@ -14,6 +14,21 @@ const { generateGeminiTtsChunks } = require('../liveTTS');
 
 const router = express.Router();
 
+function parseReinforcement(raw) {
+    const content = (raw || '').trim();
+    if (!content) return { reinforcement: '', correct: true };
+    try {
+        const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+        const parsed = JSON.parse(cleaned);
+        const reinforcement = String(parsed?.response ?? '').trim();
+        const correct = parsed?.correct === false ? false : true;
+        return { reinforcement, correct };
+    } catch (err) {
+        console.warn('[reinforcement] failed to parse JSON, using raw content:', err?.message);
+        return { reinforcement: content, correct: true };
+    }
+}
+
 router.post('/api/reinforcement', async (req, res) => {
     try {
         const {
@@ -63,8 +78,8 @@ router.post('/api/reinforcement', async (req, res) => {
         });
 
         logOpenAIUsage('reinforcement', response?.usage);
-        const reinforcement = response?.choices?.[0]?.message?.content?.trim() || '';
-        res.json({ reinforcement });
+        const { reinforcement, correct } = parseReinforcement(response?.choices?.[0]?.message?.content);
+        res.json({ reinforcement, correct });
     } catch (error) {
         console.error('Error in /api/reinforcement:', error);
         res.status(500).json({ message: error.toString() });
@@ -127,14 +142,14 @@ router.post('/api/reinforcement-stream', async (req, res) => {
         });
 
         logOpenAIUsage('reinforcement-stream', response?.usage);
-        const reinforcement = response?.choices?.[0]?.message?.content?.trim() || '';
+        const { reinforcement, correct } = parseReinforcement(response?.choices?.[0]?.message?.content);
         if (!reinforcement) {
             console.warn('[reinforcement-stream] empty reinforcement', {
                 finishReason: response?.choices?.[0]?.finish_reason,
                 completionTokens: response?.usage?.completion_tokens,
             });
         }
-        res.write(`data: ${JSON.stringify({ type: 'done', reinforcement })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', reinforcement, correct })}\n\n`);
 
         if (reinforcement) {
             try {

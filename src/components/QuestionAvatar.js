@@ -65,13 +65,16 @@ export default function QuestionAvatar({
         };
     }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isReinforcementPlaying, showAvatar, inReinforcementLoop, listeningImage]);
 
-    if (questionHistory.length === 0) return null;
+    // Keep the character on screen whenever the avatar is active, even if there
+    // are no messages yet (e.g. while categorization/reinforcement is running).
+    if (questionHistory.length === 0 && !showAvatar) return null;
 
         const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying || isReinforcementPlaying;
         const latestIdx = questionHistory.length - 1;
-        const latest = questionHistory[latestIdx];
+        const latest = latestIdx >= 0 ? questionHistory[latestIdx] : null;
 
         const handleLatestClick = () => {
+            if (!latest) return;
             if (latest.type === 'generated') onSpeakGenerated();
             else if (latest.type === 'reinforcement') {/* no-op */}
             else onPlaySound();

@@ -8,6 +8,7 @@ const {
     OPENAI_PROMPT_CACHE_RETENTION,
     PROMPT_VERSION,
     logOpenAIUsage,
+    bedrockOffscript,
 } = require('../lib/openai');
 const {
     TALEMATE_SHARED_PROMPT_PREFIX,
@@ -20,6 +21,10 @@ const { parseCategorizationLine, parseJsonFromModelText } = require('../lib/mode
 const { generateGeminiTtsChunks } = require('../liveTTS');
 
 const router = express.Router();
+
+const USE_BEDROCK = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
+const offscript = USE_BEDROCK ? bedrockOffscript : openai;
+console.log(`[cat-stream] offscript provider = ${USE_BEDROCK ? 'bedrock (gpt-5.4)' : 'openai'}`);
 
 router.post('/api/categorize-utterances-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -83,7 +88,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
         ];
 
         // Start categorization and question generation simultaneously
-        const categorizationStreamPromise = openai.chat.completions.create({
+        const categorizationStreamPromise = offscript.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
             stream: true,
             stream_options: { include_usage: true },
@@ -96,7 +101,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             messages: categorizationMessages,
         });
 
-        const questionPromise = openai.chat.completions.create({
+        const questionPromise = offscript.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
             max_completion_tokens: 512,
             reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
@@ -178,7 +183,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
                 finishReason: categorizationFinishReason,
             });
             tlog('retrying categorization without streaming');
-            const retryResult = await openai.chat.completions.create({
+            const retryResult = await offscript.chat.completions.create({
                 model: OPENAI_OFFSCRIPT_MODEL,
                 max_completion_tokens: 512,
                 reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,

@@ -177,6 +177,7 @@ const streamReinforcement = async ({
         const decoder = new TextDecoder();
         let buffer = '';
         let reinforcement = null;
+        let correct = true;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -193,8 +194,9 @@ const streamReinforcement = async ({
                     const parsed = JSON.parse(dataLine.slice(6));
                     if (parsed.type === 'done') {
                         reinforcement = parsed.reinforcement || null;
+                        correct = parsed.correct === false ? false : true;
                         if (reinforcement && typeof onReinforcementReady === 'function') {
-                            onReinforcementReady(reinforcement);
+                            onReinforcementReady(reinforcement, correct);
                         }
                     } else if (parsed.type === 'audio_chunk') {
                         if (parsed.audioContent && typeof onAudioChunk === 'function') {
@@ -213,8 +215,8 @@ const streamReinforcement = async ({
             }
         }
 
-        gptDebugLog({ type: 'gpt_response', endpoint: '/api/reinforcement-stream', data: { reinforcement } });
-        return { reinforcement };
+        gptDebugLog({ type: 'gpt_response', endpoint: '/api/reinforcement-stream', data: { reinforcement, correct } });
+        return { reinforcement, correct };
     } catch (error) {
         if (error.name === 'AbortError') {
             gptDebugLog({ type: 'gpt_aborted', endpoint: '/api/reinforcement-stream' });

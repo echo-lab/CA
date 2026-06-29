@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { sendReinforcementLog, resetReinforcementSnapshot, setAwaitingQuestionAnswer, buildBookContext, setReinforcementTurns, clearSpeculativeOffScript } from "../utils/utteranceProcessor";
@@ -18,7 +18,6 @@ export function useReinforcement({
   generatedQuestionPendingRef,
   imageDescriptionRef,
   userAttentionRef,
-  deepgramTranscript,
   setQuestionHistory,
   setInReinforcementLoop,
   setAvatarPhase,
@@ -36,6 +35,7 @@ export function useReinforcement({
   const reinforcementActiveRef = useRef(false);
   const fullReinforcementTextRef = useRef('');
   const cumulativeReinforcementMsRef = useRef(0);
+  const reinforcementCorrectRef = useRef(null);
 
   const stopReinforcementAudio = useCallback(() => {
     if (reinforcementAudioRef.current) {
@@ -51,18 +51,6 @@ export function useReinforcement({
     setIsReinforcementPlaying(false);
     endAudio(AUDIO_SOURCES.REINFORCEMENT);
   }, [endAudio]);
-
-  useEffect(() => {
-    const BARGE_IN_MIN_WORDS = 2;
-    const wordCount = (deepgramTranscript || '').trim().split(/\s+/).filter(Boolean).length;
-    if (reinforcementActiveRef.current && wordCount >= BARGE_IN_MIN_WORDS) {
-      console.log("[barge-in] child speech detected during reinforcement, stopping:", deepgramTranscript);
-      reinforcementRequestSeqRef.current += 1;
-      stopReinforcementAudio();
-      reinforcementModeRef.current = false;
-      setAwaitingQuestionAnswer(false);
-    }
-  }, [deepgramTranscript]);
 
   const closeReinforcementMode = useCallback(() => {
     reinforcementModeRef.current = false;
@@ -118,7 +106,11 @@ export function useReinforcement({
     reinforcementAudioBlockedRef.current = false;
     fullReinforcementTextRef.current = '';
     cumulativeReinforcementMsRef.current = 0;
+    reinforcementCorrectRef.current = null;
     setRevealedReinforcement('');
+    // Clear any prior reinforcement/question text so the previous turn isn't
+    // shown while this new one is being generated.
+    setQuestionHistory([]);
 
     try {
       const context = getCurrentPageReinforcementContext();
@@ -130,19 +122,26 @@ export function useReinforcement({
         reinforcementAudioBlockedRef.current = false;
         reinforcementActiveRef.current = false;
         reinforcementModeRef.current = false;
-        setAwaitingQuestionAnswer(false);
         setIsReinforcementPlaying(false);
-        setQuestionHistory([]);
-        setRevealedReinforcement('');
-        fullReinforcementTextRef.current = '';
         cumulativeReinforcementMsRef.current = 0;
-        setShowAvatar(false);
-        setInReinforcementLoop(false);
-        setAvatarPhase('question');
         endAudio(AUDIO_SOURCES.REINFORCEMENT);
         if (remoteAudioRef.current && !isMuted) {
           remoteAudioRef.current.muted = false;
         }
+
+        if (reinforcementCorrectRef.current === false) {
+          setAwaitingQuestionAnswer(true);
+          setAvatarPhase('question');
+          return;
+        }
+
+        setAwaitingQuestionAnswer(false);
+        setQuestionHistory([]);
+        setRevealedReinforcement('');
+        fullReinforcementTextRef.current = '';
+        setShowAvatar(false);
+        setInReinforcementLoop(false);
+        setAvatarPhase('question');
       };
 
       await sendReinforcementLog({
@@ -151,8 +150,9 @@ export function useReinforcement({
         ...context,
         reinforcementHistory: reinforcementSessionRef.current.turns,
         ttsVoiceName: narratorRole?.VA || null,
-        onReinforcementReady: (reinforcement) => {
+        onReinforcementReady: (reinforcement, correct) => {
           if (!reinforcement || requestSeq !== reinforcementRequestSeqRef.current || !reinforcementModeRef.current) return;
+          reinforcementCorrectRef.current = correct === false ? false : true;
           reinforcementSessionRef.current.turns = [
             ...reinforcementSessionRef.current.turns,
             { question, user: reply, response: reinforcement },

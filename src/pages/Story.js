@@ -272,7 +272,6 @@ function Reader() {
     generatedQuestionPendingRef,
     imageDescriptionRef,
     userAttentionRef,
-    deepgramTranscript,
     setQuestionHistory,
     setInReinforcementLoop,
     setAvatarPhase,
