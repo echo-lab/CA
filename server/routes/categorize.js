@@ -39,7 +39,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     let tLastItem = null;
     let categorizationUsage = null;
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, lastGeneratedQuestion, ttsVoiceName, book } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, lastGeneratedQuestion, systemQuestions, ttsVoiceName, book } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -83,6 +83,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
                     utteranceTag: 'utterances',
                     formattedUtterances,
                     lastGeneratedQuestion: lastGeneratedQuestion,
+                    systemQuestions,
                 }),
             },
         ];

@@ -14,11 +14,12 @@ const categorizeOffScriptUtterancesStreaming = async (
     onAudioError,
     onQuestionReady,
     signal,
-    book
+    book,
+    systemQuestions
 ) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
-    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, book };
+    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, systemQuestions, ttsVoiceName, book };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/categorize-utterances-stream', payload });
 
     const t0 = performance.now();

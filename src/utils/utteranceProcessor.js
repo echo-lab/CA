@@ -253,6 +253,9 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   if (!offScriptLogRef?.current?.length) return;
 
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
+  const systemQuestions = (state.pagesValues || [])
+    .map((p) => (p?.question || '').trim())
+    .filter(Boolean);
   const bookText = buildBookContext(state.pagesValues, oldPage);
   const turnLines = [];
   const lineMap = new Map();
@@ -290,7 +293,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady, controller.signal, currentBookId);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady, controller.signal, currentBookId, systemQuestions);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {

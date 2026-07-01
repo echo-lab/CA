@@ -9,16 +9,20 @@ function buildOpenAIDynamicPagePayload({
     utteranceTag,
     formattedUtterances,
     lastGeneratedQuestion,
+    systemQuestions,
 }) {
     const lastQuestionBlock = lastGeneratedQuestion
-        ? `<last_question>\n"${lastGeneratedQuestion}"\n(This question was last generated for the child. Avoid producing another that would be redundant with it.)\n</last_question>\n`
+        ? `<last_question>\n"${lastGeneratedQuestion}"\n</last_question>\n`
+        : '';
+    const systemQuestionsBlock = Array.isArray(systemQuestions) && systemQuestions.length
+        ? `<system_questions>\n${systemQuestions.map((q) => `- "${q}"`).join('\n')}\n(These questions are already authored for the book. Do NOT generate a question that overlaps with any of them.)\n</system_questions>\n`
         : '';
     return `<current_page>
 Page: ${currentPageNumber || ''}
 Book Text: ${bookText || ''}
 Question: "${currentPageQuestion || ''}"
 </current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}${lastQuestionBlock}<${utteranceTag}>
+${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}${systemQuestionsBlock}${lastQuestionBlock}<${utteranceTag}>
 ${formattedUtterances}
 </${utteranceTag}>`;
 }

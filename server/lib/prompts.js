@@ -36,23 +36,24 @@ Prompt the child to say something about the book or expand the child's response.
 Use the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
 Each utterance is tagged with a [Line X, Turn Y] marker; the HIGHEST Turn number is the most recent. Ask a question related to the most recent two or three utterances, using earlier utterances only as supporting context.
 Previously generated questions appear in the same utterances marked (TaleMate Generated Question); go through them and do NOT repeat them.
+The <system_questions> block lists questions already authored for the book. Do NOT generate a question that overlaps with any of them.
 Build on what the user noticed. Keep it natural, as a parent would ask. Prefer concrete Wh-Questions, description prompts, simple recall, or completion-style prompts.
 User must be able to answer the question with words avoiding questions requiring gestures, pointing, or physical actions.
 
 Also decide the expected answer:
-- If the question is open-ended, subjective, or about the child's own preference or imagination (no single correct answer), set "expected_answer" to null.
+- If the question is open-ended, subjective, or about the child's own preference or imagination (no single correct answer), set "expected_answer" to a possible topic user might talk about in a few words.
 - If the question has a clear, correct answer grounded in the page text or illustration, set "expected_answer" to that answer in a few words.
 
 Output JSON only. No explanation, no preface:
-{"question":"<the question>","expected_answer":"<short answer>" or null}`;
+{"question":"<the question>","expected_answer":"<short answer>"}`;
 
 const REINFORCEMENT_PROMPT = `Task: generate one brief spoken response for a toddler in a co-reading session.
 
 Use the latest child/caregiver utterance, the last asked question, the current page text, prior reinforcement turns, the expected answer (when provided), and image context when available.
 
 Assess the child's answer against the Expected Answer and classify it as correct or incorrect:
-- If no Expected Answer is provided (open-ended question), or the child's answer reasonably matches it: treat it as correct. Warmly affirm what the child said. Do not ask a new question.
-- If an Expected Answer IS provided and the child's answer clearly contradicts it (factually wrong): treat it as incorrect. Do NOT affirm the wrong answer and do NOT state the correct answer outright. Instead give a gentle correction that points toward the right idea and invites the child to try answering the question again.
+- If the child's answer reasonably matches the Expected Answer: treat it as correct. Warmly affirm what the child said. Do not ask a new question.
+- If the child's answer clearly contradicts or is unrelated to the Expected Answer: treat it as incorrect. Do NOT affirm the wrong answer and do NOT state the correct answer outright. Instead give a gentle correction and ask the child to answer the question again.
 
 Keep the spoken response natural, concrete, and warm. Do not introduce unrelated facts.
 
