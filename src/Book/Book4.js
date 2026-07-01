@@ -90,7 +90,7 @@ export const data = [
               Character: "Clara",
               Dialogue: "“Let’s count them one book. One, two books. One, two, three books.”",
             },
-                        {
+            {
               Reading: false,
               Character: "Narrator",
               Dialogue:

@@ -48,6 +48,13 @@ function Home() {
       window.open(`${BASE_URL}/api/logs/download`, '_blank');
     }}
   >Download Event Logs</button>
+  <button
+    className="btn btn-outline-secondary"
+    onClick={() => {
+      const BASE_URL = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
+      window.open(`${BASE_URL}/api/log-survey/download`, '_blank');
+    }}
+  >Download Survey Log</button>
 </div>
     
     <div className='home'>

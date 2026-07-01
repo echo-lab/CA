@@ -568,6 +568,11 @@ export const data = [
               Character: "Clara",
               Dialogue: "“We have to be quiet in the library!”",
             },
+            {
+              Reading: false,
+              Character: "Narrator",
+              Dialogue: "The End.",
+            },
           ],
         },
         },
