@@ -18,6 +18,7 @@ import { useReinforcement } from "../hooks/useReinforcement";
 import { useStoryNavigation } from "../hooks/useStoryNavigation";
 // Utils
 import { warmSay } from "../utils/warmSay";
+import { unlockTtsAudio } from "../utils/ttsClient";
 import { openDebugMonitor } from "../utils/debugMonitor";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
@@ -45,6 +46,18 @@ function Reader() {
   const dialogueRefs = useRef([]);
   const tableContainerRef = useRef(null);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
+  useEffect(() => {
+    const unlock = () => { unlockTtsAudio(); };
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("touchend", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("touchend", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
   const PRELOAD_CONCURRENCY = 1;
   const TEST_GENERATED_QUESTION = "How do you think Zoe is feeling?";
   const DEEPGRAM_ENABLED = true;
