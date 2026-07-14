@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  pointerWithin,
+  rectIntersection,
+} from "@dnd-kit/core";
+import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import Modal from "react-modal";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
@@ -20,6 +31,7 @@ import { say, unlockTtsAudio } from "../utils/ttsClient";
 import { prefetchImageAnalysis } from "../utils/imageAnalysis";
 
 const ROLE_PRIORITY = { Parent: 0, Child: 1 };
+const ROLES_DROPPABLE_ID = "roles";
 
 Modal.setAppElement("#root");
 
@@ -45,9 +57,35 @@ function getDifficultyLabel(bookId, characterName) {
   return DIFFICULTY_MAP[bookId]?.[characterName] ?? "";
 }
 
-// — Draggable role icon —
-function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
+function isVoiceRole(roleName) {
+  return roleName !== "Parent" && roleName !== "Child" && roleName !== "Dummy";
+}
+
+// Prefer whatever droppable is under the pointer/finger; fall back to rect
+// overlap. This makes dropping a role back onto the left rail reliable, instead
+// of the tile snapping to the nearest card's center.
+function collisionDetection(args) {
+  const pointerHits = pointerWithin(args);
+  return pointerHits.length ? pointerHits : rectIntersection(args);
+}
+
+// Static visual for a role tile — shared by the live draggable and the
+// DragOverlay so the floating copy looks identical to the source.
+function RoleTileVisual({ role }) {
+  return (
+    <>
+      <img src={role.img} alt={role.Role} />
+      <span>{role.Role}</span>
+    </>
+  );
+}
+
+// — Draggable role icon (dnd-kit) —
+function RoleDraggable({ role, name }) {
   const [playDisabled, setPlayDisabled] = useState(false);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: role.Role,
+  });
 
   const playSound = () => {
     setPlayDisabled(true);
@@ -56,58 +94,71 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
   };
 
   async function speak() {
-  try {
-    const defaultVoice = role.Role === "Parent" ? "Kore" : (role.RoleParameter || "Puck");
-    await say({
-      text: `Hello ${name}, I am ${role.Role}`,
-      voiceName: defaultVoice,
-      emotion: role.Emotion || "neutral",
-    });
-  } catch (err) {
-    console.error("TTS error:", err);
-  }
+    try {
+      const defaultVoice =
+        role.Role === "Parent" ? "Kore" : role.RoleParameter || "Puck";
+      await say({
+        text: `Hello ${name}, I am ${role.Role}`,
+        voiceName: defaultVoice,
+        emotion: role.Emotion || "neutral",
+      });
+    } catch (err) {
+      console.error("TTS error:", err);
+    }
   }
 
   return (
-    <Draggable
-      draggableId={role.Role}
-      index={index}
-      isDragDisabled={isDragDisabled}
-    >
-      {(provided, snapshot) => {
-        const node = (
-          <div
-            className="RoleDraggable"
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            ref={provided.innerRef}
-            style={{
-              ...provided.draggableProps.style,
-              ...style,
-              zIndex: snapshot.isDragging ? 9999 : "auto",
-            }}
-          >
-            <img src={role.img} alt={role.Role} />
-            <span>{role.Role}</span>
-            {role.Role !== "Parent" && role.Role !== "Child" && role.Role !== "Dummy" && (
-              <button onClick={playSound} disabled={playDisabled}>
-                <PlayArrowIcon />
-              </button>
-            )}
-          </div>
-        );
-        return snapshot.isDragging ? createPortal(node, document.body) : node;
+    <div
+      ref={setNodeRef}
+      className="RoleDraggable"
+      style={{
+        // Required so touch drags aren't stolen by the browser as scrolls.
+        touchAction: "none",
+        cursor: "grab",
+        // The floating copy is the DragOverlay; dim the original in place.
+        opacity: isDragging ? 0.4 : 1,
       }}
-    </Draggable>
+      {...attributes}
+      {...listeners}
+    >
+      <RoleTileVisual role={role} />
+      {isVoiceRole(role.Role) && (
+        <button
+          onClick={playSound}
+          // Stop the drag sensor from claiming the press so the tap registers.
+          onPointerDown={(e) => e.stopPropagation()}
+          disabled={playDisabled}
+        >
+          <PlayArrowIcon />
+        </button>
+      )}
+    </div>
   );
 }
 
+// — Droppable role deck (the whole left rail is the drop zone, so returning a
+//   role to the pane works even when the deck is nearly empty) —
+function RolesRail({ children }) {
+  const { setNodeRef, isOver } = useDroppable({ id: ROLES_DROPPABLE_ID });
+  return (
+    <aside
+      ref={setNodeRef}
+      className={`left-rail${isOver ? " is-over" : ""}`}
+    >
+      <div className="DraggableContainer">{children}</div>
+    </aside>
+  );
+}
+
+// — Droppable character card —
 function CharacterCard({ character, role, userName, difficulty }) {
   const defaultMsg =
     "Select a role from the left, then drag it here to assign the voice.";
   const hasBadge = Boolean(difficulty);
-  const badgeClass =
-    hasBadge ? `difficulty-badge difficulty-${difficulty.toLowerCase()}` : "";
+  const badgeClass = hasBadge
+    ? `difficulty-badge difficulty-${difficulty.toLowerCase()}`
+    : "";
+  const { setNodeRef, isOver } = useDroppable({ id: character.Name });
 
   return (
     <div className="character-card">
@@ -116,11 +167,7 @@ function CharacterCard({ character, role, userName, difficulty }) {
           <div className="left-column">
             <h5 className="card-title">
               {character.Name}
-              {hasBadge && (
-                <span className={badgeClass}>
-                  {difficulty}
-                </span>
-              )}
+              {hasBadge && <span className={badgeClass}>{difficulty}</span>}
             </h5>
             <div className="card-img-container">
               <img
@@ -131,28 +178,16 @@ function CharacterCard({ character, role, userName, difficulty }) {
             </div>
           </div>
 
-          <Droppable droppableId={character.Name}>
-            {(provided) => (
-              <div
-                className="droppable-area"
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-              >
-                {role ? (
-                  <RoleDraggable
-                    key={role.Role}
-                    role={role}
-                    index={0}
-                    name={userName}
-                    isDragDisabled={false}
-                  />
-                ) : (
-                  <p className="default-message">{defaultMsg}</p>
-                )}
-                {provided.placeholder}
-              </div>
+          <div
+            ref={setNodeRef}
+            className={`droppable-area${isOver ? " is-over" : ""}`}
+          >
+            {role ? (
+              <RoleDraggable key={role.Role} role={role} name={userName} />
+            ) : (
+              <p className="default-message">{defaultMsg}</p>
             )}
-          </Droppable>
+          </div>
         </div>
       </div>
     </div>
@@ -174,10 +209,15 @@ export default function CharaterSelecter() {
   const navigate = useNavigate();
 
   const [modalOpen, setModalOpen] = useState(false);
-  
+
   const [characterValues, setCharacterValues] = useState({});
-  const [availableRoles, setAvailableRoles] = useState(
-    roles.map((r) => ({ ...r, isAssigned: false }))
+  const [activeRole, setActiveRole] = useState(null);
+
+  // Fluid drag: a drag begins as soon as the pointer/finger moves 8px — no
+  // press-and-hold. Replaces react-beautiful-dnd's long-press touch behavior.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
   );
 
   // select book JSON
@@ -203,59 +243,68 @@ export default function CharaterSelecter() {
     return map;
   }, []);
 
+  // characterValues is the single source of truth; the deck is simply every
+  // role not currently assigned to a character.
+  const assignedRoleNames = React.useMemo(
+    () =>
+      new Set(
+        Object.values(characterValues)
+          .filter((v) => v && v.Role)
+          .map((v) => v.Role)
+      ),
+    [characterValues]
+  );
+
   const deckRoles = React.useMemo(() => {
-    return availableRoles
-      .filter((r) => !r.isAssigned)
+    return roles
+      .filter((r) => !assignedRoleNames.has(r.Role))
       .sort((a, b) => {
         const pa = ROLE_PRIORITY[a.Role] ?? 2;
         const pb = ROLE_PRIORITY[b.Role] ?? 2;
-        if (pa !== pb) return pa - pb; 
+        if (pa !== pb) return pa - pb;
         return (
-          (initialOrder.get(a.Role) ?? 999) -
-          (initialOrder.get(b.Role) ?? 999)
+          (initialOrder.get(a.Role) ?? 999) - (initialOrder.get(b.Role) ?? 999)
         );
       });
-  }, [availableRoles, initialOrder]);
+  }, [assignedRoleNames, initialOrder]);
 
-  const handleDragEnd = (result) => {
-    const { source, destination, draggableId } = result;
-    if (!destination || source.droppableId === destination.droppableId) return;
+  const handleDragStart = ({ active }) => {
+    setActiveRole(roles.find((r) => r.Role === active.id) || null);
+  };
 
-    window.requestAnimationFrame(() => {
-      setAvailableRoles((prevRoles) => {
-        const rolesCopy = prevRoles.map((r) => ({ ...r }));
+  const handleDragEnd = ({ active, over }) => {
+    setActiveRole(null);
+    if (!over) return;
 
-        setCharacterValues((prevChars) => {
-          const charsCopy = { ...prevChars };
+    const draggableId = active.id; // role name
+    const destId = over.id; // "roles" or a character name
 
-          if (source.droppableId !== "roles") {
-            const srcRoleName =
-              charsCopy[source.droppableId]?.Role ?? draggableId;
-            const srcEntry = rolesCopy.find((r) => r.Role === srcRoleName);
-            if (srcEntry) srcEntry.isAssigned = false;
-            charsCopy[source.droppableId] = "";
-          }
+    setCharacterValues((prevChars) => {
+      // Source = whichever character currently holds this role, else the deck.
+      const sourceId =
+        Object.keys(prevChars).find(
+          (c) => prevChars[c] && prevChars[c].Role === draggableId
+        ) || ROLES_DROPPABLE_ID;
 
-          if (destination.droppableId !== "roles") {
-            const oldRoleName = charsCopy[destination.droppableId]?.Role;
-            if (oldRoleName) {
-              const oldEntry = rolesCopy.find((r) => r.Role === oldRoleName);
-              if (oldEntry) oldEntry.isAssigned = false;
-            }
+      if (sourceId === destId) return prevChars; // dropped where it started
 
-            const draggedEntry = rolesCopy.find((r) => r.Role === draggableId);
-            if (draggedEntry) draggedEntry.isAssigned = true;
+      const draggedRole =
+        (sourceId !== ROLES_DROPPABLE_ID ? prevChars[sourceId] : null) ||
+        roles.find((r) => r.Role === draggableId);
 
-            charsCopy[destination.droppableId] = draggedEntry
-              ? { ...draggedEntry }
-              : "";
-          }
+      const next = { ...prevChars };
 
-          return charsCopy;
-        });
+      // Remove from the source character (if it came from one).
+      if (sourceId !== ROLES_DROPPABLE_ID) next[sourceId] = "";
 
-        return rolesCopy;
-      });
+      // Place into the destination character. Dropping on the rail skips this,
+      // leaving the role unassigned = back in the deck. Any role already in the
+      // destination is overwritten, so it returns to the deck automatically.
+      if (destId !== ROLES_DROPPABLE_ID) {
+        next[destId] = draggedRole ? { ...draggedRole } : "";
+      }
+
+      return next;
     });
   };
 
@@ -273,13 +322,13 @@ export default function CharaterSelecter() {
         img: role.img,
       })
     );
-    navigate("/story", { state: { selectedOptions, id, name: userName, training } });
+    navigate("/story", {
+      state: { selectedOptions, id, name: userName, training },
+    });
   };
-
 
   return (
     <div className="characterSelecter">
-      
       {/* Modals */}
       <Modal
         isOpen={modalOpen}
@@ -290,7 +339,14 @@ export default function CharaterSelecter() {
         <p>Please assign one role to each character before continuing.</p>
         <button onClick={() => setModalOpen(false)}>Close</button>
       </Modal>
-      <DragDropContext onDragEnd={handleDragEnd}>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveRole(null)}
+      >
         <div className="d-flex flex-column min-vh-100">
           <div className="d-flex justify-content-between p-3 bg-light">
             <button className="btn btn-primary" onClick={() => navigate("/")}>
@@ -300,34 +356,22 @@ export default function CharaterSelecter() {
               <h1>Select a Role</h1>
               <p>Drag any role onto each character.</p>
             </div>
-            <button className="btn btn-primary" onClick={() => { navigateToStory(); } }>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                navigateToStory();
+              }}
+            >
               <KeyboardDoubleArrowRightIcon fontSize="large" />
             </button>
           </div>
 
           <div className="flex-body">
-            <aside className="left-rail">
-              <Droppable droppableId="roles">
-                {(provided) => (
-                  <div
-                    className="DraggableContainer"
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                  >
-                    {deckRoles.map((r, i) => (
-                      <RoleDraggable
-                        key={r.Role}
-                        role={r}
-                        index={i}
-                        name={userName}
-                        isDragDisabled={false}
-                      />
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </aside>
+            <RolesRail>
+              {deckRoles.map((r) => (
+                <RoleDraggable key={r.Role} role={r} name={userName} />
+              ))}
+            </RolesRail>
 
             <main className="main-column">
               <div className="character-cards-container">
@@ -344,7 +388,17 @@ export default function CharaterSelecter() {
             </main>
           </div>
         </div>
-      </DragDropContext>
+
+        {/* Floating copy that follows the pointer — renders at the top layer,
+            so it can't be clipped by scroll containers (no portal hack needed). */}
+        <DragOverlay modifiers={[restrictToWindowEdges]}>
+          {activeRole ? (
+            <div className="RoleDraggable" style={{ cursor: "grabbing" }}>
+              <RoleTileVisual role={activeRole} />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }

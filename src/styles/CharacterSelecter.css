@@ -245,6 +245,17 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+/* Highlight whichever drop target the dragged role is currently over. */
+.droppable-area.is-over {
+  border-color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.12);
+}
+
+.left-rail.is-over {
+  background-color: rgba(76, 175, 80, 0.08);
 }
 
 .default-message {
