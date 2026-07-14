@@ -7,6 +7,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Tablet / touch hygiene (iPad Safari) */
+* {
+  /* Remove the grey flash when tapping elements */
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  /* Stop the whole page rubber-banding when a child list is scrolled */
+  overscroll-behavior: none;
+}
+
+button,
+.btn,
+a {
+  /* Removes the 300ms delay and disables accidental double-tap-to-zoom */
+  touch-action: manipulation;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

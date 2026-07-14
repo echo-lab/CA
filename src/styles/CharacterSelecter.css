@@ -10,6 +10,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   overflow: visible;
 }
 
@@ -94,6 +95,7 @@
   align-items: flex-start;
   min-height: 0;
   height: calc(100vh - 88px);
+  height: calc(100dvh - 88px);
   overflow: hidden;
 }
 
@@ -106,6 +108,7 @@
   position: sticky;
   top: 88px;
   height: calc(100vh - 88px);
+  height: calc(100dvh - 88px);
   overflow-y: auto;
   overflow-x: visible;
   -webkit-overflow-scrolling: touch;
