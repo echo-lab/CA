@@ -326,6 +326,7 @@ export function useAudioPlayback({
       setAudio(audioEl);
       audioEl.addEventListener("ended", handleEnded, { once: true });
       audioEl.addEventListener("error", handleError, { once: true });
+      if (audioEl.ended) handleEnded();
       return true;
     } catch (err) {
       console.error("TTS error:", err);

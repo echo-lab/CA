@@ -33,8 +33,8 @@ const corsOptions = {
         'https://talemate.cs.vt.edu',
         'https://128.173.237.12',
         'https://localhost:3000',
-        'http://localhost:3000',  // Allow HTTP for local dev
-        'http://localhost:5001',  // Allow same-origin requests
+        'http://localhost:3000',
+        'http://localhost:5001',
         'https://talemate.cs.vt.edu:3004',
         'https://talemate.cs.vt.edu:5004'
     ],

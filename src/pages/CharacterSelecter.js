@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Modal from "react-modal";
@@ -15,7 +16,7 @@ import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
-import { say } from "../utils/ttsClient";
+import { say, unlockTtsAudio } from "../utils/ttsClient";
 import { prefetchImageAnalysis } from "../utils/imageAnalysis";
 
 const ROLE_PRIORITY = { Parent: 0, Child: 1 };
@@ -73,27 +74,30 @@ function RoleDraggable({ role, index, name, isDragDisabled, style = {} }) {
       index={index}
       isDragDisabled={isDragDisabled}
     >
-      {(provided, snapshot) => (
-        <div
-          className="RoleDraggable"
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          ref={provided.innerRef}
-          style={{
-            ...provided.draggableProps.style,
-            ...style,
-            zIndex: snapshot.isDragging ? 9999 : "auto",
-          }}
-        >
-          <img src={role.img} alt={role.Role} />
-          <span>{role.Role}</span>
-          {role.Role !== "Parent" && role.Role !== "Child" && role.Role !== "Dummy" && (
-            <button onClick={playSound} disabled={playDisabled}>
-              <PlayArrowIcon />
-            </button>
-          )}
-        </div>
-      )}
+      {(provided, snapshot) => {
+        const node = (
+          <div
+            className="RoleDraggable"
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            ref={provided.innerRef}
+            style={{
+              ...provided.draggableProps.style,
+              ...style,
+              zIndex: snapshot.isDragging ? 9999 : "auto",
+            }}
+          >
+            <img src={role.img} alt={role.Role} />
+            <span>{role.Role}</span>
+            {role.Role !== "Parent" && role.Role !== "Child" && role.Role !== "Dummy" && (
+              <button onClick={playSound} disabled={playDisabled}>
+                <PlayArrowIcon />
+              </button>
+            )}
+          </div>
+        );
+        return snapshot.isDragging ? createPortal(node, document.body) : node;
+      }}
     </Draggable>
   );
 }
@@ -180,7 +184,6 @@ export default function CharaterSelecter() {
   const bookData = id === 1 ? data1 : id === 2 ? data2 : data3;
   const book = React.useMemo(() => new Book(bookData), [bookData]);
 
-  // Kicks off image analysis in the background as soon as a book is selected
   useEffect(() => {
     if (id && book.pages) prefetchImageAnalysis(id, Object.values(book.pages));
   }, [id, book.pages]);
@@ -206,20 +209,18 @@ export default function CharaterSelecter() {
       .sort((a, b) => {
         const pa = ROLE_PRIORITY[a.Role] ?? 2;
         const pb = ROLE_PRIORITY[b.Role] ?? 2;
-        if (pa !== pb) return pa - pb; // Parent/Child first
+        if (pa !== pb) return pa - pb; 
         return (
           (initialOrder.get(a.Role) ?? 999) -
           (initialOrder.get(b.Role) ?? 999)
-        ); // stable fallback
+        );
       });
   }, [availableRoles, initialOrder]);
 
-  // on drag end
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
     if (!destination || source.droppableId === destination.droppableId) return;
 
-    // Defer until after RBDnD finishes its own drop animation
     window.requestAnimationFrame(() => {
       setAvailableRoles((prevRoles) => {
         const rolesCopy = prevRoles.map((r) => ({ ...r }));
@@ -227,7 +228,6 @@ export default function CharaterSelecter() {
         setCharacterValues((prevChars) => {
           const charsCopy = { ...prevChars };
 
-          // Unassign from source (if dragging out of a character)
           if (source.droppableId !== "roles") {
             const srcRoleName =
               charsCopy[source.droppableId]?.Role ?? draggableId;
@@ -236,7 +236,6 @@ export default function CharaterSelecter() {
             charsCopy[source.droppableId] = "";
           }
 
-          // Assign into destination (if dropping onto a character)
           if (destination.droppableId !== "roles") {
             const oldRoleName = charsCopy[destination.droppableId]?.Role;
             if (oldRoleName) {
@@ -247,7 +246,6 @@ export default function CharaterSelecter() {
             const draggedEntry = rolesCopy.find((r) => r.Role === draggableId);
             if (draggedEntry) draggedEntry.isAssigned = true;
 
-            // store a CLONE in the character slot to avoid sharing the deck object
             charsCopy[destination.droppableId] = draggedEntry
               ? { ...draggedEntry }
               : "";
@@ -266,6 +264,7 @@ export default function CharaterSelecter() {
     if (Object.values(characterValues).some((v) => !v)) {
       return setModalOpen(true);
     }
+    unlockTtsAudio();
     const selectedOptions = Object.entries(characterValues).map(
       ([Character, role]) => ({
         Character,
