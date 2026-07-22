@@ -61,16 +61,11 @@ function isVoiceRole(roleName) {
   return roleName !== "Parent" && roleName !== "Child" && roleName !== "Dummy";
 }
 
-// Prefer whatever droppable is under the pointer/finger; fall back to rect
-// overlap. This makes dropping a role back onto the left rail reliable, instead
-// of the tile snapping to the nearest card's center.
 function collisionDetection(args) {
   const pointerHits = pointerWithin(args);
   return pointerHits.length ? pointerHits : rectIntersection(args);
 }
 
-// Static visual for a role tile — shared by the live draggable and the
-// DragOverlay so the floating copy looks identical to the source.
 function RoleTileVisual({ role }) {
   return (
     <>
@@ -112,10 +107,8 @@ function RoleDraggable({ role, name }) {
       ref={setNodeRef}
       className="RoleDraggable"
       style={{
-        // Required so touch drags aren't stolen by the browser as scrolls.
         touchAction: "none",
         cursor: "grab",
-        // The floating copy is the DragOverlay; dim the original in place.
         opacity: isDragging ? 0.4 : 1,
       }}
       {...attributes}
@@ -125,7 +118,6 @@ function RoleDraggable({ role, name }) {
       {isVoiceRole(role.Role) && (
         <button
           onClick={playSound}
-          // Stop the drag sensor from claiming the press so the tap registers.
           onPointerDown={(e) => e.stopPropagation()}
           disabled={playDisabled}
         >
@@ -136,8 +128,6 @@ function RoleDraggable({ role, name }) {
   );
 }
 
-// — Droppable role deck (the whole left rail is the drop zone, so returning a
-//   role to the pane works even when the deck is nearly empty) —
 function RolesRail({ children }) {
   const { setNodeRef, isOver } = useDroppable({ id: ROLES_DROPPABLE_ID });
   return (
@@ -213,8 +203,6 @@ export default function CharaterSelecter() {
   const [characterValues, setCharacterValues] = useState({});
   const [activeRole, setActiveRole] = useState(null);
 
-  // Fluid drag: a drag begins as soon as the pointer/finger moves 8px — no
-  // press-and-hold. Replaces react-beautiful-dnd's long-press touch behavior.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
@@ -243,8 +231,6 @@ export default function CharaterSelecter() {
     return map;
   }, []);
 
-  // characterValues is the single source of truth; the deck is simply every
-  // role not currently assigned to a character.
   const assignedRoleNames = React.useMemo(
     () =>
       new Set(
@@ -280,7 +266,6 @@ export default function CharaterSelecter() {
     const destId = over.id; // "roles" or a character name
 
     setCharacterValues((prevChars) => {
-      // Source = whichever character currently holds this role, else the deck.
       const sourceId =
         Object.keys(prevChars).find(
           (c) => prevChars[c] && prevChars[c].Role === draggableId
@@ -294,12 +279,8 @@ export default function CharaterSelecter() {
 
       const next = { ...prevChars };
 
-      // Remove from the source character (if it came from one).
       if (sourceId !== ROLES_DROPPABLE_ID) next[sourceId] = "";
 
-      // Place into the destination character. Dropping on the rail skips this,
-      // leaving the role unassigned = back in the deck. Any role already in the
-      // destination is overwritten, so it returns to the deck automatically.
       if (destId !== ROLES_DROPPABLE_ID) {
         next[destId] = draggedRole ? { ...draggedRole } : "";
       }

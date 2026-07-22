@@ -32,12 +32,10 @@ Output schema:
 
 const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a toddler, plus the answer you would expect.
 
-Prompt the child to say something about the book or expand the child's response.
-Use the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
+Make a concrete Wh-Question, description prompts, simple recall, or completion-style question inspired by the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
 Each utterance is tagged with a [Line X, Turn Y] marker; the HIGHEST Turn number is the most recent. Ask a question related to the most recent two or three utterances, using earlier utterances only as supporting context.
-Previously generated questions appear in the same utterances marked (TaleMate Generated Question); go through them and do NOT repeat them.
+Do NOT ask a question that is similar to user's utterance, or that is a regurgitation of the current page question or a previously generated question.
 The <system_questions> block lists questions already authored for the book. Do NOT generate a question that overlaps with any of them.
-Build on what the user noticed. Keep it natural, as a parent would ask. Prefer concrete Wh-Questions, description prompts, simple recall, or completion-style prompts.
 User must be able to answer the question with words avoiding questions requiring gestures, pointing, or physical actions.
 
 Also decide the expected answer:
@@ -47,13 +45,19 @@ Also decide the expected answer:
 Output JSON only. No explanation, no preface:
 {"question":"<the question>","expected_answer":"<short answer>"}`;
 
+const QUESTION_ASSESSMENT_PROMPT = `Task: assess the user's answer compare to the generated question if it is a reasonable answer or not based on current page text and image context.
+Give a confidence score from 1 to 10, where 1 is very low confidence and 10 is very high confidence that the answer is reasonable.
+
+Output JSON only. No explanation, no preface in this exact shape:
+{"confidence": <number 1-10>,"reason":"<one short sentence, max 10 words, explaining the confidence score>"}`;
+
 const REINFORCEMENT_PROMPT = `Task: generate one brief spoken response for a toddler in a co-reading session.
 
-Use the latest child/caregiver utterance, the last asked question, the current page text, prior reinforcement turns, the expected answer (when provided), and image context when available.
+Use the the last user utterance, the last asked question, the current page text, prior reinforcement turns, the expected answer (when provided), and image context when available.
 
 Assess the child's answer against the Expected Answer and classify it as correct or incorrect:
 - If the child's answer reasonably matches the Expected Answer: treat it as correct. Warmly affirm what the child said. Do not ask a new question.
-- If the child's answer clearly contradicts or is unrelated to the Expected Answer: treat it as incorrect. Do NOT affirm the wrong answer and do NOT state the correct answer outright. Instead give a gentle correction and ask the child to answer the question again.
+- If the child's answer clearly contradicts or is unrelated to the Expected Answer: treat it as incorrect. Do NOT affirm the wrong answer. Instead give a hint and ask the child to answer the question again.
 
 Keep the spoken response natural, concrete, and warm. Do not introduce unrelated facts.
 
