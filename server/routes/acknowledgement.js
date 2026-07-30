@@ -6,30 +6,37 @@ const {
     OPENAI_PROMPT_CACHE_KEY,
     OPENAI_PROMPT_CACHE_RETENTION,
     logOpenAIUsage,
+    bedrockOffscript,
 } = require('../lib/openai');
-const { TALEMATE_SHARED_PROMPT_PREFIX, REINFORCEMENT_PROMPT } = require('../lib/prompts');
-const { buildReinforcementPayload } = require('../lib/payloads');
+const { TALEMATE_SHARED_PROMPT_PREFIX, ACKNOWLEDGEMENT_PROMPT, ACKNOWLEDGEMENT_FINAL_PROMPT } = require('../lib/prompts');
+const { buildAcknowledgementPayload } = require('../lib/payloads');
 const { buildPageImageMessage } = require('../lib/pageImage');
 const { generateGeminiTtsChunks } = require('../liveTTS');
 
 const router = express.Router();
+const USE_BEDROCK = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
+const offscript = USE_BEDROCK ? bedrockOffscript : openai;
 
-function parseReinforcement(raw) {
+function parseAcknowledgement(raw) {
     const content = (raw || '').trim();
-    if (!content) return { reinforcement: '', correct: true };
+    if (!content) return { acknowledgement: '', correct: true };
     try {
         const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
         const parsed = JSON.parse(cleaned);
-        const reinforcement = String(parsed?.response ?? '').trim();
+        const acknowledgement = String(parsed?.response ?? '').trim();
         const correct = parsed?.correct === false ? false : true;
-        return { reinforcement, correct };
+        return { acknowledgement, correct };
     } catch (err) {
-        console.warn('[reinforcement] failed to parse JSON, using raw content:', err?.message);
-        return { reinforcement: content, correct: true };
+        console.warn('[acknowledgement] failed to parse JSON, using raw content:', err?.message);
+        return { acknowledgement: content, correct: true };
     }
 }
 
-router.post('/api/reinforcement', async (req, res) => {
+function promptForStage(stage) {
+    return stage === 'final' ? ACKNOWLEDGEMENT_FINAL_PROMPT : ACKNOWLEDGEMENT_PROMPT;
+}
+
+router.post('/api/acknowledgement', async (req, res) => {
     try {
         const {
             question,
@@ -39,7 +46,7 @@ router.post('/api/reinforcement', async (req, res) => {
             currentPageNumber,
             imageDescription,
             userAttention,
-            reinforcementHistory,
+            acknowledgementHistory,
             expectedAnswer,
             book,
         } = req.body;
@@ -49,7 +56,7 @@ router.post('/api/reinforcement', async (req, res) => {
         }
 
         const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
-        const response = await openai.chat.completions.create({
+        const response = await offscript.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
             max_completion_tokens: 256,
             reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
@@ -58,11 +65,11 @@ router.post('/api/reinforcement', async (req, res) => {
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: [
                 { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
-                { role: "developer", content: REINFORCEMENT_PROMPT },
+                { role: "developer", content: ACKNOWLEDGEMENT_PROMPT },
                 ...(pageImageMessage ? [pageImageMessage] : []),
                 {
                     role: "user",
-                    content: buildReinforcementPayload({
+                    content: buildAcknowledgementPayload({
                         question,
                         reply,
                         currentPageQuestion,
@@ -70,23 +77,23 @@ router.post('/api/reinforcement', async (req, res) => {
                         currentPageNumber,
                         imageDescription,
                         userAttention,
-                        reinforcementHistory,
+                        acknowledgementHistory,
                         expectedAnswer,
                     }),
                 },
             ],
         });
 
-        logOpenAIUsage('reinforcement', response?.usage);
-        const { reinforcement, correct } = parseReinforcement(response?.choices?.[0]?.message?.content);
-        res.json({ reinforcement, correct });
+        logOpenAIUsage('acknowledgement', response?.usage);
+        const { acknowledgement, correct } = parseAcknowledgement(response?.choices?.[0]?.message?.content);
+        res.json({ acknowledgement, correct });
     } catch (error) {
-        console.error('Error in /api/reinforcement:', error);
+        console.error('Error in /api/acknowledgement:', error);
         res.status(500).json({ message: error.toString() });
     }
 });
 
-router.post('/api/reinforcement-stream', async (req, res) => {
+router.post('/api/acknowledgement-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -101,10 +108,11 @@ router.post('/api/reinforcement-stream', async (req, res) => {
             currentPageNumber,
             imageDescription,
             userAttention,
-            reinforcementHistory,
+            acknowledgementHistory,
             ttsVoiceName,
             expectedAnswer,
             book,
+            stage,
         } = req.body;
 
         if (!reply) {
@@ -112,8 +120,9 @@ router.post('/api/reinforcement-stream', async (req, res) => {
             return res.end();
         }
 
+        const isFinalTurn = stage === 'final';
         const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
-        const response = await openai.chat.completions.create({
+        const response = await offscript.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
             max_completion_tokens: 256,
             reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
@@ -122,11 +131,11 @@ router.post('/api/reinforcement-stream', async (req, res) => {
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: [
                 { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
-                { role: "developer", content: REINFORCEMENT_PROMPT },
+                { role: "developer", content: promptForStage(stage) },
                 ...(pageImageMessage ? [pageImageMessage] : []),
                 {
                     role: "user",
-                    content: buildReinforcementPayload({
+                    content: buildAcknowledgementPayload({
                         question,
                         reply,
                         currentPageQuestion,
@@ -134,27 +143,37 @@ router.post('/api/reinforcement-stream', async (req, res) => {
                         currentPageNumber,
                         imageDescription,
                         userAttention,
-                        reinforcementHistory,
+                        acknowledgementHistory,
                         expectedAnswer,
+                        stage,
                     }),
                 },
             ],
         });
 
-        logOpenAIUsage('reinforcement-stream', response?.usage);
-        const { reinforcement, correct } = parseReinforcement(response?.choices?.[0]?.message?.content);
-        if (!reinforcement) {
-            console.warn('[reinforcement-stream] empty reinforcement', {
+        logOpenAIUsage('acknowledgement-stream', response?.usage);
+        const parsedResult = parseAcknowledgement(response?.choices?.[0]?.message?.content);
+        const correct = isFinalTurn ? true : parsedResult.correct;
+        // On an incorrect child turn the client speaks its own handoff line, so
+        // drop any text the model returned against instructions — otherwise the
+        // child hears a hint and then the handoff, and TTS gets synthesized for
+        // audio that should never play.
+        const suppressText = !isFinalTurn && correct === false;
+        const acknowledgement = suppressText ? '' : parsedResult.acknowledgement;
+
+        if (!acknowledgement && !suppressText) {
+            console.warn('[acknowledgement-stream] empty acknowledgement', {
+                stage: stage || 'child',
                 finishReason: response?.choices?.[0]?.finish_reason,
                 completionTokens: response?.usage?.completion_tokens,
             });
         }
-        res.write(`data: ${JSON.stringify({ type: 'done', reinforcement, correct })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement, correct })}\n\n`);
 
-        if (reinforcement) {
+        if (acknowledgement) {
             try {
                 for await (const { seq, audioContent, sampleBytes } of generateGeminiTtsChunks({
-                    text: reinforcement,
+                    text: acknowledgement,
                     voiceName: ttsVoiceName,
                 })) {
                     const durationMs = (sampleBytes / 2) / 24;
@@ -162,14 +181,14 @@ router.post('/api/reinforcement-stream', async (req, res) => {
                 }
                 res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
             } catch (ttsErr) {
-                console.error('[reinforcement-stream] streaming TTS failed:', ttsErr);
+                console.error('[acknowledgement-stream] streaming TTS failed:', ttsErr);
                 res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
             }
         }
 
         res.end();
     } catch (error) {
-        console.error('Error in /api/reinforcement-stream:', error);
+        console.error('Error in /api/acknowledgement-stream:', error);
         res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
         res.end();
     }

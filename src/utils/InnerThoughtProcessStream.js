@@ -1,4 +1,5 @@
 import { gptDebugLog } from "./debugMonitor";
+import * as studyLog from "./studyLog";
 
 const categorizeOffScriptUtterancesStreaming = async (
     formattedUtterances,
@@ -74,6 +75,15 @@ const categorizeOffScriptUtterancesStreaming = async (
                                 ? 'aborted — no categorization items parsed'
                                 : 'aborted — no ON_TOPIC utterances';
                             gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: reason });
+                            // Records that generation ran and produced nothing,
+                            // which is otherwise indistinguishable from never
+                            // having been attempted.
+                            studyLog.pushQuestion({
+                                question_id: '',
+                                question_type: 'generated',
+                                event: 'generated_none',
+                                reason,
+                            });
                         }
                     } else if (parsed.type === 'audio_chunk') {
                         if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
@@ -127,7 +137,7 @@ const categorizeOffScriptUtterancesStreaming = async (
     }
 };
 
-const streamReinforcement = async ({
+const streamAcknowledgement = async ({
     question,
     reply,
     currentPageQuestion,
@@ -136,10 +146,11 @@ const streamReinforcement = async ({
     book,
     imageDescription,
     userAttention,
-    reinforcementHistory,
+    acknowledgementHistory,
     expectedAnswer,
     ttsVoiceName,
-    onReinforcementReady,
+    stage,
+    onAcknowledgementReady,
     onAudioChunk,
     onAudioEnd,
     onAudioError,
@@ -155,14 +166,15 @@ const streamReinforcement = async ({
         book,
         imageDescription,
         userAttention,
-        reinforcementHistory,
+        acknowledgementHistory,
         expectedAnswer,
         ttsVoiceName,
+        stage,
     };
-    gptDebugLog({ type: 'gpt_request', endpoint: '/api/reinforcement-stream', payload });
+    gptDebugLog({ type: 'gpt_request', endpoint: '/api/acknowledgement-stream', payload });
 
     try {
-        const response = await fetch(`${BASE_URL}/api/reinforcement-stream`, {
+        const response = await fetch(`${BASE_URL}/api/acknowledgement-stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -177,7 +189,7 @@ const streamReinforcement = async ({
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        let reinforcement = null;
+        let acknowledgement = null;
         let correct = true;
 
         while (true) {
@@ -194,10 +206,10 @@ const streamReinforcement = async ({
                 try {
                     const parsed = JSON.parse(dataLine.slice(6));
                     if (parsed.type === 'done') {
-                        reinforcement = parsed.reinforcement || null;
+                        acknowledgement = parsed.acknowledgement || null;
                         correct = parsed.correct === false ? false : true;
-                        if (reinforcement && typeof onReinforcementReady === 'function') {
-                            onReinforcementReady(reinforcement, correct);
+                        if (typeof onAcknowledgementReady === 'function') {
+                            onAcknowledgementReady(acknowledgement || '', correct);
                         }
                     } else if (parsed.type === 'audio_chunk') {
                         if (parsed.audioContent && typeof onAudioChunk === 'function') {
@@ -211,20 +223,20 @@ const streamReinforcement = async ({
                         throw new Error(parsed.error);
                     }
                 } catch (e) {
-                    console.error('Error parsing reinforcement SSE event:', e);
+                    console.error('Error parsing acknowledgement SSE event:', e);
                 }
             }
         }
 
-        gptDebugLog({ type: 'gpt_response', endpoint: '/api/reinforcement-stream', data: { reinforcement, correct } });
-        return { reinforcement, correct };
+        gptDebugLog({ type: 'gpt_response', endpoint: '/api/acknowledgement-stream', data: { acknowledgement, correct } });
+        return { acknowledgement, correct };
     } catch (error) {
         if (error.name === 'AbortError') {
-            gptDebugLog({ type: 'gpt_aborted', endpoint: '/api/reinforcement-stream' });
+            gptDebugLog({ type: 'gpt_aborted', endpoint: '/api/acknowledgement-stream' });
             return null;
         }
-        console.error('Error in reinforcement streaming:', error);
-        gptDebugLog({ type: 'gpt_error', endpoint: '/api/reinforcement-stream', error: error.message });
+        console.error('Error in acknowledgement streaming:', error);
+        gptDebugLog({ type: 'gpt_error', endpoint: '/api/acknowledgement-stream', error: error.message });
         return null;
     }
 };
@@ -308,4 +320,4 @@ const streamGeneratedQuestionTest = async ({
     }
 };
 
-export { categorizeOffScriptUtterancesStreaming, streamReinforcement, streamGeneratedQuestionTest };
+export { categorizeOffScriptUtterancesStreaming, streamAcknowledgement, streamGeneratedQuestionTest };

@@ -27,7 +27,7 @@ ${formattedUtterances}
 </${utteranceTag}>`;
 }
 
-function buildReinforcementPayload({
+function buildAcknowledgementPayload({
     question,
     reply,
     currentPageQuestion,
@@ -35,30 +35,35 @@ function buildReinforcementPayload({
     currentPageNumber,
     imageDescription,
     userAttention,
-    reinforcementHistory,
+    acknowledgementHistory,
     expectedAnswer,
+    stage,
 }) {
-    const history = Array.isArray(reinforcementHistory)
-        ? reinforcementHistory
+    const history = Array.isArray(acknowledgementHistory)
+        ? acknowledgementHistory
             .slice(-8)
             .map((turn, idx) => `[Turn ${idx + 1}] User: "${turn.user || ''}"\nResponse: "${turn.response || ''}"`)
             .join('\n')
         : '';
+
+    // On the final turn the speaker has changed — the prior turn is the child's
+    // wrong answer and the latest utterance is the parent's.
+    const speaker = stage === 'final' ? 'the parent' : 'the child';
 
     return `<current_page>
 Page: ${currentPageNumber || ''}
 Book Text: ${bookText || ''}
 Page Question: "${currentPageQuestion || ''}"
 </current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<reinforcement_context>
+${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<acknowledgement_context>
 Last Asked Question: "${question || currentPageQuestion || ''}"
 Expected Answer: ${expectedAnswer ? `"${expectedAnswer}"` : '(open-ended — no single correct answer; affirm the child)'}
-Latest User Utterance: "${reply || ''}"
-${history ? `Prior Reinforcement Turns:\n${history}` : 'Prior Reinforcement Turns: none'}
-</reinforcement_context>`;
+Latest User Utterance (from ${speaker}): "${reply || ''}"
+${history ? `Prior Acknowledgement Turns:\n${history}` : 'Prior Acknowledgement Turns: none'}
+</acknowledgement_context>`;
 }
 
 module.exports = {
     buildOpenAIDynamicPagePayload,
-    buildReinforcementPayload,
+    buildAcknowledgementPayload,
 };

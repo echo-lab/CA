@@ -23,6 +23,7 @@ import "../styles/RoleDraggable.css";
 import "../styles/CharacterCard.css";
 
 import { roles } from "../Book/Roles.js";
+import { getRoleKind, isVoiceRole } from "../utils/roles";
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
@@ -38,27 +39,23 @@ Modal.setAppElement("#root");
 const DIFFICULTY_MAP = {
   1: {
     Narrator: "",
-    Clara: "Child",
-    Zoe: "Parent",
+    Clara: "Easy",
+    Zoe: "Hard",
   },
   2: {
     Narrator: "",
-    Clara: "Child",
-    Zoe: "Parent",
+    Clara: "Easy",
+    Zoe: "Hard",
   },
   3: {
     Narrator: "",
-    Clara: "Child",
-    Zoe: "Parent",
+    Clara: "Easy",
+    Zoe: "Hard",
   },
 };
 
 function getDifficultyLabel(bookId, characterName) {
   return DIFFICULTY_MAP[bookId]?.[characterName] ?? "";
-}
-
-function isVoiceRole(roleName) {
-  return roleName !== "Parent" && roleName !== "Child" && roleName !== "Dummy";
 }
 
 function collisionDetection(args) {
@@ -76,7 +73,7 @@ function RoleTileVisual({ role }) {
 }
 
 // — Draggable role icon (dnd-kit) —
-function RoleDraggable({ role, name }) {
+function RoleDraggable({ role, name, needsAssignment }) {
   const [playDisabled, setPlayDisabled] = useState(false);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: role.Role,
@@ -105,7 +102,7 @@ function RoleDraggable({ role, name }) {
   return (
     <div
       ref={setNodeRef}
-      className="RoleDraggable"
+      className={`RoleDraggable${needsAssignment ? " needs-assignment" : ""}`}
       style={{
         touchAction: "none",
         cursor: "grab",
@@ -199,6 +196,8 @@ export default function CharaterSelecter() {
   const navigate = useNavigate();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [needsParent, setNeedsParent] = useState(false);
 
   const [characterValues, setCharacterValues] = useState({});
   const [activeRole, setActiveRole] = useState(null);
@@ -240,6 +239,11 @@ export default function CharaterSelecter() {
       ),
     [characterValues]
   );
+
+  // Drop the highlight as soon as the Parent lands on a character.
+  useEffect(() => {
+    if (needsParent && assignedRoleNames.has("Parent")) setNeedsParent(false);
+  }, [assignedRoleNames, needsParent]);
 
   const deckRoles = React.useMemo(() => {
     return roles
@@ -289,9 +293,29 @@ export default function CharaterSelecter() {
     });
   };
 
+  // Closing the missing-Parent error
+  const dismissModal = () => {
+    setModalOpen(false);
+    if (!needsParent) return;
+    requestAnimationFrame(() => {
+      document
+        .querySelector(".RoleDraggable.needs-assignment")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   // next button
   const navigateToStory = () => {
     if (Object.values(characterValues).some((v) => !v)) {
+      setNeedsParent(false);
+      setModalMessage("Please assign one role to each character before continuing.");
+      return setModalOpen(true);
+    }
+    // A session with no Parent has nobody stop here rather than navigating into an unusable reading session.
+    const hasParent = Object.values(characterValues).some((v) => v?.Role === "Parent");
+    if (!hasParent) {
+      setNeedsParent(true);
+      setModalMessage("One character must be read by the Parent. Drag the Parent role onto a character before continuing.");
       return setModalOpen(true);
     }
     unlockTtsAudio();
@@ -300,9 +324,13 @@ export default function CharaterSelecter() {
         Character,
         VA: role.RoleParameter,
         role: role.Role,
+        roleKind: getRoleKind(role.Role),
+        cloudVoice: role.cloudVoice,
+        voiceColor: role.voiceColor,
         img: role.img,
       })
     );
+
     navigate("/story", {
       state: { selectedOptions, id, name: userName, training },
     });
@@ -313,12 +341,14 @@ export default function CharaterSelecter() {
       {/* Modals */}
       <Modal
         isOpen={modalOpen}
-        onRequestClose={() => setModalOpen(false)}
+        onRequestClose={dismissModal}
         className="modalContent"
       >
         <h2>TaleMate</h2>
-        <p>Please assign one role to each character before continuing.</p>
-        <button onClick={() => setModalOpen(false)}>Close</button>
+        <p>{modalMessage}</p>
+        <button onClick={dismissModal}>
+          {needsParent ? "Assign Parent" : "Close"}
+        </button>
       </Modal>
 
       <DndContext
@@ -330,7 +360,7 @@ export default function CharaterSelecter() {
       >
         <div className="d-flex flex-column min-vh-100">
           <div className="d-flex justify-content-between p-3 bg-light">
-            <button className="btn btn-primary" onClick={() => navigate("/")}>
+            <button className="btn btn-primary" onClick={() => navigate("/Home")}>
               <KeyboardDoubleArrowLeftIcon fontSize="large" />
             </button>
             <div className="text-center">
@@ -350,7 +380,12 @@ export default function CharaterSelecter() {
           <div className="flex-body">
             <RolesRail>
               {deckRoles.map((r) => (
-                <RoleDraggable key={r.Role} role={r} name={userName} />
+                <RoleDraggable
+                  key={r.Role}
+                  role={r}
+                  name={userName}
+                  needsAssignment={needsParent && r.Role === "Parent"}
+                />
               ))}
             </RolesRail>
 

@@ -14,7 +14,7 @@ import { data as data3 } from "../Book/Book3";
 import QuestionAvatar from "../components/QuestionAvatar";
 // Hooks
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
-import { useReinforcement } from "../hooks/useReinforcement";
+import { useAcknowledgement, PARENT_HANDOFF_LINE } from "../hooks/useAcknowledgement";
 import { useStoryNavigation } from "../hooks/useStoryNavigation";
 // Utils
 import { warmSay } from "../utils/warmSay";
@@ -24,6 +24,8 @@ import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
 import { processUserUtterance, abortCurrentCategorization, setAwaitingQuestionAnswer, setCurrentBookId } from "../utils/utteranceProcessor";
+import * as studyLog from "../utils/studyLog";
+import { getRoleKind } from "../utils/roles";
 
 class Book {
   constructor(data) {
@@ -39,7 +41,12 @@ function Reader() {
   const navigate = useNavigate();
   const [, setIsAudioPlaying] = useState(false);
   const [childHasPlayed, setChildHasPlayed] = useState(false);
-  const selectedOptions = location.state ? location.state.selectedOptions : {};
+  // Must default to an array: several call sites do selectedOptions.find(...),
+  // which throws on the old `{}` default when /story is opened without router
+  // state (a new tab, a shared link, a lost history entry).
+  const selectedOptions = Array.isArray(location.state?.selectedOptions)
+    ? location.state.selectedOptions
+    : [];
   const id = location.state ? location.state.id : {};
   const name = location.state?.name || null;
   const isTraining = location.state?.training === true;
@@ -180,14 +187,14 @@ function Reader() {
   const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const [questionHistory, setQuestionHistory] = useState([]);
   const [showAvatar, setShowAvatar] = useState(false);
-  const [inReinforcementLoop, setInReinforcementLoop] = useState(false);
+  const [inAcknowledgementLoop, setInAcknowledgementLoop] = useState(false);
   const [avatarPhase, setAvatarPhase] = useState('question');
 
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
 
-  const inReinforcementLoopRef = useRef(false);
-  useEffect(() => { inReinforcementLoopRef.current = inReinforcementLoop; }, [inReinforcementLoop]);
+  const inAcknowledgementLoopRef = useRef(false);
+  useEffect(() => { inAcknowledgementLoopRef.current = inAcknowledgementLoop; }, [inAcknowledgementLoop]);
 
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const hasSlidCloserRef = useRef(false);
@@ -200,7 +207,7 @@ function Reader() {
   const lastAskedQuestionRef = useRef(null);
   const lastExpectedAnswerRef = useRef(null);
   const generatedQuestionPendingRef = useRef(false);
-  const reinforcementFromPageQuestionRef = useRef(false);
+  const acknowledgementFromPageQuestionRef = useRef(false);
 
   const lastProcessedUtteranceRef = useRef("");
   const userUtterancesRef = useRef([]);
@@ -249,13 +256,13 @@ function Reader() {
     setQuestionHistory,
     setShowAvatar,
     showAvatarRef,
-    setInReinforcementLoop,
+    setInAcknowledgementLoop,
     setAvatarPhase,
     setIsCategorizationPending,
     hasSlidCloserRef,
     lastAskedQuestionRef,
     pendingGeneratedQuestionRef,
-    reinforcementFromPageQuestionRef,
+    acknowledgementFromPageQuestionRef,
     generatedQuestionPendingRef,
     questionGenEnabledRef,
     state,
@@ -264,13 +271,13 @@ function Reader() {
   });
 
   const {
-    isReinforcementPlaying,
-    revealedReinforcement,
-    reinforcementModeRef,
-    playReinforcement,
-    closeReinforcementMode,
-    resetReinforcementRevealState,
-  } = useReinforcement({
+    isAcknowledgementPlaying,
+    revealedAcknowledgement,
+    acknowledgementModeRef,
+    playAcknowledgement,
+    closeAcknowledgementMode,
+    resetAcknowledgementRevealState,
+  } = useAcknowledgement({
     computeRevealLength,
     isAnyAudioPlaying,
     tryBeginAudio,
@@ -281,18 +288,18 @@ function Reader() {
     stateRef,
     lastAskedQuestionRef,
     lastExpectedAnswerRef,
-    reinforcementFromPageQuestionRef,
+    acknowledgementFromPageQuestionRef,
     generatedQuestionPendingRef,
     imageDescriptionRef,
     userAttentionRef,
     setQuestionHistory,
-    setInReinforcementLoop,
+    setInAcknowledgementLoop,
     setAvatarPhase,
     setShowAvatar,
   });
 
   const clearQuestionUI = () => {
-    closeReinforcementMode();
+    closeAcknowledgementMode();
     abortCurrentCategorization();
     setAwaitingQuestionAnswer(false);
     setGeneratedQuestion(null);
@@ -300,9 +307,9 @@ function Reader() {
     setIsCategorizationPending(false);
     setShowAvatar(false);
     setQuestionHistory([]);
-    resetReinforcementRevealState();
+    resetAcknowledgementRevealState();
     setAvatarPhase('question');
-    reinforcementFromPageQuestionRef.current = false;
+    acknowledgementFromPageQuestionRef.current = false;
     lastExpectedAnswerRef.current = null;
     hasSlidCloserRef.current = false;
     dismissingQuestionRef.current = null;
@@ -339,7 +346,7 @@ function Reader() {
     generatedQuestion,
     showAvatar,
     showAvatarRef,
-    inReinforcementLoopRef,
+    inAcknowledgementLoopRef,
   });
 
   const handleTextSelection = () => {
@@ -396,6 +403,15 @@ function Reader() {
     const pq = state.pagesValues[state.page]?.question;
     setQuestionHistory(pq ? [{ id: `page-${state.page}`, text: pq, type: 'page' }] : []);
     setShowAvatar(false);
+    if (pq) {
+      studyLog.pushQuestion({
+        question_id: `page-${state.page}`,
+        question_type: 'page',
+        event: 'shown',
+        question_text: pq,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.page]);
 
   useEffect(() => {
@@ -434,6 +450,15 @@ function Reader() {
           role: narratorInfo.role
         });
       }
+    }
+    // Constant string, so one warm-up keeps the parent handoff line cached and
+    // it plays with no synthesis delay whenever an answer comes back wrong.
+    if (narratorInfo) {
+      tasks.push({
+        text: PARENT_HANDOFF_LINE,
+        voiceName: narratorInfo.voiceName,
+        role: narratorInfo.role
+      });
     }
     if (!tasks.length) return;
 
@@ -475,6 +500,36 @@ function Reader() {
 
   useEffect(() => { stateRef.current = state; });
 
+  // Study session lifecycle. Starting here (rather than off the first page
+  // image render, as the old MutationObserver logger did) means session_start
+  // fires exactly once per mount, before any other event can be logged.
+  useEffect(() => {
+    studyLog.startSession({
+      bookId: id,
+      bookName: CurrentBook.name,
+      isTraining,
+      characterRoles: selectedOptions,
+    });
+    return () => {
+      studyLog.endSession({ pagesReached: stateRef.current?.page ?? "" });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Stamps story position onto transcript/question rows, which are produced by
+  // code that has no access to story state.
+  useEffect(() => {
+    const line = state.pagesValues[state.page]?.text?.[state.index - 1];
+    const assigned = state.CharacterRoles.find((o) => o.Character === line?.Character);
+    studyLog.setContext({
+      page_index: state.page,
+      line_index: state.index,
+      expected_character: line?.Character ?? "",
+      expected_role: assigned?.role ?? "",
+      expected_role_kind: assigned?.roleKind ?? (assigned ? getRoleKind(assigned.role) : ""),
+    });
+  }, [state.page, state.index, state.pagesValues, state.CharacterRoles]);
+
   useEffect(() => {
     const CACHED_AUDIO_SOURCES = [
       AUDIO_SOURCES.TTS,
@@ -507,12 +562,31 @@ function Reader() {
       },
       onQuestionReady: (questionText, expectedAnswer = null) => {
         if (!questionGenEnabledRef.current) return;
+
+        // Logged before the suppression check so the record reflects every
+        // question the model actually produced, not only the ones shown.
+        const questionId = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        studyLog.pushQuestion({
+          question_id: questionId,
+          question_type: "generated",
+          event: "generated",
+          question_text: questionText,
+          expected_answer: expectedAnswer ?? "",
+        });
+
         if (isGeneratedQuestionPlayingRef.current) {
           suppressGeneratedAudioStreamRef.current = true;
+          studyLog.pushQuestion({
+            question_id: questionId,
+            question_type: "generated",
+            event: "suppressed",
+            reason: "already_playing",
+            question_text: questionText,
+          });
           return;
         }
         lastExpectedAnswerRef.current = expectedAnswer;
-        startGeneratedQuestion(questionText);
+        startGeneratedQuestion(questionText, { questionId });
       },
       imageDescriptionRef,
       userAttentionRef,
@@ -522,10 +596,10 @@ function Reader() {
       onAudioEnd: handleAudioEnd,
       onAudioError: handleAudioError,
       questionGenEnabledRef,
-      isReinforcementModeRef: reinforcementModeRef,
+      isAcknowledgementModeRef: acknowledgementModeRef,
       generatedQuestionPendingRef,
-      onQuestionAnswered: playReinforcement,
-      onReinforcementUtterance: playReinforcement
+      onQuestionAnswered: playAcknowledgement,
+      onAcknowledgementUtterance: playAcknowledgement
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userUtterance]);
@@ -787,14 +861,14 @@ function Reader() {
         <QuestionAvatar
           questionHistory={questionHistory}
           showAvatar={showAvatar}
-          inReinforcementLoop={inReinforcementLoop}
+          inAcknowledgementLoop={inAcknowledgementLoop}
           avatarPhase={avatarPhase}
           isThoughtRevealed={isThoughtRevealed}
           revealedQuestion={revealedQuestion}
-          revealedReinforcement={revealedReinforcement}
+          revealedAcknowledgement={revealedAcknowledgement}
           isGeneratedQuestionPlaying={isGeneratedQuestionPlaying}
           isPageQuestionPlaying={isPageQuestionPlaying}
-          isReinforcementPlaying={isReinforcementPlaying}
+          isAcknowledgementPlaying={isAcknowledgementPlaying}
           narratorImage={narratorImage}
           frames={frames}
           listeningImage={listeningImage}

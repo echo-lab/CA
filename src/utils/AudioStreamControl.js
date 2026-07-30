@@ -1,9 +1,10 @@
 import { type } from '@testing-library/user-event/dist/type';
 import { createContext, useCallback, useContext, useRef, useState, useEffect } from 'react';
 import { AUDIO_SOURCES, createAudioPlaybackLock } from './audioPlaybackLock';
+import * as studyLog from './studyLog';
 
 const BASE_URL = process.env.REACT_APP_API_BASE;
-const GEMINI_REINFORCEMENT_SYSTEM_INSTRUCTION = `You are TaleMate's warm educator voice in a parent-child co-reading session.
+const GEMINI_ACKNOWLEDGEMENT_SYSTEM_INSTRUCTION = `You are TaleMate's warm educator voice in a parent-child co-reading session.
 When the user answers a question, generate a brief acknowledging response based on:
 - the last question,
 - the user's reply,
@@ -11,7 +12,7 @@ When the user answers a question, generate a brief acknowledging response based 
 - and the image description if provided.
 Keep responses short, encouraging, concrete, and natural for a child ages 3-6.
 Do not introduce unrelated topics.
-Speak directly and stop after the reinforcement.`;
+Speak directly and stop after the acknowledgement.`;
 
 const MIC_SUPPRESSED_SOURCES = [
   AUDIO_SOURCES.TTS,
@@ -29,7 +30,8 @@ export function AudioStreamControlProvider({ children }) {
   const [isGeminiAudioPlaying, setIsGeminiAudioPlaying] = useState(false);
   const [userUtterance, setUserUtterance] = useState("");
   const [deepgramTranscript, setDeepgramTranscript] = useState("");
-  const [speakerLabels, setSpeakerLabels] = useState([]);
+  // A "Speaker N" label, or "" when diarization has not resolved one yet.
+  const [speakerLabels, setSpeakerLabels] = useState("");
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   const [deepgramConnected, setDeepgramConnected] = useState(false);
   const [activeAudioSource, setActiveAudioSource] = useState(null);
@@ -170,18 +172,29 @@ export function AudioStreamControlProvider({ children }) {
 
             if (transcript && transcript.trim()) {
 
-              let currentSpeaker = null;
-              if (words && words.length > 0) {
-                const lastWord = words[words.length - 1];
-                currentSpeaker = lastWord?.speaker !== undefined ? `Speaker ${lastWord.speaker}` : null;
-              }
+              const lastWord = words && words.length > 0 ? words[words.length - 1] : null;
+              const speakerIndex = lastWord?.speaker;
+              const currentSpeaker = speakerIndex !== undefined ? `Speaker ${speakerIndex}` : null;
 
               setDeepgramTranscript(transcript);
               setSpeakerLabels(currentSpeaker || "");
 
               if (isFinal) {
-                const endsTerminal = /[.?!]\s*$/.test(transcript);
                 setUserUtterance(transcript);
+
+                // Log finals only — interims are partial duplicates of the
+                // same speech and would inflate the transcript ~10-20x.
+                const alt = data.channel?.alternatives?.[0];
+                studyLog.pushTranscript({
+                  dg_start: data.start ?? "",
+                  dg_duration: data.duration ?? "",
+                  // Raw diarization index; the "Speaker N" label is a UI concern.
+                  speaker: speakerIndex ?? "",
+                  speaker_confidence: lastWord?.speaker_confidence ?? "",
+                  speech_final: speechFinal ? "true" : "false",
+                  transcript,
+                  avg_confidence: alt?.confidence ?? "",
+                });
               }
             }
           }
@@ -260,7 +273,7 @@ export function AudioStreamControlProvider({ children }) {
   };
 
   const geminiLiveConnect = async ({
-    systemInstructionText = GEMINI_REINFORCEMENT_SYSTEM_INSTRUCTION,
+    systemInstructionText = GEMINI_ACKNOWLEDGEMENT_SYSTEM_INSTRUCTION,
     model = "gemini-3.1-flash-live-preview",
     voiceName = "Puck",
   } = {}) => {
@@ -446,12 +459,12 @@ export function AudioStreamControlProvider({ children }) {
     geminiAudioBlockedRef.current = false;
     const message = {
       realtimeInput: {
-        text: `<reinforcement_context>
+        text: `<acknowledgement_context>
         Last question: ${question || ''}
         Reply: ${reply || ''}
         Book/page context: ${bookText || ''}
         Image description: ${imageDescription || ''}
-        </reinforcement_context>`,
+        </acknowledgement_context>`,
       },
     };
 

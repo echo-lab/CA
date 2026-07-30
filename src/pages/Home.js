@@ -1,13 +1,16 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import '../styles/Home.css';
 import { bookInfo } from "../Book/Books.js"; // assuming that Books.js is in the same directory as Home.js
 import NavigationBar from '../components/NavigationBar';
+import { clearParticipant, getParticipantId } from '../utils/participant';
 
 
 function Home() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { name, userName } = location.state || {};
+  const participantId = getParticipantId();
   const participantName = name || userName;
 
   const renderCard = (card, index) =>{
@@ -27,32 +30,36 @@ function Home() {
         </div>
     );
   }
+  // Without a verified ID every event would log a blank user_id, so send the
+  // session back to /Signup rather than let it start untagged.
+  if (!participantId) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+        <h2>No participant ID</h2>
+        <p style={{ color: '#666' }}>
+          Enter the participant ID provided by the researcher before starting a session.
+        </p>
+        <Link to="/Signup"><button className="btn btn-primary">Enter Participant ID</button></Link>
+      </div>
+    );
+  }
+
   return (
-    
+
     <>
-    <div className=''> <NavigationBar />
+    <div className=''>
+      <NavigationBar
+        participantId={participantId}
+        onEndSession={() => {
+          clearParticipant();
+          navigate('/Signup');
+        }}
+        showGoHome
+      />
     </div>
 
-    <div className="go-home-button p-3" style={{ display: "flex", gap: "10px" }}>
-  <Link to="/">
-    <button className="btn btn-outline-secondary">Go Home</button>
-  </Link>
-  <button
-    className="btn btn-outline-secondary"
-    onClick={() => {
-      const BASE_URL = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
-      window.open(`${BASE_URL}/api/log-session/download`, '_blank');
-    }}
-  >Download Session Log</button>
-  <button
-    className="btn btn-outline-secondary"
-    onClick={() => {
-      const BASE_URL = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
-      window.open(`${BASE_URL}/api/log-events/download`, '_blank');
-    }}
-  >Download Event Logs</button>
-</div>
-    
+    {/* Logs are pulled directly off the VM, not downloaded through the app. */}
+
     <div className='home'>
       <p className='title display-3'>TaleMate</p>
       <div className= "d-flex justify-content-center">

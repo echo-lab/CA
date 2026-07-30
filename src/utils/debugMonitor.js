@@ -129,7 +129,7 @@ function openGptDebugMonitor() {
         var id = 'fold-' + (foldId++);
         html += '<div class="field"><span class="field-label fold-toggle" onclick="var el=document.getElementById(\\'' + id + '\\');var btn=this.querySelector(\\'span\\');if(el.style.display===\\'none\\'){el.style.display=\\'block\\';btn.textContent=\\'\\u25BC\\';}else{el.style.display=\\'none\\';btn.textContent=\\'\\u25B6\\';}">Full Context <span>\\u25B6</span> </span>' +
           '<pre id="' + id + '" class="fold-content" style="display:none">' + esc(JSON.stringify(payload, null, 2)) + '</pre></div>';
-      } else if (endpoint === '/api/reinforcement-stream') {
+      } else if (endpoint === '/api/acknowledgement-stream') {
         html += field('Question', payload.question, 200);
         html += field('User Reply', payload.reply, 300);
         html += field('Page Question', payload.currentPageQuestion, 200);
@@ -137,7 +137,7 @@ function openGptDebugMonitor() {
         html += field('Book Text', payload.bookText, 100);
         html += field('Image Analysis', payload.imageDescription, 120);
         html += field('User Attention', payload.userAttention, 80);
-        var hist = Array.isArray(payload.reinforcementHistory) ? payload.reinforcementHistory : [];
+        var hist = Array.isArray(payload.acknowledgementHistory) ? payload.acknowledgementHistory : [];
         html += field('Prior Turns', hist.length === 0 ? 'none' : hist.map(function(t, i) {
           return '[Turn ' + (i + 1) + '] User: "' + (t.user || '') + '" -> Response: "' + (t.response || '') + '"';
         }).join('\\n'), 400);
@@ -164,8 +164,8 @@ function openGptDebugMonitor() {
             html += field(key, val, 300);
           }
         }
-      } else if (endpoint === '/api/reinforcement-stream') {
-        html += field('Reinforcement', data.reinforcement || '(none)', 400);
+      } else if (endpoint === '/api/acknowledgement-stream') {
+        html += field('Acknowledgement', data.acknowledgement || '(none)', 400);
       } else {
         html += field('Result', JSON.stringify(data, null, 2), 500);
       }

@@ -1,17 +1,18 @@
 import React, { useEffect, useRef } from "react";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
+import * as studyLog from "../utils/studyLog";
 
 export default function QuestionAvatar({ 
     questionHistory,
     showAvatar,
-    inReinforcementLoop,
+    inAcknowledgementLoop,
     avatarPhase,
     isThoughtRevealed,
     revealedQuestion,
-    revealedReinforcement,
+    revealedAcknowledgement,
     isGeneratedQuestionPlaying,
     isPageQuestionPlaying,
-    isReinforcementPlaying,
+    isAcknowledgementPlaying,
     narratorImage,
     frames,
     listeningImage,
@@ -40,13 +41,13 @@ export default function QuestionAvatar({
 
     useEffect(() => {
         let intervalId = null;
-        const anyPlaying = isGeneratedQuestionPlaying || isPageQuestionPlaying || isGeminiAudioPlaying || isReinforcementPlaying;
+        const anyPlaying = isGeneratedQuestionPlaying || isPageQuestionPlaying || isGeminiAudioPlaying || isAcknowledgementPlaying;
         console.log("[changeFrame] effect run", {
             anyPlaying,
             isGeneratedQuestionPlaying,
             isPageQuestionPlaying,
             isGeminiAudioPlaying,
-            isReinforcementPlaying,
+            isAcknowledgementPlaying,
             showAvatar,
             framesLen: frames.length,
             role: narratorRole?.role,
@@ -56,27 +57,36 @@ export default function QuestionAvatar({
         } else {
             frameIndexRef.current = 0;
             const imgElement = document.getElementById("role-image");
-            if (imgElement) imgElement.src = (showAvatar && inReinforcementLoop) ? listeningImage : frames[0];
+            if (imgElement) imgElement.src = (showAvatar && inAcknowledgementLoop) ? listeningImage : frames[0];
         }
         return () => {
             if (intervalId) {
                 clearInterval(intervalId);
             }
         };
-    }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isReinforcementPlaying, showAvatar, inReinforcementLoop, listeningImage]);
+    }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isAcknowledgementPlaying, showAvatar, inAcknowledgementLoop, listeningImage]);
 
     // Keep the character on screen whenever the avatar is active, even if there
-    // are no messages yet (e.g. while categorization/reinforcement is running).
+    // are no messages yet (e.g. while categorization/acknowledgement is running).
     if (questionHistory.length === 0 && !showAvatar) return null;
 
-        const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying || isReinforcementPlaying;
+        const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying || isAcknowledgementPlaying;
         const latestIdx = questionHistory.length - 1;
         const latest = latestIdx >= 0 ? questionHistory[latestIdx] : null;
 
         const handleLatestClick = () => {
             if (!latest) return;
+            // Logged before dispatch so clicks that turn into no-ops (a
+            // acknowledgement bubble, or a play blocked by the audio lock) are
+            // still recorded as clicks.
+            studyLog.pushQuestion({
+                question_id: latest.id,
+                question_type: latest.type,
+                event: 'clicked',
+                question_text: latest.text || '',
+            });
             if (latest.type === 'generated') onSpeakGenerated();
-            else if (latest.type === 'reinforcement') {/* no-op */}
+            else if (latest.type === 'acknowledgement') {/* no-op */}
             else onPlaySound();
             };
 
@@ -98,21 +108,21 @@ export default function QuestionAvatar({
                     const isLatest = i === latestIdx;
                     const isPrevious = i === latestIdx - 1;
                     const isLatestGenerated = isLatest && msg.type === 'generated';
-                    const isLatestReinforcement = isLatest && msg.type === 'reinforcement';
+                    const isLatestAcknowledgement = isLatest && msg.type === 'acknowledgement';
                     const showThoughtTeaser = isLatestGenerated && !isThoughtRevealed;
                     const displayText = showThoughtTeaser
                     ? 'I have a thought.'
                     : isLatestGenerated
                         ? (revealedQuestion || msg.text)
-                        : isLatestReinforcement
-                        ? revealedReinforcement
+                        : isLatestAcknowledgement
+                        ? revealedAcknowledgement
                         : msg.text;
                     const isRevealing =
                     (isLatestGenerated && isThoughtRevealed && Boolean(revealedQuestion) && revealedQuestion.length < msg.text.length) ||
-                    (isLatestReinforcement && Boolean(revealedReinforcement) && revealedReinforcement.length < msg.text.length);
+                    (isLatestAcknowledgement && Boolean(revealedAcknowledgement) && revealedAcknowledgement.length < msg.text.length);
                     const latestIsGenerated = latest?.type === 'generated';
                     const positionClass = avatarPhase === 'ack'
-                    ? (isLatestReinforcement ? 'latest' : 'hidden')
+                    ? (isLatestAcknowledgement ? 'latest' : 'hidden')
                     : isLatest
                         ? 'latest'
                         : (latestIsGenerated ? 'hidden' : (isPrevious ? 'previous' : 'hidden'));

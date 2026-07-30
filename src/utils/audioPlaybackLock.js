@@ -3,7 +3,7 @@ export const AUDIO_SOURCES = {
   STORY_NARRATION: 'story-narration',
   PAGE_QUESTION: 'page-question',
   GENERATED_QUESTION: 'generated-question',
-  REINFORCEMENT: 'reinforcement',
+  ACKNOWLEDGEMENT: 'acknowledgement',
   GEMINI_LIVE: 'gemini-live',
   REMOTE_REALTIME: 'remote-realtime',
 };

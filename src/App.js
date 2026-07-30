@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './App.css';
 import Home from './pages/Home';
 import Story from './pages/Story';
@@ -10,8 +10,17 @@ import AvatarSelecter from './pages/AvatarSelecter';
 import LandingPage from './pages/LandingPage';
 import { AudioStreamControlProvider } from './utils/AudioStreamControl';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { resolveParticipantFromUrl } from './utils/participant';
 
 function App() {
+  // Resolve ?pid=<id> once at startup, on whatever route the link landed on,
+  // so a handed-out participant link works from the landing page too.
+  useEffect(() => {
+    resolveParticipantFromUrl().catch((err) =>
+      console.warn('[participant] ?pid= not accepted:', err.message)
+    );
+  }, []);
+
   return (
     <div className="App">
       <AudioStreamControlProvider>

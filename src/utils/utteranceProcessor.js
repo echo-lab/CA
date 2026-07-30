@@ -1,5 +1,5 @@
 import nlp from "compromise";
-import { categorizeOffScriptUtterancesStreaming, streamReinforcement } from "./InnerThoughtProcessStream";
+import { categorizeOffScriptUtterancesStreaming, streamAcknowledgement } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
@@ -20,19 +20,19 @@ let awaitingQuestionAnswer = false;
 let lastCategorizationContext = null;
 let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
-let lastReinforcementSnapshot = '';
+let lastAcknowledgementSnapshot = '';
 let currentBookId = null;
-let reinforcementTurns = [];
+let acknowledgementTurns = [];
 
-export function setReinforcementTurns(turns) {
-  reinforcementTurns = Array.isArray(turns) ? turns : [];
+export function setAcknowledgementTurns(turns) {
+  acknowledgementTurns = Array.isArray(turns) ? turns : [];
 }
 
 // Minimum number of words the child must speak before a generated-question
 const MIN_ANSWER_WORDS = 3;
 
-export function resetReinforcementSnapshot() {
-  lastReinforcementSnapshot = '';
+export function resetAcknowledgementSnapshot() {
+  lastAcknowledgementSnapshot = '';
 }
 
 export function clearSpeculativeOffScript() {
@@ -55,7 +55,7 @@ export function resetOffScriptStateForPage(offScriptLogRef) {
   pendingPOSBuffer = [];
   lastSpeculativeSnapshot = '';
   speculativeLineEntries = [];
-  reinforcementTurns = [];
+  acknowledgementTurns = [];
   if (offScriptLogRef) {
     offScriptLogRef.current = [];
   }
@@ -275,7 +275,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   const refLine = (offScriptLogRef.current[0]?.lineIndex ?? oldPage) + 1;
   const conversationLines = [];
   let convTurn = 0;
-  for (const { question, user, response } of reinforcementTurns) {
+  for (const { question, user, response } of acknowledgementTurns) {
     if (question) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (TaleMate Generated Question) "${question}"`);
     if (user) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] "${user}"`);
     if (response) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (TaleMate Generated Response) "${response}"`);
@@ -334,7 +334,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   }
 }
 
-export async function sendReinforcementLog({
+export async function sendAcknowledgementLog({
   reply,
   question,
   currentPageQuestion,
@@ -342,10 +342,11 @@ export async function sendReinforcementLog({
   currentPageNumber,
   imageDescriptionRef,
   userAttention,
-  reinforcementHistory,
+  acknowledgementHistory,
   expectedAnswer,
   ttsVoiceName,
-  onReinforcementReady,
+  stage,
+  onAcknowledgementReady,
   onAudioChunk,
   onAudioEnd,
   onAudioError,
@@ -353,7 +354,7 @@ export async function sendReinforcementLog({
 }) {
   if (!reply) return null;
   const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-  return streamReinforcement({
+  return streamAcknowledgement({
     question,
     reply,
     currentPageQuestion,
@@ -362,10 +363,11 @@ export async function sendReinforcementLog({
     book: currentBookId,
     imageDescription,
     userAttention,
-    reinforcementHistory,
+    acknowledgementHistory,
     expectedAnswer,
     ttsVoiceName,
-    onReinforcementReady,
+    stage,
+    onAcknowledgementReady,
     onAudioChunk,
     onAudioEnd,
     onAudioError,
@@ -484,10 +486,10 @@ export async function processUserUtterance({
   onAudioError,
   onQuestionReady,
   questionGenEnabledRef,
-  isReinforcementModeRef,
+  isAcknowledgementModeRef,
   generatedQuestionPendingRef,
   onQuestionAnswered,
-  onReinforcementUtterance
+  onAcknowledgementUtterance
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
@@ -496,10 +498,10 @@ export async function processUserUtterance({
   if (!userUtterance) return;
 
   const wasAwaiting = awaitingQuestionAnswer;
-  const ackInProgress = isReinforcementModeRef?.current === true;
+  const ackInProgress = isAcknowledgementModeRef?.current === true;
   awaitingQuestionAnswer = false;
 
-  const fireReinforcement = () => {
+  const fireAcknowledgement = () => {
     const text = (userUtterance || '').trim();
     if (!text) return;
 
@@ -507,27 +509,27 @@ export async function processUserUtterance({
 
     if (answerWordCount < MIN_ANSWER_WORDS) {
       if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'reinforcement_gate_skip', reason: 'too_few_words', utterance: text, wordCount: answerWordCount });
+      debugLog({ type: 'acknowledgement_gate_skip', reason: 'too_few_words', utterance: text, wordCount: answerWordCount });
       return;
     }
     if (!/[.?!]\s*$/.test(text)) {
       if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'reinforcement_gate_skip', reason: 'no_terminal_punct', utterance: text });
+      debugLog({ type: 'acknowledgement_gate_skip', reason: 'no_terminal_punct', utterance: text });
       return;
     }
-    if (text === lastReinforcementSnapshot) {
+    if (text === lastAcknowledgementSnapshot) {
       if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'reinforcement_gate_skip', reason: 'duplicate', utterance: text });
+      debugLog({ type: 'acknowledgement_gate_skip', reason: 'duplicate', utterance: text });
       return;
     }
     if (!isUtteranceComplete(text)) {
       if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'reinforcement_gate_skip', reason: 'pos_incomplete', utterance: text });
+      debugLog({ type: 'acknowledgement_gate_skip', reason: 'pos_incomplete', utterance: text });
       return;
     }
-    lastReinforcementSnapshot = text;
-    debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'reinforcement_reply_captured', utterance: text });
-    (wasAwaiting ? onQuestionAnswered : onReinforcementUtterance)?.(text);
+    lastAcknowledgementSnapshot = text;
+    debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'acknowledgement_reply_captured', utterance: text });
+    (wasAwaiting ? onQuestionAnswered : onAcknowledgementUtterance)?.(text);
   };
 
   const generatedQuestionPending = generatedQuestionPendingRef?.current === true;
@@ -541,7 +543,7 @@ export async function processUserUtterance({
     utteranceQueuesRef.current = emptyQueues();
     lastSpeculativeSnapshot = '';
     speculativeLineEntries = [];
-    lastReinforcementSnapshot = '';
+    lastAcknowledgementSnapshot = '';
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   }
 
@@ -550,7 +552,7 @@ export async function processUserUtterance({
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
 
     if (wasAwaiting) {
-      fireReinforcement();
+      fireAcknowledgement();
       return;
     }
 
@@ -585,7 +587,7 @@ export async function processUserUtterance({
   if (!currentLine?.Reading) {
     if (wasAwaiting) {
       lastProcessedUtteranceRef.current = userUtterance;
-      fireReinforcement();
+      fireAcknowledgement();
     }
     return;
   }
@@ -596,7 +598,7 @@ export async function processUserUtterance({
   if (!isUserReadingRole) {
     lastProcessedUtteranceRef.current = userUtterance;
     if (wasAwaiting) {
-      fireReinforcement();
+      fireAcknowledgement();
     }
     return;
   }
@@ -615,7 +617,7 @@ export async function processUserUtterance({
   const rawDialogue = stripSSMLTags(currentLine.Dialogue)?.trim();
   if (!rawDialogue) {
     if (wasAwaiting) {
-      fireReinforcement();
+      fireAcknowledgement();
     }
     return; // nothing to match against (pure SSML or empty line)
   }
@@ -693,7 +695,7 @@ export async function processUserUtterance({
   debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
 
   if (wasAwaiting) {
-    fireReinforcement();
+    fireAcknowledgement();
     return;
   }
 

@@ -40,10 +40,10 @@ describe('audioPlaybackLock', () => {
     const onChange = jest.fn();
     const lock = createAudioPlaybackLock(onChange);
 
-    lock.tryBeginAudio(AUDIO_SOURCES.REINFORCEMENT);
-    lock.endAudio(AUDIO_SOURCES.REINFORCEMENT);
+    lock.tryBeginAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT);
+    lock.endAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT);
 
-    expect(onChange).toHaveBeenNthCalledWith(1, AUDIO_SOURCES.REINFORCEMENT);
+    expect(onChange).toHaveBeenNthCalledWith(1, AUDIO_SOURCES.ACKNOWLEDGEMENT);
     expect(onChange).toHaveBeenNthCalledWith(2, null);
   });
 });

@@ -16,8 +16,9 @@ const { startPruner } = require('./lib/cache/prune');
 const bookRoutes = require('./routes/book');
 const imageRoutes = require('./routes/image');
 const categorizeRoutes = require('./routes/categorize');
-const reinforcementRoutes = require('./routes/reinforcement');
+const acknowledgementRoutes = require('./routes/acknowledgement');
 const loggingRoutes = require('./routes/logging');
+const studyLogRoutes = require('./routes/studyLog');
 
 startPruner();
 
@@ -44,7 +45,9 @@ const corsOptions = {
 
 const app = express();
 app.use(cors(corsOptions));
-app.use(express.json());
+// 1mb (default is 100kb): a transcript flush carries the full Deepgram words[]
+// array per utterance, which overruns the default and 413s.
+app.use(express.json({ limit: '1mb' }));
 registerLiveTtsRoutes(app);
 setupEducationalQuestionRoutes(app);
 
@@ -52,8 +55,9 @@ setupEducationalQuestionRoutes(app);
 app.use(bookRoutes);
 app.use(imageRoutes);
 app.use(categorizeRoutes);
-app.use(reinforcementRoutes);
+app.use(acknowledgementRoutes);
 app.use(loggingRoutes);
+app.use(studyLogRoutes);
 
 // WebSocket proxy endpoint for Deepgram using SDK - keeps API key on server
 function setupDeepgramProxy(server) {
@@ -86,12 +90,12 @@ function setupDeepgramProxy(server) {
             channels: 1,
             punctuate: true,
             interim_results: true,
-            diarize: true,
+            diarize_model: 'v1',
             smart_format: true,
             endpointing: 500,
             utterance_end_ms: 1200,
             vad_events: true,
-            keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5'],
+            keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5', 'zoodely:5', 'zoop:5'],
         });
 
         // Handle Deepgram connection opened

@@ -1,6 +1,14 @@
 import { useRef, useCallback, useEffect } from "react";
-import { lineChange } from "../logGeneration";
+import { lineChange, aiDecidedToTurnPage } from "../logGeneration";
 import { resetOffScriptStateForPage } from "../utils/utteranceProcessor";
+import * as studyLog from "../utils/studyLog";
+import { getRoleLabel } from "../utils/roles";
+
+function directionBetween(prev, page, index) {
+  if (page !== prev.page) return page > prev.page ? "forward" : "back";
+  if (index !== prev.index) return index > prev.index ? "forward" : "back";
+  return "";
+}
 
 // Owns page/line navigation: next/previous, play, jump-to-line, the line-change
 // trigger markers, and the auto-advance + lineChange logging effects. Reading
@@ -28,10 +36,12 @@ export function useStoryNavigation({
   generatedQuestion,
   showAvatar,
   showAvatarRef,
-  inReinforcementLoopRef,
+  inAcknowledgementLoopRef,
 }) {
   const pendingLineTriggersRef = useRef(new Map());
   const pendingUntargetedLineTriggerRef = useRef(null);
+  const prevPageRef = useRef(null);
+  const lastLineKeyRef = useRef(null);
 
   const markLineChangeTrigger = useCallback((trigger, target) => {
     if (target && Number.isFinite(target.page) && Number.isFinite(target.index)) {
@@ -53,6 +63,8 @@ export function useStoryNavigation({
   }, [markLineChangeTrigger]);
 
   const gotoNextPage = () => {
+    // Bypasses handleNextClick, so it needs its own count.
+    studyLog.noteManualIntervention("next_button");
 
     clearQuestionUI();
     resetOffScriptStateForPage(offScriptLogRef);
@@ -81,6 +93,7 @@ export function useStoryNavigation({
   };
 
   const gotoPreviousPage = () => {
+    studyLog.noteManualIntervention("prev_button");
     if (!audioHasEnded && isPlaying) setIsButtonDisabled(true);
     clearQuestionUI();
 
@@ -104,6 +117,12 @@ export function useStoryNavigation({
   };
 
   const handleNextClick = useCallback((trigger = "manual") => {
+   // Single choke point for the Play button and the Enter hotkey — both reach
+   // here via handlePlayClick. Only audio-end auto-advance passes "auto".
+   if (trigger !== "auto") {
+     studyLog.noteManualIntervention("play_button_or_enter");
+   }
+
    const markLineChange = trigger === "auto"
      ? markNextLineChangeAutomatic
      : markNextLineChangeManual;
@@ -189,6 +208,10 @@ export function useStoryNavigation({
           setIsButtonDisabled(false);
           return;
         }
+        // The missing call site that left latency_ms blank on every row: mark
+        // the decision instant so the resulting page_turn can be timed.
+        aiDecidedToTurnPage();
+        studyLog.noteAiDecision();
         handleNextClick("auto");
         setAudioHasEnded(false);
     }
@@ -196,10 +219,7 @@ export function useStoryNavigation({
   }, [audioHasEnded, isPlaying, handleNextClick, generatedQuestion, showAvatar, state.page, state.index, state.pagesValues]);
 
   useEffect(() => {
-    // Only clear the question UI on line change once the reinforcement session
-    // has started. While a question is merely shown (not yet clicked/played),
-    // keep it alive so it doesn't vanish as reading auto-advances.
-    if (showAvatarRef.current && inReinforcementLoopRef?.current) {
+    if (showAvatarRef.current && inAcknowledgementLoopRef?.current) {
       clearQuestionUIRef.current();
     }
     const key = `${state.page}:${state.index}`;
@@ -212,6 +232,39 @@ export function useStoryNavigation({
       pendingUntargetedLineTriggerRef.current = null;
     }
     lineChange(state.page, state.index, { trigger });
+
+    const prevPage = prevPageRef.current;
+    if (prevPage !== null && prevPage !== state.page) {
+      studyLog.pushEvent({
+        event_type: "page_turn",
+        page_index: state.page,
+        line_index: state.index,
+        direction: state.page > prevPage ? "forward" : "back",
+        trigger,
+        latency_ms: studyLog.consumeDecisionLatency(),
+      });
+      studyLog.flush();
+    }
+    prevPageRef.current = state.page;
+
+    // Who reads the line this event is about. Resolved from state here rather
+    // than from studyLog's context, which is updated by a separate effect and
+    // could still hold the previous line when this one runs.
+    const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
+    const assigned = state.CharacterRoles?.find?.((o) => o.Character === currentLine?.Character);
+    const role = getRoleLabel(assigned?.role);
+
+    studyLog.pushEvent({
+      role,
+      event_type: "line_change",
+      page_index: state.page,
+      line_index: state.index,
+      direction: lastLineKeyRef.current
+        ? directionBetween(lastLineKeyRef.current, state.page, state.index)
+        : "",
+      trigger,
+    });
+    lastLineKeyRef.current = { page: state.page, index: state.index };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.page, state.index]);
 

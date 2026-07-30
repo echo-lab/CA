@@ -1,3 +1,5 @@
+import { getParticipantId } from "./utils/participant";
+
 // Server endpoint to which session event logs are posted. Defaults to the
 // REACT_APP_API_BASE the rest of the app uses; falls back to localhost.
 const LOG_API_BASE =
@@ -57,7 +59,12 @@ function updateSessionMetadata() {
     bookId = normalizeBookId(routeState.id);
   }
 
-  const routeUserId = routeState.userName || routeState.name;
+  // The verified participant ID in sessionStorage is authoritative. Router
+  // state only survives in memory, so a refresh or a direct hit on /Story would
+  // otherwise log a blank user_id; the route-state values are kept purely as a
+  // fallback for sessions started before an ID was stored.
+  const storedUserId = getParticipantId();
+  const routeUserId = storedUserId || routeState.participantId || routeState.userName || routeState.name;
   if (routeUserId !== undefined && routeUserId !== null && routeUserId !== "") {
     userId = String(routeUserId);
   }
@@ -196,13 +203,34 @@ function saveCSVToFile() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, rows: sessionLogs }),
       keepalive: true,
-    }).catch((err) => console.warn("[log] save failed:", err?.message || err));
+    })
+      .then(async (res) => {
+        // A 4xx is a *resolved* promise, so without this check a rejected
+        // batch (e.g. a user_id that is not on the participant roster) would
+        // discard the whole session with no signal at all.
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          console.error(`[log] save rejected ${res.status}:`, body);
+        }
+      })
+      .catch((err) => console.warn("[log] save failed:", err?.message || err));
   } catch (err) {
     console.warn("[log] save failed:", err?.message || err);
   }
   hasPendingCSVFlush = false;
 }
 
+// LEGACY (as of the study-log cutover): everything from here down to
+// attachDOMObserver infers page turns by diffing the page image's src, and
+// dead-reckons currentPageNumber from those diffs. src/utils/studyLog.js now
+// emits page_turn from real navigation state in useStoryNavigation, with
+// accurate direction/trigger and a manual-intervention count that includes the
+// Play button and Enter key.
+//
+// This path is kept running only so one pilot session can be diffed against the
+// new stream. Its counter is separate module state, so the two do not interfere.
+// Delete this block (and the pendingTurnSource click listener) once the diff
+// confirms the new stream, per the migration plan.
 function isStoryRoute() {
   const win = getWindow();
   if (!win?.location?.pathname) return false;

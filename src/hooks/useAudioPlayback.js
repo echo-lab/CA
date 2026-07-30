@@ -4,6 +4,7 @@ import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
 import { abortCurrentCategorization, setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
+import * as studyLog from "../utils/studyLog";
 
 function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
@@ -29,13 +30,13 @@ export function useAudioPlayback({
   setQuestionHistory,
   setShowAvatar,
   showAvatarRef,
-  setInReinforcementLoop,
+  setInAcknowledgementLoop,
   setAvatarPhase,
   setIsCategorizationPending,
   hasSlidCloserRef,
   lastAskedQuestionRef,
   pendingGeneratedQuestionRef,
-  reinforcementFromPageQuestionRef,
+  acknowledgementFromPageQuestionRef,
   generatedQuestionPendingRef,
   questionGenEnabledRef,
   state,
@@ -44,6 +45,9 @@ export function useAudioPlayback({
 }) {
   const isGeneratedQuestionPlayingRef = useRef(false);
   const isPageQuestionPlayingRef = useRef(false);
+  // Correlates play/end events back to the question they belong to: none of
+  // speakGenerated/playSound/finishGeneratedPlayback receive an id, only text.
+  const currentQuestionIdRef = useRef(null);
   const streamingPlayerRef = useRef(null);
   const fullQuestionTextRef = useRef('');
   const cumulativeAudioMsRef = useRef(0);
@@ -80,7 +84,16 @@ export function useAudioPlayback({
     }
   }, []);
 
-  const finishGeneratedPlayback = useCallback((questionText) => {
+  // `reason` separates a genuine completion from the four error/degraded paths
+  // that also land here, so "played" in the log means actually heard.
+  const finishGeneratedPlayback = useCallback((questionText, reason = 'ended') => {
+    studyLog.pushQuestion({
+      question_id: currentQuestionIdRef.current || '',
+      question_type: 'generated',
+      event: reason === 'ended' ? 'play_ended' : 'play_failed',
+      reason,
+      question_text: questionText || '',
+    });
     if (remoteAudioRef.current && !isMuted) remoteAudioRef.current.muted = false;
     generatedQuestionPlayRequestedRef.current = false;
     setIsGeneratedQuestionPlaying(false);
@@ -88,8 +101,8 @@ export function useAudioPlayback({
     if (questionText) lastAskedQuestionRef.current = questionText;
     setAwaitingQuestionAnswer(true);
     setShowAvatar(true);
-    setInReinforcementLoop(true);
-  }, [endAudio, isMuted, remoteAudioRef, generatedQuestionPlayRequestedRef, lastAskedQuestionRef, setShowAvatar, setInReinforcementLoop]);
+    setInAcknowledgementLoop(true);
+  }, [endAudio, isMuted, remoteAudioRef, generatedQuestionPlayRequestedRef, lastAskedQuestionRef, setShowAvatar, setInAcknowledgementLoop]);
 
   const createGeneratedQuestionPlayer = useCallback((questionText) => createStreamingPcmPlayer({
     onEnded: () => {
@@ -97,7 +110,7 @@ export function useAudioPlayback({
     },
     onError: (err) => {
       console.error('streaming player error:', err);
-      finishGeneratedPlayback(questionText || fullQuestionTextRef.current);
+      finishGeneratedPlayback(questionText || fullQuestionTextRef.current, 'player_error');
     },
   }), [finishGeneratedPlayback]);
 
@@ -109,9 +122,12 @@ export function useAudioPlayback({
     });
   }, []);
 
-  const startGeneratedQuestion = useCallback((questionText) => {
+  const startGeneratedQuestion = useCallback((questionText, { questionId } = {}) => {
     const text = String(questionText || '').trim();
     if (!text || isGeneratedQuestionPlayingRef.current) return;
+
+    const qid = questionId || `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    currentQuestionIdRef.current = qid;
 
     const existing = streamingPlayerRef.current;
     if (existing && existing.isFinished?.()) {
@@ -121,7 +137,7 @@ export function useAudioPlayback({
 
     fullQuestionTextRef.current = text;
     generatedQuestionPendingRef.current = true;
-    reinforcementFromPageQuestionRef.current = false;
+    acknowledgementFromPageQuestionRef.current = false;
     cumulativeAudioMsRef.current = 0;
     generatedQuestionAudioChunksRef.current = [];
     generatedQuestionAudioEndedRef.current = false;
@@ -137,16 +153,33 @@ export function useAudioPlayback({
       const last = prev[prev.length - 1];
       if (last && last.type === "generated") {
         if (last.text === text) return prev;
-        return [...prev.slice(0, -1), { ...last, text }];
+        // Mint a fresh id rather than spreading the previous entry's: two
+        // generated questions on one page would otherwise share a question_id
+        // and be indistinguishable in the log.
+        studyLog.pushQuestion({
+          question_id: qid,
+          question_type: "generated",
+          event: "replaced",
+          question_text: text,
+          reason: last.id,
+        });
+        return [...prev.slice(0, -1), { ...last, id: qid, text }];
       }
       return [
         ...prev,
         {
-          id: `gen-${Date.now()}`,
+          id: qid,
           text,
           type: "generated",
         },
       ];
+    });
+
+    studyLog.pushQuestion({
+      question_id: qid,
+      question_type: "generated",
+      event: "shown",
+      question_text: text,
     });
     if (!showAvatarRef.current) {
       hasSlidCloserRef.current = false;
@@ -217,17 +250,38 @@ export function useAudioPlayback({
     });
   }, [TEST_GENERATED_QUESTION, handleAudioChunk, handleAudioEnd, handleAudioError, narratorRole?.VA, startGeneratedQuestion, setIsCategorizationPending]);
 
+  // Records a play attempt outcome against the question currently on screen.
+  const logPlay = (event, reason, text) => {
+    studyLog.pushQuestion({
+      question_id: currentQuestionIdRef.current || '',
+      question_type: 'generated',
+      event,
+      reason: reason || '',
+      question_text: text || '',
+    });
+  };
+
   const speakGenerated = () => {
-    if (isGeneratedQuestionPlaying) return;
+    logPlay('play_requested', '', generatedQuestion || '');
+
+    if (isGeneratedQuestionPlaying) {
+      logPlay('play_failed', 'already_playing', generatedQuestion || '');
+      return;
+    }
 
     const cachedQuestion = generatedQuestion;
-    if (!cachedQuestion) return;
+    if (!cachedQuestion) {
+      logPlay('play_failed', 'no_cached_question', '');
+      return;
+    }
 
     const audioError = generatedQuestionAudioErrorRef.current;
     const hasChunks = generatedQuestionAudioChunksRef.current.length > 0;
     if (audioError && !hasChunks) {
       console.warn('Generated question Gemini TTS unavailable:', audioError);
-      finishGeneratedPlayback(cachedQuestion);
+      // Note this path still advances into the acknowledgement loop, so the
+      // question counts as asked despite never having been heard.
+      finishGeneratedPlayback(cachedQuestion, 'tts_unavailable');
       return;
     }
 
@@ -238,6 +292,7 @@ export function useAudioPlayback({
     }
 
     if (!tryBeginAudio(AUDIO_SOURCES.GENERATED_QUESTION)) {
+      logPlay('play_failed', 'audio_lock_busy', cachedQuestion);
       return;
     }
 
@@ -245,6 +300,7 @@ export function useAudioPlayback({
       streamingPlayerRef.current = createGeneratedQuestionPlayer(cachedQuestion);
     }
 
+    logPlay('play_started', '', cachedQuestion);
     generatedQuestionPlayRequestedRef.current = true;
     setIsGeneratedQuestionPlaying(true);
     setIsThoughtRevealed(true);
@@ -256,7 +312,7 @@ export function useAudioPlayback({
 
     Promise.resolve(streamingPlayerRef.current.resume()).catch((err) => {
       console.error("Generated question Gemini TTS playback error:", err);
-      finishGeneratedPlayback(cachedQuestion);
+      finishGeneratedPlayback(cachedQuestion, 'resume_failed');
     });
 
     if (generatedQuestionAudioEndedRef.current) {
@@ -269,20 +325,43 @@ export function useAudioPlayback({
     const voiceName = pageNarratorRole?.VA || "kore";
     const role = pageNarratorRole?.role || null;
     const question = state.pagesValues[state.page].question;
-    speak(question, voiceName, "neutral", role, AUDIO_SOURCES.PAGE_QUESTION, {
-      onBegin: () => {
-        setIsPageQuestionPlaying(true);
-        isPageQuestionPlayingRef.current = true;
-        lastAskedQuestionRef.current = question;
-        if (!showAvatarRef.current) {
-          hasSlidCloserRef.current = false;
-        }
-        setShowAvatar(true);
-      },
-      onError: () => {
-        setIsPageQuestionPlaying(false);
-        isPageQuestionPlayingRef.current = false;
-      },
+    const pageQuestionId = `page-${state.page}`;
+    currentQuestionIdRef.current = pageQuestionId;
+
+    const logPagePlay = (event, reason) => {
+      studyLog.pushQuestion({
+        question_id: pageQuestionId,
+        question_type: 'page',
+        event,
+        reason: reason || '',
+        question_text: question || '',
+      });
+    };
+
+    logPagePlay('play_requested');
+    // speak() resolves false when the audio lock is held, and in that path
+    // neither onBegin nor onError fires — so without consuming the result a
+    // blocked page-question click is invisible in every direction.
+    Promise.resolve(
+      speak(question, voiceName, "neutral", role, AUDIO_SOURCES.PAGE_QUESTION, {
+        onBegin: () => {
+          logPagePlay('play_started');
+          setIsPageQuestionPlaying(true);
+          isPageQuestionPlayingRef.current = true;
+          lastAskedQuestionRef.current = question;
+          if (!showAvatarRef.current) {
+            hasSlidCloserRef.current = false;
+          }
+          setShowAvatar(true);
+        },
+        onError: () => {
+          logPagePlay('play_failed', 'tts_error');
+          setIsPageQuestionPlaying(false);
+          isPageQuestionPlayingRef.current = false;
+        },
+      })
+    ).then((ok) => {
+      if (ok === false) logPagePlay('play_failed', 'audio_lock_busy');
     });
   };
 
@@ -346,11 +425,20 @@ export function useAudioPlayback({
         audio.removeEventListener("ended", audioEnded);
     }
 
+    if (isPageQuestionPlayingRef.current) {
+      studyLog.pushQuestion({
+        question_id: currentQuestionIdRef.current || '',
+        question_type: 'page',
+        event: 'play_ended',
+        reason: 'ended',
+      });
+    }
+
     if (isPageQuestionPlayingRef.current && questionGenEnabledRef.current) {
       setAwaitingQuestionAnswer(true);
       setShowAvatar(true);
-      setInReinforcementLoop(true);
-      reinforcementFromPageQuestionRef.current = true;
+      setInAcknowledgementLoop(true);
+      acknowledgementFromPageQuestionRef.current = true;
       isPageQuestionPlayingRef.current = false;
     } else if (isPageQuestionPlayingRef.current) {
       setAwaitingQuestionAnswer(false);

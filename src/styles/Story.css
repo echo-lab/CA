@@ -638,7 +638,7 @@ img {
 }
 
 .question-message.generated:after,
-.question-message.reinforcement:after {
+.question-message.acknowledgement:after {
 	content: '';
 	position: absolute;
 	left: 0;

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import { getParticipantId } from "../utils/participant";
 
 const RATING_SCALE = [
   { value: 1, label: "Never" },
@@ -27,12 +28,14 @@ const SYSTEM_LABEL = "TaleMate";
 export default function Survey() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { id, name } = location.state || {};
+  const { id } = location.state || {};
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
   const BASE_URL = process.env.REACT_APP_API_BASE || "http://localhost:5001";
 
+  // Survey rows are keyed by participant ID so they join to the event logs.
+  const name = getParticipantId();
   const hasSession = Boolean(id && name);
 
   const questions = QUESTION_TEMPLATES.map((q) =>
@@ -86,7 +89,7 @@ export default function Survey() {
         ) : !hasSession ? (
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
             <h2>No session found</h2>
-            <p style={{ color: "#666" }}>The survey requires a completed reading session. Please start from Home.</p>
+            <p style={{ color: "#666" }}>The survey requires a verified participant ID and a completed reading session. Please start from Home.</p>
             <button className="btn btn-primary" onClick={() => navigate("/Home")}>
               Back to Home
             </button>

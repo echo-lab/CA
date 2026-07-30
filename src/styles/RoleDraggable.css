@@ -50,3 +50,20 @@
     z-index: 1000 !important; /* Ensures it's above everything */
     position: relative;
   }
+/* Applied to the Parent tile when the user tried to start a session without
+   assigning it — draws the eye to the one thing blocking them. */
+.RoleDraggable.needs-assignment {
+  outline: 3px solid #d32f2f;
+  outline-offset: 3px;
+  border-radius: 8px;
+  animation: needs-assignment-pulse 1.2s ease-in-out 3;
+}
+
+@keyframes needs-assignment-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5); }
+  50%      { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .RoleDraggable.needs-assignment { animation: none; }
+}

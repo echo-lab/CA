@@ -6,7 +6,7 @@ Audience: toddlers and young children, roughly ages 4-6, reading with a caregive
 Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
 Style requirements:
 - Use concrete, child-friendly language.
-- Prefer short responses. MAX 20 words for questions and reinforcements.
+- Prefer short responses. MAX 20 words for questions and acknowledgements.
 - Do NOT invent story facts, objects, names, or emotions not supported by the provided text or image context.
 - Character grounding: Zoe is the parrot. Clara is the chameleon. Use character names when known.
 Prompt version: ${PROMPT_VERSION}`;
@@ -46,23 +46,37 @@ Output JSON only. No explanation, no preface:
 {"question":"<the question>","expected_answer":"<short answer>"}`;
 
 const QUESTION_ASSESSMENT_PROMPT = `Task: assess the user's answer compare to the generated question if it is a reasonable answer or not based on current page text and image context.
-Give a confidence score from 1 to 10, where 1 is very low confidence and 10 is very high confidence that the answer is reasonable.
+Give a confidence score from 1 to 10, where 1 is very low confidence and 10 is very high confidence that the answer is reasonable. Depending on the confidence score, give a short assessment.
+Warmly affirm what the child said. Do not ask a new question.
 
 Output JSON only. No explanation, no preface in this exact shape:
 {"confidence": <number 1-10>,"reason":"<one short sentence, max 10 words, explaining the confidence score>"}`;
 
-const REINFORCEMENT_PROMPT = `Task: generate one brief spoken response for a toddler in a co-reading session.
+const ACKNOWLEDGEMENT_PROMPT = `Task: assess a toddler's answer in a co-reading session, and when it is correct, generate one brief spoken response.
 
-Use the the last user utterance, the last asked question, the current page text, prior reinforcement turns, the expected answer (when provided), and image context when available.
+Use the last user utterance, the last asked question, the current page text, prior acknowledgement turns, the expected answer (when provided), and image context when available.
 
 Assess the child's answer against the Expected Answer and classify it as correct or incorrect:
 - If the child's answer reasonably matches the Expected Answer: treat it as correct. Warmly affirm what the child said. Do not ask a new question.
-- If the child's answer clearly contradicts or is unrelated to the Expected Answer: treat it as incorrect. Do NOT affirm the wrong answer. Instead give a hint and ask the child to answer the question again.
+- If the child's answer clearly contradicts or is unrelated to the Expected Answer: treat it as incorrect. Return an EMPTY response string — the application speaks its own line in this case. Do not write a hint, do not affirm the answer, do not ask anything.
 
 Keep the spoken response natural, concrete, and warm. Do not introduce unrelated facts.
 
 Output ONLY a JSON object, no markdown or preface, in this exact shape:
-{"correct": true|false, "response": "<the spoken response>"}`;
+{"correct": true|false, "response": "<the spoken response, or \\"\\" when incorrect>"}`;
+
+const ACKNOWLEDGEMENT_FINAL_PROMPT = `Task: generate one brief closing spoken comment for a parent-child co-reading session.
+
+Check the generated question and the user's answer and write a single warm, short comment that acknowledges what was said and settles the question for the pair.
+
+Hard constraints:
+- Do NOT ask a question of any kind. This comment ends the exchange.
+- Do NOT invite another answer or another try.
+- Do NOT correct or criticize the answer.
+- One or two short sentences, natural and warm for a child to hear.
+
+Output ONLY a JSON object, no markdown or preface, in this exact shape:
+{"correct": true, "response": "<the spoken comment>"}`;
 
 const GEMINI_IMAGE_CHARACTER_RULES = `You are working with TaleMate children's picture book illustrations.
 Character rules:
@@ -108,7 +122,8 @@ module.exports = {
     TALEMATE_SHARED_PROMPT_PREFIX,
     OFFSCRIPT_CATEGORIZATION_PROMPT,
     FOLLOWUP_QUESTION_PROMPT,
-    REINFORCEMENT_PROMPT,
+    ACKNOWLEDGEMENT_PROMPT,
+    ACKNOWLEDGEMENT_FINAL_PROMPT,
     GEMINI_IMAGE_CHARACTER_RULES,
     GEMINI_IMAGE_ANALYSIS_PROMPT,
     buildGeminiImageTaggingPrompt,
