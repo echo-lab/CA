@@ -288,7 +288,7 @@ export function endSession({ pagesReached } = {}) {
 }
 
 if (typeof window !== "undefined") {
-  window.talemateStudyLog = {
+  window.jennieStudyLog = {
     flush,
     get buffers() { return buffers; },
     get state() { return state; },

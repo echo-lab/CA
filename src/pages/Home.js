@@ -61,7 +61,7 @@ function Home() {
     {/* Logs are pulled directly off the VM, not downloaded through the app. */}
 
     <div className='home'>
-      <p className='title display-3'>TaleMate</p>
+      <p className='title display-3'>JENNIE</p>
       <div className= "d-flex justify-content-center">
             {bookInfo.map(renderCard)}
       </div>

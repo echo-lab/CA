@@ -11,7 +11,7 @@ const {
     bedrockOffscript,
 } = require('../lib/openai');
 const {
-    TALEMATE_SHARED_PROMPT_PREFIX,
+    JENNIE_SHARED_PROMPT_PREFIX,
     OFFSCRIPT_CATEGORIZATION_PROMPT,
     FOLLOWUP_QUESTION_PROMPT,
 } = require('../lib/prompts');
@@ -50,7 +50,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
         const questionAbortController = new AbortController();
         tlog(`handler start, both OpenAI calls about to launch promptVersion=${PROMPT_VERSION} cacheKey=${OPENAI_PROMPT_CACHE_KEY}`);
         const categorizationMessages = [
-            { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
+            { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
             { role: "developer", content: OFFSCRIPT_CATEGORIZATION_PROMPT },
             {
                 role: "user",
@@ -69,7 +69,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
 
         const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
         const questionMessages = [
-            { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
+            { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
             { role: "developer", content: FOLLOWUP_QUESTION_PROMPT },
             ...(pageImageMessage ? [pageImageMessage] : []), // 
             {

@@ -7,7 +7,7 @@ const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
 });
 
-const PROMPT_VERSION = 'talemate-offscript-v2';
+const PROMPT_VERSION = 'jennie-offscript-v2';
 const OPENAI_PROMPT_CACHE_KEY = PROMPT_VERSION;
 const OPENAI_PROMPT_CACHE_RETENTION = '24h';
 const OPENAI_OFFSCRIPT_MODEL = 'gpt-5.4';

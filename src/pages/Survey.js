@@ -23,7 +23,7 @@ const QUESTION_TEMPLATES = [
   "{C} presents too much information at once.",
 ];
 
-const SYSTEM_LABEL = "TaleMate";
+const SYSTEM_LABEL = "JENNIE";
 
 export default function Survey() {
   const location = useLocation();

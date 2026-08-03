@@ -14,7 +14,7 @@ import { data as data3 } from "../Book/Book3";
 import QuestionAvatar from "../components/QuestionAvatar";
 // Hooks
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
-import { useAcknowledgement, PARENT_HANDOFF_LINE } from "../hooks/useAcknowledgement";
+import { useAcknowledgement, parentHandoffLine } from "../hooks/useAcknowledgement";
 import { useStoryNavigation } from "../hooks/useStoryNavigation";
 // Utils
 import { warmSay } from "../utils/warmSay";
@@ -451,11 +451,11 @@ function Reader() {
         });
       }
     }
-    // Constant string, so one warm-up keeps the parent handoff line cached and
+    // Fixed for the session, so one warm-up keeps the parent handoff line cached and
     // it plays with no synthesis delay whenever an answer comes back wrong.
     if (narratorInfo) {
       tasks.push({
-        text: PARENT_HANDOFF_LINE,
+        text: parentHandoffLine(),
         voiceName: narratorInfo.voiceName,
         role: narratorInfo.role
       });

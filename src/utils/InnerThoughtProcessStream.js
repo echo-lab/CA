@@ -149,7 +149,6 @@ const streamAcknowledgement = async ({
     acknowledgementHistory,
     expectedAnswer,
     ttsVoiceName,
-    stage,
     onAcknowledgementReady,
     onAudioChunk,
     onAudioEnd,
@@ -169,7 +168,6 @@ const streamAcknowledgement = async ({
         acknowledgementHistory,
         expectedAnswer,
         ttsVoiceName,
-        stage,
     };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/acknowledgement-stream', payload });
 

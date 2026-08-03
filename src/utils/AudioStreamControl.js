@@ -4,7 +4,7 @@ import { AUDIO_SOURCES, createAudioPlaybackLock } from './audioPlaybackLock';
 import * as studyLog from './studyLog';
 
 const BASE_URL = process.env.REACT_APP_API_BASE;
-const GEMINI_ACKNOWLEDGEMENT_SYSTEM_INSTRUCTION = `You are TaleMate's warm educator voice in a parent-child co-reading session.
+const GEMINI_ACKNOWLEDGEMENT_SYSTEM_INSTRUCTION = `You are JENNIE's warm educator voice in a parent-child co-reading session.
 When the user answers a question, generate a brief acknowledging response based on:
 - the last question,
 - the user's reply,

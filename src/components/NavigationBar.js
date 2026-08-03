@@ -29,7 +29,7 @@ function NavigationBar({ participantId, onEndSession, showGoHome }) {
 
             <a className="navbar-brand pe-3" href="#">
             <img src={Logo} width="300" height="auto" className="d-inline-block align-left" alt=""/>
-              TaleMate
+              JENNIE
             </a>
     </nav>
   );

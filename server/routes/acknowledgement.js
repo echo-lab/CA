@@ -8,7 +8,7 @@ const {
     logOpenAIUsage,
     bedrockOffscript,
 } = require('../lib/openai');
-const { TALEMATE_SHARED_PROMPT_PREFIX, ACKNOWLEDGEMENT_PROMPT, ACKNOWLEDGEMENT_FINAL_PROMPT } = require('../lib/prompts');
+const { JENNIE_SHARED_PROMPT_PREFIX, ACKNOWLEDGEMENT_PROMPT } = require('../lib/prompts');
 const { buildAcknowledgementPayload } = require('../lib/payloads');
 const { buildPageImageMessage } = require('../lib/pageImage');
 const { generateGeminiTtsChunks } = require('../liveTTS');
@@ -30,10 +30,6 @@ function parseAcknowledgement(raw) {
         console.warn('[acknowledgement] failed to parse JSON, using raw content:', err?.message);
         return { acknowledgement: content, correct: true };
     }
-}
-
-function promptForStage(stage) {
-    return stage === 'final' ? ACKNOWLEDGEMENT_FINAL_PROMPT : ACKNOWLEDGEMENT_PROMPT;
 }
 
 router.post('/api/acknowledgement', async (req, res) => {
@@ -64,7 +60,7 @@ router.post('/api/acknowledgement', async (req, res) => {
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: [
-                { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
+                { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
                 { role: "developer", content: ACKNOWLEDGEMENT_PROMPT },
                 ...(pageImageMessage ? [pageImageMessage] : []),
                 {
@@ -112,7 +108,6 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
             ttsVoiceName,
             expectedAnswer,
             book,
-            stage,
         } = req.body;
 
         if (!reply) {
@@ -120,7 +115,6 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
             return res.end();
         }
 
-        const isFinalTurn = stage === 'final';
         const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
         const response = await offscript.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
@@ -130,8 +124,8 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
             prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
             prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
             messages: [
-                { role: "developer", content: TALEMATE_SHARED_PROMPT_PREFIX },
-                { role: "developer", content: promptForStage(stage) },
+                { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
+                { role: "developer", content: ACKNOWLEDGEMENT_PROMPT },
                 ...(pageImageMessage ? [pageImageMessage] : []),
                 {
                     role: "user",
@@ -145,7 +139,6 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
                         userAttention,
                         acknowledgementHistory,
                         expectedAnswer,
-                        stage,
                     }),
                 },
             ],
@@ -153,17 +146,16 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
 
         logOpenAIUsage('acknowledgement-stream', response?.usage);
         const parsedResult = parseAcknowledgement(response?.choices?.[0]?.message?.content);
-        const correct = isFinalTurn ? true : parsedResult.correct;
+        const correct = parsedResult.correct;
         // On an incorrect child turn the client speaks its own handoff line, so
         // drop any text the model returned against instructions — otherwise the
         // child hears a hint and then the handoff, and TTS gets synthesized for
         // audio that should never play.
-        const suppressText = !isFinalTurn && correct === false;
+        const suppressText = correct === false;
         const acknowledgement = suppressText ? '' : parsedResult.acknowledgement;
 
         if (!acknowledgement && !suppressText) {
             console.warn('[acknowledgement-stream] empty acknowledgement', {
-                stage: stage || 'child',
                 finishReason: response?.choices?.[0]?.finish_reason,
                 completionTokens: response?.usage?.completion_tokens,
             });

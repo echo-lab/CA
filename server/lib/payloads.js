@@ -37,7 +37,6 @@ function buildAcknowledgementPayload({
     userAttention,
     acknowledgementHistory,
     expectedAnswer,
-    stage,
 }) {
     const history = Array.isArray(acknowledgementHistory)
         ? acknowledgementHistory
@@ -45,10 +44,6 @@ function buildAcknowledgementPayload({
             .map((turn, idx) => `[Turn ${idx + 1}] User: "${turn.user || ''}"\nResponse: "${turn.response || ''}"`)
             .join('\n')
         : '';
-
-    // On the final turn the speaker has changed — the prior turn is the child's
-    // wrong answer and the latest utterance is the parent's.
-    const speaker = stage === 'final' ? 'the parent' : 'the child';
 
     return `<current_page>
 Page: ${currentPageNumber || ''}
@@ -58,7 +53,7 @@ Page Question: "${currentPageQuestion || ''}"
 ${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<acknowledgement_context>
 Last Asked Question: "${question || currentPageQuestion || ''}"
 Expected Answer: ${expectedAnswer ? `"${expectedAnswer}"` : '(open-ended — no single correct answer; affirm the child)'}
-Latest User Utterance (from ${speaker}): "${reply || ''}"
+Latest User Utterance (from the child): "${reply || ''}"
 ${history ? `Prior Acknowledgement Turns:\n${history}` : 'Prior Acknowledgement Turns: none'}
 </acknowledgement_context>`;
 }

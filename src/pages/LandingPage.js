@@ -17,9 +17,9 @@ const LandingPage = () => {
        </div>
         
         <div className="hero-content">
-          <h1>TaleMate: A Reading Platform for Parents and Children</h1>
+          <h1>JENNIE: A Reading Platform for Parents and Children</h1>
           <p>
-            Welcome to TaleMate – an innovative, interactive storytelling platform designed to foster parent–child collaboration in early literacy. Our research-driven approach aims to transform joint reading into an engaging, dynamic experience.
+            Welcome to JENNIE – an innovative, interactive storytelling platform designed to foster parent–child collaboration in early literacy. Our research-driven approach aims to transform joint reading into an engaging, dynamic experience.
           </p>
           <p>
             Learn more about our project and its scientific foundations on our research page:{" "}

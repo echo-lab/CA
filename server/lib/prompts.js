@@ -1,7 +1,7 @@
 // Shared prompt constants for the OpenAI/Gemini calls.
 const { PROMPT_VERSION } = require('./openai');
 
-const TALEMATE_SHARED_PROMPT_PREFIX = `TaleMate is a parent-child co-reading system for children's picture books.
+const JENNIE_SHARED_PROMPT_PREFIX = `JENNIE is a parent-child co-reading system for children's picture books.
 Audience: toddlers and young children, roughly ages 4-6, reading with a caregiver.
 Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
 Style requirements:
@@ -65,20 +65,7 @@ Keep the spoken response natural, concrete, and warm. Do not introduce unrelated
 Output ONLY a JSON object, no markdown or preface, in this exact shape:
 {"correct": true|false, "response": "<the spoken response, or \\"\\" when incorrect>"}`;
 
-const ACKNOWLEDGEMENT_FINAL_PROMPT = `Task: generate one brief closing spoken comment for a parent-child co-reading session.
-
-Check the generated question and the user's answer and write a single warm, short comment that acknowledges what was said and settles the question for the pair.
-
-Hard constraints:
-- Do NOT ask a question of any kind. This comment ends the exchange.
-- Do NOT invite another answer or another try.
-- Do NOT correct or criticize the answer.
-- One or two short sentences, natural and warm for a child to hear.
-
-Output ONLY a JSON object, no markdown or preface, in this exact shape:
-{"correct": true, "response": "<the spoken comment>"}`;
-
-const GEMINI_IMAGE_CHARACTER_RULES = `You are working with TaleMate children's picture book illustrations.
+const GEMINI_IMAGE_CHARACTER_RULES = `You are working with JENNIE children's picture book illustrations.
 Character rules:
 - Zoe is the parrot. Any bird you see is always Zoe.
 - Clara is the chameleon. Any chameleon or lizard you see will most likely be Clara.
@@ -119,11 +106,10 @@ Bounding box rules:
 }
 
 module.exports = {
-    TALEMATE_SHARED_PROMPT_PREFIX,
+    JENNIE_SHARED_PROMPT_PREFIX,
     OFFSCRIPT_CATEGORIZATION_PROMPT,
     FOLLOWUP_QUESTION_PROMPT,
     ACKNOWLEDGEMENT_PROMPT,
-    ACKNOWLEDGEMENT_FINAL_PROMPT,
     GEMINI_IMAGE_CHARACTER_RULES,
     GEMINI_IMAGE_ANALYSIS_PROMPT,
     buildGeminiImageTaggingPrompt,

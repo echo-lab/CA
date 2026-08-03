@@ -1,4 +1,4 @@
-# TaleMate Local Setup Guide
+# JENNIE Local Setup Guide
 
 ## Prerequisites
 

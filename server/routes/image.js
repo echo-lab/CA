@@ -54,7 +54,7 @@ ${pageText ? `Page text:\n${pageText}` : 'No page text provided.'}`,
     const promise = ai.caches.create({
         model,
         config: {
-            displayName: `talemate-image-context-book-${book}-page-${page}`,
+            displayName: `jennie-image-context-book-${book}-page-${page}`,
             contents,
             ttl: `${GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC}s`,
         },

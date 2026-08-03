@@ -247,9 +247,6 @@ export function useStoryNavigation({
     }
     prevPageRef.current = state.page;
 
-    // Who reads the line this event is about. Resolved from state here rather
-    // than from studyLog's context, which is updated by a separate effect and
-    // could still hold the previous line when this one runs.
     const currentLine = state.pagesValues[state.page]?.text?.[state.index - 1];
     const assigned = state.CharacterRoles?.find?.((o) => o.Character === currentLine?.Character);
     const role = getRoleLabel(assigned?.role);

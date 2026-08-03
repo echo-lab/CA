@@ -1,5 +1,5 @@
 /**
- * Shared test fixtures for TaleMate NLP tests
+ * Shared test fixtures for JENNIE NLP tests
  */
 
 // --- Factory helpers ---

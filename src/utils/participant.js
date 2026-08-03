@@ -10,7 +10,7 @@
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001";
 
-const STORAGE_KEY = "talemate.participant";
+const STORAGE_KEY = "jennie.participant";
 
 function getStorage() {
   try {

@@ -344,7 +344,7 @@ export default function CharaterSelecter() {
         onRequestClose={dismissModal}
         className="modalContent"
       >
-        <h2>TaleMate</h2>
+        <h2>JENNIE</h2>
         <p>{modalMessage}</p>
         <button onClick={dismissModal}>
           {needsParent ? "Assign Parent" : "Close"}

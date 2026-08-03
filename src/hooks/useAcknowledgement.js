@@ -4,8 +4,12 @@ import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { say } from "../utils/ttsClient";
 import { sendAcknowledgementLog, resetAcknowledgementSnapshot, setAwaitingQuestionAnswer, buildBookContext, setAcknowledgementTurns, clearSpeculativeOffScript } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
+import { getParticipant } from "../utils/participant";
 
-export const PARENT_HANDOFF_LINE = "I see. That is a good answer. What does the parent think?";
+// Names the caregiver the way the roster does ("mom", "dad", …). Stable for a
+// session, so the TTS warm-up in Story.js still hits the cache.
+export const parentHandoffLine = () =>
+  `That is an interesting idea. Do you want to talk about it with your ${getParticipant()?.['parent-figure'] || 'parent'}?`;
 
 export function useAcknowledgement({
   computeRevealLength,
@@ -40,8 +44,8 @@ export function useAcknowledgement({
   const fullAcknowledgementTextRef = useRef('');
   const cumulativeAcknowledgementMsRef = useRef(0);
   const acknowledgementCorrectRef = useRef(null);
-  const acknowledgementStageRef = useRef('child');
   const handoffAudioRef = useRef(null);
+  const handoffCloseTimerRef = useRef(null);
 
   const stopAcknowledgementAudio = useCallback(() => {
     if (acknowledgementAudioRef.current) {
@@ -53,6 +57,10 @@ export function useAcknowledgement({
         handoffAudioRef.current.pause();
       } catch {}
       handoffAudioRef.current = null;
+    }
+    if (handoffCloseTimerRef.current) {
+      clearTimeout(handoffCloseTimerRef.current);
+      handoffCloseTimerRef.current = null;
     }
     if (acknowledgementStreamingPlayerRef.current) {
       try { acknowledgementStreamingPlayerRef.current.stop(); } catch {}
@@ -67,7 +75,6 @@ export function useAcknowledgement({
   const closeAcknowledgementMode = useCallback(() => {
     acknowledgementModeRef.current = false;
     acknowledgementSessionRef.current = { question: null, turns: [] };
-    acknowledgementStageRef.current = 'child';
     setAcknowledgementTurns([]);
     acknowledgementRequestSeqRef.current += 1;
     resetAcknowledgementSnapshot();
@@ -128,7 +135,6 @@ export function useAcknowledgement({
 
       const endAcknowledgementLoop = () => {
         acknowledgementModeRef.current = false;
-        acknowledgementStageRef.current = 'child';
         acknowledgementSessionRef.current.turns = [];
         setAcknowledgementTurns([]);
         setAwaitingQuestionAnswer(false);
@@ -140,39 +146,46 @@ export function useAcknowledgement({
         setAvatarPhase('question');
       };
 
+      // The handoff line is the last thing the system says. Once it has played,
+      // the pair talks it over on their own, so the loop closes and question
+      // generation resumes rather than listening for a parent reply.
       const speakParentHandoff = async () => {
-        acknowledgementStageRef.current = 'final';
         setAvatarPhase('question');
 
         const handoffId = `ack-handoff-${Date.now()}`;
-        fullAcknowledgementTextRef.current = PARENT_HANDOFF_LINE;
-        setRevealedAcknowledgement(PARENT_HANDOFF_LINE);
-        setQuestionHistory([{ id: handoffId, text: PARENT_HANDOFF_LINE, type: 'acknowledgement' }]);
+        const handoffLine = parentHandoffLine();
+        fullAcknowledgementTextRef.current = handoffLine;
+        setRevealedAcknowledgement(handoffLine);
+        setQuestionHistory([{ id: handoffId, text: handoffLine, type: 'acknowledgement' }]);
         setShowAvatar(true);
         studyLog.pushQuestion({
           question_id: handoffId,
           question_type: 'acknowledgement',
           event: 'shown',
-          question_text: PARENT_HANDOFF_LINE,
+          question_text: handoffLine,
           expected_answer: question || '',
           reason: 'handoff_to_parent',
         });
 
-        let armed = false;
-        const armForParent = () => {
-          if (armed) return;
-          armed = true;
+        let closed = false;
+        const closeAfterHandoff = () => {
+          if (closed) return;
+          closed = true;
           handoffAudioRef.current = null;
           endAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT);
           setIsAcknowledgementPlaying(false);
           if (remoteAudioRef.current && !isMuted) remoteAudioRef.current.muted = false;
           if (requestSeq !== acknowledgementRequestSeqRef.current) return;
-          setAwaitingQuestionAnswer(true);
+          endAcknowledgementLoop();
         };
 
         if (!tryBeginAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT)) {
-          // Text is already on screen; just start listening.
-          setAwaitingQuestionAnswer(true);
+          // No speech to pace the line, so leave it on screen long enough to be
+          // read before the avatar closes.
+          handoffCloseTimerRef.current = setTimeout(() => {
+            handoffCloseTimerRef.current = null;
+            if (requestSeq === acknowledgementRequestSeqRef.current) endAcknowledgementLoop();
+          }, 3000);
           return;
         }
 
@@ -180,27 +193,27 @@ export function useAcknowledgement({
           if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
           setIsAcknowledgementPlaying(true);
           const { audio } = await say({
-            text: PARENT_HANDOFF_LINE,
+            text: handoffLine,
             voiceName: narratorRole?.VA || 'kore',
             emotion: 'neutral',
             role: narratorRole?.role || null,
           });
           if (requestSeq !== acknowledgementRequestSeqRef.current) {
             try { audio?.pause(); } catch {}
-            armForParent();
+            closeAfterHandoff();
             return;
           }
           handoffAudioRef.current = audio || null;
           if (audio) {
-            audio.addEventListener('ended', armForParent, { once: true });
-            audio.addEventListener('error', armForParent, { once: true });
-            if (audio.ended) armForParent();
+            audio.addEventListener('ended', closeAfterHandoff, { once: true });
+            audio.addEventListener('error', closeAfterHandoff, { once: true });
+            if (audio.ended) closeAfterHandoff();
           } else {
-            armForParent();
+            closeAfterHandoff();
           }
         } catch (err) {
           console.error('Parent handoff TTS failed:', err);
-          armForParent();
+          closeAfterHandoff();
         }
       };
 
@@ -222,7 +235,7 @@ export function useAcknowledgement({
           remoteAudioRef.current.muted = false;
         }
 
-        if (acknowledgementStageRef.current === 'child' && acknowledgementCorrectRef.current === false) {
+        if (acknowledgementCorrectRef.current === false) {
           speakParentHandoff();
           return;
         }
@@ -236,7 +249,6 @@ export function useAcknowledgement({
         ...context,
         acknowledgementHistory: acknowledgementSessionRef.current.turns,
         ttsVoiceName: narratorRole?.VA || null,
-        stage: acknowledgementStageRef.current,
         onAcknowledgementReady: (acknowledgement, correct) => {
           if (requestSeq !== acknowledgementRequestSeqRef.current || !acknowledgementModeRef.current) return;
           acknowledgementCorrectRef.current = correct === false ? false : true;
@@ -264,9 +276,7 @@ export function useAcknowledgement({
             event: 'shown',
             question_text: acknowledgement,
             expected_answer: question || '',
-            reason: acknowledgementStageRef.current === 'final'
-              ? 'final_parent_turn'
-              : (correct === false ? 'incorrect' : 'correct'),
+            reason: correct === false ? 'incorrect' : 'correct',
           });
           setQuestionHistory(prev => {
             const last = prev[prev.length - 1];
@@ -343,10 +353,9 @@ export function useAcknowledgement({
         if (remoteAudioRef.current && !isMuted) {
           remoteAudioRef.current.muted = false;
         }
-        // A thrown request used to leave the loop stuck open. With a hard
-        // two-turn cap that is a dead end, so close it out.
+        // A thrown request used to leave the loop stuck open. There is no
+        // further turn to recover into, so close it out.
         acknowledgementModeRef.current = false;
-        acknowledgementStageRef.current = 'child';
         setAwaitingQuestionAnswer(false);
         setInAcknowledgementLoop(false);
         setShowAvatar(false);

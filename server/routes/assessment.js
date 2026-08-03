@@ -9,7 +9,7 @@ const {
     bedrockOffscript, 
     logOpenAIUsage,
 } = require('../lib/openai');
-const { TALEMATE_SHARED_PROMPT_PREFIX, QUESTION_ASSESSMENT_PROMPT } = require('../lib/prompts');
+const { JENNIE_SHARED_PROMPT_PREFIX, QUESTION_ASSESSMENT_PROMPT } = require('../lib/prompts');
 const { buildAcknowledgementPayload } = require('../lib/payloads');
 const { buildPageImageMessage } = require('../lib/pageImage');
 const { generateGeminiTtsChunks } = require('../liveTTS');

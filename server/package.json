@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "Unified TaleMate server",
+  "description": "Unified JENNIE server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

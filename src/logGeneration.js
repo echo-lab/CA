@@ -465,7 +465,7 @@ const api = {
 };
 
 if (typeof window !== "undefined") {
-  window.talemateSessionLogger = api;
+  window.jennieSessionLogger = api;
   window.aiDecidedToTurnPage = aiDecidedToTurnPage;
 }
 

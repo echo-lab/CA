@@ -276,9 +276,9 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   const conversationLines = [];
   let convTurn = 0;
   for (const { question, user, response } of acknowledgementTurns) {
-    if (question) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (TaleMate Generated Question) "${question}"`);
+    if (question) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (JENNIE Generated Question) "${question}"`);
     if (user) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] "${user}"`);
-    if (response) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (TaleMate Generated Response) "${response}"`);
+    if (response) conversationLines.push(`[Line ${refLine}, Turn ${++convTurn}] (JENNIE Generated Response) "${response}"`);
   }
 
   const formattedLog = [...conversationLines, ...mergedLines, ...turnLines].join('\n');
@@ -345,7 +345,6 @@ export async function sendAcknowledgementLog({
   acknowledgementHistory,
   expectedAnswer,
   ttsVoiceName,
-  stage,
   onAcknowledgementReady,
   onAudioChunk,
   onAudioEnd,
@@ -366,7 +365,6 @@ export async function sendAcknowledgementLog({
     acknowledgementHistory,
     expectedAnswer,
     ttsVoiceName,
-    stage,
     onAcknowledgementReady,
     onAudioChunk,
     onAudioEnd,
