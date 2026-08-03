@@ -42,14 +42,6 @@ export const roles = [
     cloudVoice: "en-US-Wavenet-C"
   },
   {
-    Role: "Dummy",
-    RoleParameter: "gacrux",
-    img: require("../Pictures/adult.png"),
-    voiceColor: "Gray",
-    isDummy: true,
-    cloudVoice: "ar-XA-Chirp3-HD-Gacrux"
-  },
-  {
     Role: "Parent",
     RoleParameter: "leda",
     img: require("../Pictures/adult.png"),

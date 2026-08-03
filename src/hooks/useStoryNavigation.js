@@ -2,7 +2,7 @@ import { useRef, useCallback, useEffect } from "react";
 import { lineChange, aiDecidedToTurnPage } from "../logGeneration";
 import { resetOffScriptStateForPage } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
-import { getRoleLabel } from "../utils/roles";
+import { getRoleLabel, isHumanRead } from "../utils/roles";
 
 function directionBetween(prev, page, index) {
   if (page !== prev.page) return page > prev.page ? "forward" : "back";
@@ -10,10 +10,6 @@ function directionBetween(prev, page, index) {
   return "";
 }
 
-// Owns page/line navigation: next/previous, play, jump-to-line, the line-change
-// trigger markers, and the auto-advance + lineChange logging effects. Reading
-// playback (continueReading) and the cross-cutting clearQuestionUI come from
-// Story and are passed in.
 export function useStoryNavigation({
   state,
   setState,
@@ -322,10 +318,7 @@ export function useStoryNavigation({
         handleNextClick("manual");
       } else {
         var currentCharacter = state.CharacterRoles.filter(obj => obj.Character === state.pagesValues[state.page].text[state.index - 1].Character);
-        if (!currentCharacter[0].VA ||
-            currentCharacter[0].role === "Parent" ||
-            currentCharacter[0].role === "Child" ||
-            currentCharacter[0].role === "Dummy") {
+        if (!currentCharacter[0].VA || isHumanRead(currentCharacter[0].role)) {
           handleNextClick("manual");
         }
       }

@@ -662,10 +662,6 @@ function Reader() {
             isActiveRowChild = true;
           }
 
-          if(currentRole.role === "Dummy"){
-            isActiveRowParent = true;
-          }
-
           const roleImage = currentRole ? currentRole.img : "";
           const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
           const character = CurrentBook.characters.find(c => c.Name === val.Character);

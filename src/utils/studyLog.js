@@ -1,8 +1,6 @@
 import { getParticipantId } from "./participant";
 
-const API_BASE =
-  (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_BASE) ||
-  "http://localhost:5001";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001";
 
 const FLUSH_INTERVAL_MS = 5000;
 const FLUSH_AT_ROWS = 25;

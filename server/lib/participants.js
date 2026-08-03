@@ -4,6 +4,10 @@ const path = require('path');
 // The roster is edited by hand (server/participants.json) — add a row per
 // participant before their session. It is re-read whenever the file's mtime
 // changes so new IDs go live without restarting the server.
+//
+// The file is gitignored: each deployment has its own real participant IDs and
+// they should not travel through the repo. Copy participants.example.json to
+// participants.json on a fresh checkout.
 const ROSTER_PATH = path.join(__dirname, '..', 'participants.json');
 
 let cache = { mtimeMs: -1, byId: new Map(), present: false };

@@ -1,10 +1,6 @@
 import { getParticipantId } from "./utils/participant";
 
-// Server endpoint to which session event logs are posted. Defaults to the
-// REACT_APP_API_BASE the rest of the app uses; falls back to localhost.
-const LOG_API_BASE =
-  (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_BASE) ||
-  "http://localhost:5001";
+const LOG_API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001";
 
 let sessionLogs = [];
 let sessionId = Date.now();

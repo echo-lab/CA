@@ -3,6 +3,7 @@ import { categorizeOffScriptUtterancesStreaming, streamAcknowledgement } from ".
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
+import { isHumanRead } from "./roles";
 
 const VARIANT_SLOT_COUNT = 2;
 const MID_SENTENCE_TAGS = new Set([
@@ -591,7 +592,7 @@ export async function processUserUtterance({
   }
 
   const currentCharacter = state.CharacterRoles.find(obj => obj.Character === currentLine.Character);
-  const isUserReadingRole = currentCharacter?.role === "Parent" || currentCharacter?.role === "Child" || currentCharacter?.role === "Dummy";
+  const isUserReadingRole = isHumanRead(currentCharacter?.role);
 
   if (!isUserReadingRole) {
     lastProcessedUtteranceRef.current = userUtterance;

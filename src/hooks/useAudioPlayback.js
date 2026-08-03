@@ -5,6 +5,7 @@ import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
 import { abortCurrentCategorization, setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
+import { isHumanRead } from "../utils/roles";
 
 function stripSSMLTags(text) {
   return text.replace(/<\/?[^>]+(>|$)/g, "");
@@ -465,7 +466,7 @@ export function useAudioPlayback({
 
     setChildHasPlayed(false);
 
-    if (currentRole === "Parent" || currentRole === "Child" || currentRole === "Dummy") {
+    if (isHumanRead(currentRole)) {
       if (index > 0) page.text[index - 1].Reading = false;
       page.text[index].Reading = true;
 

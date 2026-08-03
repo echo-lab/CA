@@ -6,4 +6,4 @@ cache/image/
 logs/
 *.csv
 
-session-log.csv
+session-log.csvparticipants.json
