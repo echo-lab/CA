@@ -39,7 +39,7 @@ The <system_questions> block lists questions already authored for the book. Do N
 User must be able to answer the question with words avoiding questions requiring gestures, pointing, or physical actions.
 
 Also decide the expected answer:
-- If the question is open-ended, subjective, or about the child's own preference or imagination (no single correct answer), set "expected_answer" to a possible topic user might talk about in a few words.
+- If the question is open-ended, subjective, or about the child's own preference or imagination (no single correct answer), set "expected_answer" to an empty string "".
 - If the question has a clear, correct answer grounded in the page text or illustration, set "expected_answer" to that answer in a few words.
 
 Output JSON only. No explanation, no preface:
@@ -57,6 +57,7 @@ const ACKNOWLEDGEMENT_PROMPT = `Task: assess a toddler's answer in a co-reading 
 Use the last user utterance, the last asked question, the current page text, prior acknowledgement turns, the expected answer (when provided), and image context when available.
 
 Assess the child's answer against the Expected Answer and classify it as correct or incorrect:
+- If the Expected Answer is marked open-ended: ALWAYS return correct true, whatever the child said. There is nothing to be wrong about — warmly affirm their idea. Never return false in this case.
 - If the child's answer reasonably matches the Expected Answer: treat it as correct. Warmly affirm what the child said. Do not ask a new question.
 - If the child's answer clearly contradicts or is unrelated to the Expected Answer: treat it as incorrect. Return an EMPTY response string — the application speaks its own line in this case. Do not write a hint, do not affirm the answer, do not ask anything.
 

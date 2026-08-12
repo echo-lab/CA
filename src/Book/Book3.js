@@ -96,6 +96,7 @@ export const data = [
         PageThree: {
           img: require("../Pictures/book3/3 Library.jpg"),
           question: "If Clara added one more stack, how many books should that stack have?",
+          expectedAnswer: "Four.",
           text: [
             {
               Reading: false,
@@ -180,6 +181,7 @@ export const data = [
         PageFive: {
           img: require("../Pictures/book3/5 Library.jpg"),
           question: "How many books will the next shelf have?",
+          expectedAnswer: "Four.",
           text: [
             {
               Reading: false,
@@ -257,6 +259,7 @@ export const data = [
         PageSeven: {
           img: require("../Pictures/book3/7 Library.jpg"),
           question: "What pattern do the block buildings make?",
+          expectedAnswer: "The number of blocks increases by two.",
           text: [
             {
               Reading: false,
@@ -344,6 +347,7 @@ export const data = [
         PageNine: {
           img: require("../Pictures/book3/9 Library.jpg"),
           question: "If they wanted a taller staircase, how many cushions would be in the next stack?",
+          expectedAnswer: "Eight.",
           text: [
             {
               Reading: false,
@@ -537,6 +541,7 @@ export const data = [
         PageFifteen: {
           img: require("../Pictures/book3/15 Library.jpg"),
           question: "What pattern are the lights above the stage?",
+          expectedAnswer: "A red, orange, yellow pattern.",
           text: [
             {
               Reading: false,

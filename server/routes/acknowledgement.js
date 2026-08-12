@@ -17,14 +17,15 @@ const router = express.Router();
 const USE_BEDROCK = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
 const offscript = USE_BEDROCK ? bedrockOffscript : openai;
 
-function parseAcknowledgement(raw) {
+function parseAcknowledgement(raw, expectedAnswer) {
+    const gradable = !!String(expectedAnswer || '').trim();
     const content = (raw || '').trim();
     if (!content) return { acknowledgement: '', correct: true };
     try {
         const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
         const parsed = JSON.parse(cleaned);
         const acknowledgement = String(parsed?.response ?? '').trim();
-        const correct = parsed?.correct === false ? false : true;
+        const correct = (gradable && parsed?.correct === false) ? false : true;
         return { acknowledgement, correct };
     } catch (err) {
         console.warn('[acknowledgement] failed to parse JSON, using raw content:', err?.message);
@@ -81,7 +82,7 @@ router.post('/api/acknowledgement', async (req, res) => {
         });
 
         logOpenAIUsage('acknowledgement', response?.usage);
-        const { acknowledgement, correct } = parseAcknowledgement(response?.choices?.[0]?.message?.content);
+        const { acknowledgement, correct } = parseAcknowledgement(response?.choices?.[0]?.message?.content, expectedAnswer);
         res.json({ acknowledgement, correct });
     } catch (error) {
         console.error('Error in /api/acknowledgement:', error);
@@ -145,7 +146,7 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         });
 
         logOpenAIUsage('acknowledgement-stream', response?.usage);
-        const parsedResult = parseAcknowledgement(response?.choices?.[0]?.message?.content);
+        const parsedResult = parseAcknowledgement(response?.choices?.[0]?.message?.content, expectedAnswer);
         const correct = parsedResult.correct;
         // On an incorrect child turn the client speaks its own handoff line, so
         // drop any text the model returned against instructions — otherwise the
@@ -181,47 +182,6 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         res.end();
     } catch (error) {
         console.error('Error in /api/acknowledgement-stream:', error);
-        res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
-        res.end();
-    }
-});
-
-router.post('/api/generated-question-test-stream', async (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-
-    try {
-        const { questionText, ttsVoiceName } = req.body;
-        const generatedQuestion = String(questionText || '').trim();
-
-        if (!generatedQuestion) {
-            res.write(`data: ${JSON.stringify({ type: 'error', error: 'Provide questionText' })}\n\n`);
-            return res.end();
-        }
-
-        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion })}\n\n`);
-
-        {
-            try {
-                for await (const { seq, audioContent, sampleBytes } of generateGeminiTtsChunks({
-                    text: generatedQuestion,
-                    voiceName: ttsVoiceName,
-                })) {
-                    const durationMs = (sampleBytes / 2) / 24;
-                    res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq, audioContent, durationMs })}\n\n`);
-                }
-                res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
-            } catch (ttsErr) {
-                console.error('[generated-question-test-stream] streaming TTS failed:', ttsErr);
-                res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
-            }
-        }
-
-        res.end();
-    } catch (error) {
-        console.error('Error in /api/generated-question-test-stream:', error);
         res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
         res.end();
     }

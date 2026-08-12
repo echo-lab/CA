@@ -2,8 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { say } from "../utils/ttsClient";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
-import { streamGeneratedQuestionTest } from "../utils/InnerThoughtProcessStream";
-import { abortCurrentCategorization, setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
+import { setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 import { isHumanRead } from "../utils/roles";
 
@@ -33,7 +32,6 @@ export function useAudioPlayback({
   showAvatarRef,
   setInAcknowledgementLoop,
   setAvatarPhase,
-  setIsCategorizationPending,
   hasSlidCloserRef,
   lastAskedQuestionRef,
   pendingGeneratedQuestionRef,
@@ -42,7 +40,6 @@ export function useAudioPlayback({
   questionGenEnabledRef,
   state,
   narratorRole,
-  TEST_GENERATED_QUESTION,
 }) {
   const isGeneratedQuestionPlayingRef = useRef(false);
   const isPageQuestionPlayingRef = useRef(false);
@@ -235,21 +232,6 @@ export function useAudioPlayback({
     }
     teardownStreamingPlayer();
   }, [finishGeneratedPlayback, teardownStreamingPlayer]);
-
-  const handleTestQuestionClick = useCallback(() => {
-    if (process.env.NODE_ENV !== 'development' || isGeneratedQuestionPlayingRef.current) return;
-
-    abortCurrentCategorization();
-    setIsCategorizationPending(false);
-    streamGeneratedQuestionTest({
-      questionText: TEST_GENERATED_QUESTION,
-      ttsVoiceName: narratorRole?.VA || null,
-      onQuestionReady: startGeneratedQuestion,
-      onAudioChunk: handleAudioChunk,
-      onAudioEnd: handleAudioEnd,
-      onAudioError: handleAudioError,
-    });
-  }, [TEST_GENERATED_QUESTION, handleAudioChunk, handleAudioEnd, handleAudioError, narratorRole?.VA, startGeneratedQuestion, setIsCategorizationPending]);
 
   // Records a play attempt outcome against the question currently on screen.
   const logPlay = (event, reason, text) => {
@@ -568,7 +550,6 @@ export function useAudioPlayback({
     playSound,
     speakGenerated,
     startGeneratedQuestion,
-    handleTestQuestionClick,
     handleAudioChunk,
     handleAudioEnd,
     handleAudioError,

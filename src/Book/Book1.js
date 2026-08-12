@@ -25,6 +25,7 @@ export const data = [
         PageOne: {
           img: require("../Pictures/book1/Page_1.jpg"),
           question: "What is Zoe trying to do with the streamers?",
+          expectedAnswer: "She is decorating.",
           text: [
             {
               Reading: false,
@@ -144,6 +145,7 @@ export const data = [
         PageFour: {
           img: require("../Pictures/book1/Page_4.jpg"),
           question: "What pattern do the streamers make?",
+          expectedAnswer: "A purple, green, purple, green pattern.",
           text: [
             {
               Reading: false,
@@ -249,6 +251,7 @@ export const data = [
         PageSeven: {
           img: require("../Pictures/book1/Page_7.jpg"),
           question: "What color plate is missing?",
+          expectedAnswer: "Purple.",
           text: [
             {
               Reading: false,
@@ -296,6 +299,7 @@ export const data = [
         PageEight: {
           img: require("../Pictures/book1/Page_8.jpg"),
           question: "Tell me about the pattern Clara completed.",
+          expectedAnswer: "A green, purple, green, purple pattern.",
           text: [
             {
               Reading: false,
@@ -335,6 +339,7 @@ export const data = [
         PageNine: {
           img: require("../Pictures/book1/Page_9.jpg"),
           question: "Are there more circle or star balloons?",
+          expectedAnswer: "Star balloons.",
           text: [
             {
               Reading: false,
@@ -375,6 +380,7 @@ export const data = [
         PageTen: {
           img: require("../Pictures/book1/Page_10.jpg"),
           question: "Which balloon is the “beep,” and which is the “boop” in the pattern?",
+          expectedAnswer: "The star balloon is the \"beep\" and the circle balloon is the \"boop\".",
           text: [
             {
               Reading: false,
@@ -501,6 +507,7 @@ export const data = [
         PageThirteen: {
           img: require("../Pictures/book1/Page_13.jpg"),
           question: "What color was the cake they ordered?",
+          expectedAnswer: "Purple and green.",
           text: [
             {
               Reading: false,
@@ -585,6 +592,7 @@ export const data = [
         PageFifteen: {
           img: require("../Pictures/book1/Page_15.jpg"),
           question: "How is the pattern on the cake the same as the pattern of the streamers?",
+          expectedAnswer: "The colors alternate, just like the streamers.",
           text: [
             {
               Reading: false,

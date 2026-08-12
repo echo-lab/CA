@@ -66,7 +66,6 @@ function Reader() {
     };
   }, []);
   const PRELOAD_CONCURRENCY = 1;
-  const TEST_GENERATED_QUESTION = "How do you think Zoe is feeling?";
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
 
@@ -232,7 +231,6 @@ function Reader() {
     playSound,
     speakGenerated,
     startGeneratedQuestion,
-    handleTestQuestionClick,
     handleAudioChunk,
     handleAudioEnd,
     handleAudioError,
@@ -258,7 +256,6 @@ function Reader() {
     showAvatarRef,
     setInAcknowledgementLoop,
     setAvatarPhase,
-    setIsCategorizationPending,
     hasSlidCloserRef,
     lastAskedQuestionRef,
     pendingGeneratedQuestionRef,
@@ -267,7 +264,6 @@ function Reader() {
     questionGenEnabledRef,
     state,
     narratorRole,
-    TEST_GENERATED_QUESTION,
   });
 
   const {
@@ -500,9 +496,6 @@ function Reader() {
 
   useEffect(() => { stateRef.current = state; });
 
-  // Study session lifecycle. Starting here (rather than off the first page
-  // image render, as the old MutationObserver logger did) means session_start
-  // fires exactly once per mount, before any other event can be logged.
   useEffect(() => {
     studyLog.startSession({
       bookId: id,
@@ -516,8 +509,6 @@ function Reader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Stamps story position onto transcript/question rows, which are produced by
-  // code that has no access to story state.
   useEffect(() => {
     const line = state.pagesValues[state.page]?.text?.[state.index - 1];
     const assigned = state.CharacterRoles.find((o) => o.Character === line?.Character);
@@ -777,13 +768,6 @@ function Reader() {
       </div>
 
     <div className="navigation-buttons-container">
-
-      <button
-        onClick={handleTestQuestionClick}
-        className="btn btn-outline-secondary"
-        disabled={process.env.NODE_ENV !== 'development'}
-        style={{ fontSize: '12px', padding: '4px 10px', marginRight: '10px' }}
-      >Test Question</button>
 
       <button
         onClick={openDebugMonitor}

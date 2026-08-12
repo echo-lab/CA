@@ -55,6 +55,7 @@ export const data = [
         PageTwo: {
           img: require("../Pictures/book2/Page_2.jpg"),
           question: "Describe the pattern on the sleeping bags.",
+          expectedAnswer: "They alternate.",
           text: [
             {
               Reading: false,
@@ -141,6 +142,7 @@ export const data = [
         PageFive: {
           img: require("../Pictures/book2/Page_5.jpg"),
           question: "What color would the next bunch of flowers be if there was one more?",
+          expectedAnswer: "Blue or orange — either answer works.",
           text: [
             {
               Reading: false,
@@ -164,6 +166,7 @@ export const data = [
         PageSix: {
           img: require("../Pictures/book2/Page_6.jpg"),
           question: " What is the pattern on the curtains?",
+          expectedAnswer: "A flower, flower, heart pattern.",
           text: [
             {
               Reading: false,
@@ -344,6 +347,7 @@ export const data = [
         PageEleven: {
           img: require("../Pictures/book2/Page_11.jpg"),
           question: "Why does Clara say “zip, zap, zop?”",
+          expectedAnswer: "To explain the pattern.",
           text: [
             {
               Reading: false,
@@ -395,6 +399,7 @@ export const data = [
         PageTwelve: {
           img: require("../Pictures/book2/Page_12.jpg"),
           question: "What are some objects that have the same pattern?",
+          expectedAnswer: "The flowers, the blanket, Zoe’s feather, or the pots — any one of these works.",
           text: [
             {
               Reading: false,
@@ -437,6 +442,7 @@ export const data = [
         PageThirteen: {
           img: require("../Pictures/book2/Page_13.jpg"),
           question: "How is “blue, orange, blue, orange” and “tall, short, tall, short” the same pattern?",
+          expectedAnswer: "They both alternate.",
           text: [
             {
               Reading: false,
@@ -477,6 +483,7 @@ export const data = [
         PageFourteen: {
           img: require("../Pictures/book2/Page_14.jpg"),
           question: "Which items are different colors but have the same pattern?",
+          expectedAnswer: "The sleeping bags or the blankets.",
           text: [
             {
               Reading: false,

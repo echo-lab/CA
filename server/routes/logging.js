@@ -3,7 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const participants = require('../lib/participants');
-const { escape } = require('../lib/csv');
+const { escape, appendRows, concatBodies } = require('../lib/csv');
+
+const { collectLogFiles, filterToParticipant } = participants;
 
 const router = express.Router();
 
@@ -93,53 +95,6 @@ router.post('/api/log-session', (req, res) => {
     }
     console.log(`[session-log] ${participantId}, book ${book}`);
     res.json({ success: true });
-});
-
-// Survey responses — appended to server/survey-log.csv
-// Payload: { name, book, answers }
-// answers: { "0": 1..5, "1": 1..5, ... } (one entry per question index)
-router.post('/api/log-survey', (req, res) => {
-    const { name, book, answers } = req.body || {};
-    if (!name || !book || !answers || typeof answers !== 'object') {
-        return res.status(400).json({ message: 'Provide {name, book, answers}' });
-    }
-
-    // `name` is the participant ID — same roster check as the session log so
-    // survey rows can be joined to event logs without manual reconciliation.
-    const record = participants.lookup(name);
-    if (participants.isEnforced() && !record) {
-        return res.status(400).json({ message: `Unknown participant ID: ${name}` });
-    }
-    const participantId = record?.user_id ?? name;
-
-    const NUM_QUESTIONS = 9;
-    const csvPath = path.join(SERVER_ROOT, 'survey-log.csv');
-    const timestamp = new Date().toISOString();
-
-    const qHeaders = Array.from({ length: NUM_QUESTIONS }, (_, i) => `q${i + 1}`).join(',');
-    const header = `timestamp,name,book,${qHeaders}\n`;
-
-    const qValues = Array.from({ length: NUM_QUESTIONS }, (_, i) => answers[i] ?? '').join(',');
-    const row = `${timestamp},${participantId},${book},${qValues}\n`;
-
-    if (!fs.existsSync(csvPath)) {
-        fs.writeFileSync(csvPath, header + row);
-    } else {
-        fs.appendFileSync(csvPath, row);
-    }
-    console.log(`[survey-log] ${participantId}, book ${book}`);
-    res.json({ success: true });
-});
-
-// Download survey log CSV
-router.get('/api/log-survey/download', (req, res) => {
-    const csvPath = path.join(SERVER_ROOT, 'survey-log.csv');
-    if (!fs.existsSync(csvPath)) {
-        return res.status(404).json({ message: 'No survey log found' });
-    }
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=survey-log.csv');
-    res.sendFile(csvPath);
 });
 
 // Download session log CSV

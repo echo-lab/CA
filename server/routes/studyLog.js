@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const participants = require('../lib/participants');
-const { appendRows, upsertRow } = require('../lib/csv');
+const { appendRows, upsertRow, concatBodies } = require('../lib/csv');
 
 const router = express.Router();
 const SERVER_ROOT = path.join(__dirname, '..');
@@ -40,27 +40,12 @@ const SEQ_FIELD = { events: 'event_seq', transcript: 'utt_seq', questions: 'q_se
 // session_id reaches path.join, so it must be constrained before use.
 const SESSION_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
-const { participantDirName, participantDir, ensureParticipantDir } = participants;
+const {
+    participantDirName, participantDir, ensureParticipantDir,
+    collectLogFiles, filterToParticipant,
+} = participants;
 
 const SESSIONS_FILE = 'sessions.csv';
-
-function collectLogFiles(matches) {
-    if (!fs.existsSync(LOGS_DIR)) return [];
-    const found = [];
-
-    for (const entry of fs.readdirSync(LOGS_DIR, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-            const dir = path.join(LOGS_DIR, entry.name);
-            for (const name of fs.readdirSync(dir)) {
-                if (matches(name)) found.push(path.join(dir, name));
-            }
-        } else if (matches(entry.name)) {
-            found.push(path.join(LOGS_DIR, entry.name));
-        }
-    }
-    // Sorted by full path, so a participant's files stay contiguous.
-    return found.sort();
-}
 
 function collectStreamFiles(stream) {
     const suffix = `_${stream}.csv`;
@@ -69,25 +54,6 @@ function collectStreamFiles(stream) {
 
 function collectSessionFiles() {
     return collectLogFiles((name) => name === SESSIONS_FILE);
-}
-
-// Concatenates CSVs that share a header, dropping all but the first header.
-function concatBodies(files) {
-    const bodies = [];
-    for (const f of files) {
-        const content = fs.readFileSync(f, 'utf8');
-        const newlineIdx = content.indexOf('\n');
-        if (newlineIdx === -1) continue;
-        const body = content.slice(newlineIdx + 1);
-        if (body.trim()) bodies.push(body.endsWith('\n') ? body : body + '\n');
-    }
-    return bodies.join('');
-}
-
-function filterToParticipant(files, participant) {
-    const canonical = participants.lookup(participant)?.user_id ?? participant;
-    const dir = (participantDir(canonical) + path.sep).toLowerCase();
-    return files.filter((f) => f.toLowerCase().startsWith(dir));
 }
 
 const acceptedSeq = new Map();

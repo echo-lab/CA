@@ -128,4 +128,18 @@ function upsertRow(filePath, headers, row, keyColumn) {
     return replaced ? 'updated' : 'appended';
 }
 
-module.exports = { escape, appendRows, upsertRow };
+// Concatenates CSVs that share a header, dropping all but the first header.
+// The caller supplies the header row it wants on the combined output.
+function concatBodies(files) {
+    const bodies = [];
+    for (const f of files) {
+        const content = fs.readFileSync(f, 'utf8');
+        const newlineIdx = content.indexOf('\n');
+        if (newlineIdx === -1) continue;
+        const body = content.slice(newlineIdx + 1);
+        if (body.trim()) bodies.push(body.endsWith('\n') ? body : body + '\n');
+    }
+    return bodies.join('');
+}
+
+module.exports = { escape, appendRows, upsertRow, concatBodies };

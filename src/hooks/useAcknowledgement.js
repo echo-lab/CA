@@ -87,12 +87,13 @@ export function useAcknowledgement({
     }
   }, [isMuted, remoteAudioRef, stopAcknowledgementAudio, generatedQuestionPendingRef, setInAcknowledgementLoop]);
 
-  const getCurrentPageAcknowledgementContext = () => {
+  const getCurrentPageAcknowledgementContext = (askedQuestion) => {
     const currentState = stateRef.current;
     const page = currentState.pagesValues[currentState.page];
     const bookText = buildBookContext(currentState.pagesValues, currentState.page);
-    const expectedAnswer = acknowledgementFromPageQuestionRef.current
-      ? null
+    const isPageQuestion = !!page?.question && String(askedQuestion || '').trim() === page.question.trim();
+    const expectedAnswer = isPageQuestion
+      ? (page?.expectedAnswer ?? null)
       : (lastExpectedAnswerRef?.current ?? null);
 
     return {
@@ -131,7 +132,7 @@ export function useAcknowledgement({
     setQuestionHistory([]);
 
     try {
-      const context = getCurrentPageAcknowledgementContext();
+      const context = getCurrentPageAcknowledgementContext(question);
 
       const endAcknowledgementLoop = () => {
         acknowledgementModeRef.current = false;

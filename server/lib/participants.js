@@ -107,10 +107,40 @@ function ensureParticipantDir(userId) {
     return dir;
 }
 
+// Walks logs/ and returns every file whose basename passes `matches`, across
+// all participant folders (plus any left at the top level by older versions).
+// Sorted by full path, so a participant's files stay contiguous.
+function collectLogFiles(matches) {
+    if (!fs.existsSync(LOGS_DIR)) return [];
+    const found = [];
+
+    for (const entry of fs.readdirSync(LOGS_DIR, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+            const dir = path.join(LOGS_DIR, entry.name);
+            for (const name of fs.readdirSync(dir)) {
+                if (matches(name)) found.push(path.join(dir, name));
+            }
+        } else if (matches(entry.name)) {
+            found.push(path.join(LOGS_DIR, entry.name));
+        }
+    }
+    return found.sort();
+}
+
+// Narrows a collectLogFiles result to one participant's folder. Accepts any
+// spelling of the id the roster recognizes.
+function filterToParticipant(files, participant) {
+    const canonical = lookup(participant)?.user_id ?? participant;
+    const dir = (participantDir(canonical) + path.sep).toLowerCase();
+    return files.filter((f) => f.toLowerCase().startsWith(dir));
+}
+
 module.exports = {
     lookup,
     isEnforced,
     participantDirName,
     participantDir,
     ensureParticipantDir,
+    collectLogFiles,
+    filterToParticipant,
 };
