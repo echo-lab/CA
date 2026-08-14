@@ -41,8 +41,8 @@ const DIFFICULTY_MAP = {
   // 3 = Levels
   3: {
     Narrator: "",
-    Clara: "Parent",
-    Zoe: "Child",
+    Clara: "Child",
+    Zoe: "Parent",
   },
 };
 
