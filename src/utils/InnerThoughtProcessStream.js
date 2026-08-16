@@ -154,6 +154,7 @@ const streamAcknowledgement = async ({
     onAudioEnd,
     onAudioError,
     signal,
+    imageWaitMs = null,
 }) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
     const payload = {
@@ -170,6 +171,11 @@ const streamAcknowledgement = async ({
         ttsVoiceName,
     };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/acknowledgement-stream', payload });
+
+    const t0 = performance.now();
+    let tVerdict = null;
+    let tFirstAudioChunk = null;
+    let tAudioEnd = null;
 
     try {
         const response = await fetch(`${BASE_URL}/api/acknowledgement-stream`, {
@@ -204,16 +210,19 @@ const streamAcknowledgement = async ({
                 try {
                     const parsed = JSON.parse(dataLine.slice(6));
                     if (parsed.type === 'done') {
+                        if (tVerdict === null) tVerdict = performance.now();
                         acknowledgement = parsed.acknowledgement || null;
                         correct = parsed.correct === false ? false : true;
                         if (typeof onAcknowledgementReady === 'function') {
                             onAcknowledgementReady(acknowledgement || '', correct);
                         }
                     } else if (parsed.type === 'audio_chunk') {
+                        if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
                         if (parsed.audioContent && typeof onAudioChunk === 'function') {
                             onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs);
                         }
                     } else if (parsed.type === 'audio_end') {
+                        tAudioEnd = performance.now();
                         if (typeof onAudioEnd === 'function') onAudioEnd();
                     } else if (parsed.type === 'audio_error') {
                         if (typeof onAudioError === 'function') onAudioError(parsed.message);
@@ -226,7 +235,18 @@ const streamAcknowledgement = async ({
             }
         }
 
-        gptDebugLog({ type: 'gpt_response', endpoint: '/api/acknowledgement-stream', data: { acknowledgement, correct } });
+        const ms = (a, b) => (a == null || b == null ? null : Math.round(b - a));
+        const timings = {
+            imageDescriptionWaitMs: imageWaitMs,
+            requestToVerdictMs: ms(t0, tVerdict),
+            requestToFirstAudioChunkMs: ms(t0, tFirstAudioChunk),
+            requestToAudioEndMs: ms(t0, tAudioEnd),
+            verdictToFirstAudioChunkMs: ms(tVerdict, tFirstAudioChunk),
+            requestToDoneMs: ms(t0, performance.now()),
+            correct,
+        };
+        console.log('[ack-stream] client timings (ms):', timings);
+        gptDebugLog({ type: 'gpt_response', endpoint: '/api/acknowledgement-stream', data: { acknowledgement, correct, timings } });
         return { acknowledgement, correct };
     } catch (error) {
         if (error.name === 'AbortError') {

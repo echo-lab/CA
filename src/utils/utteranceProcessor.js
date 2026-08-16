@@ -21,19 +21,11 @@ let awaitingQuestionAnswer = false;
 let lastCategorizationContext = null;
 let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
-let lastAcknowledgementSnapshot = '';
 let currentBookId = null;
 let acknowledgementTurns = [];
 
 export function setAcknowledgementTurns(turns) {
   acknowledgementTurns = Array.isArray(turns) ? turns : [];
-}
-
-// Minimum number of words the child must speak before a generated-question
-const MIN_ANSWER_WORDS = 3;
-
-export function resetAcknowledgementSnapshot() {
-  lastAcknowledgementSnapshot = '';
 }
 
 export function clearSpeculativeOffScript() {
@@ -44,6 +36,67 @@ export function clearSpeculativeOffScript() {
 export function setCurrentBookId(v) { currentBookId = v; }
 
 export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
+
+// Manual answer window — the only route to an answer. The system never decides
+// that an answer has started or ended: every final transcript between the two
+// button clicks is buffered verbatim, and the closing click is what submits it.
+//
+// Deepgram delivers a final 0.3-2.4s after the speaker stops (endpointing 500ms
+// + utterance_end_ms 1200ms + network), and people click "done" the instant they
+// stop talking — so the tail of the answer almost always arrives AFTER the click.
+// Draining keeps the window accepting finals for a moment longer. Without it the
+// answer is silently dropped; session 0815202537 lost 10 of 11 answers this way.
+const ANSWER_DRAIN_MS = 2500;
+
+let manualAnswerMode = false;
+let manualAnswerBuffer = [];
+let manualAnswerDraining = false;
+let finishDrain = null;
+
+export function startManualAnswer() {
+  manualAnswerMode = true;
+  manualAnswerDraining = false;
+  manualAnswerBuffer = [];
+  debugLog({ type: 'manual_answer_start' });
+}
+
+// Resolves with the answer once the trailing transcript lands, or once the drain
+// times out — whichever comes first.
+export function endManualAnswer({ drainMs = ANSWER_DRAIN_MS } = {}) {
+  manualAnswerMode = false;
+  manualAnswerDraining = true;
+  awaitingQuestionAnswer = false;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (reason) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      manualAnswerDraining = false;
+      finishDrain = null;
+      const text = manualAnswerBuffer.join(' ').trim();
+      manualAnswerBuffer = [];
+      debugLog({ type: 'manual_answer_end', utterance: text, reason });
+      resolve(text);
+    };
+    const timer = setTimeout(() => finish('drain_timeout'), drainMs);
+    finishDrain = () => finish('tail_received');
+  });
+}
+
+export function cancelManualAnswer() {
+  if (!manualAnswerMode && !manualAnswerDraining && manualAnswerBuffer.length === 0) return;
+  manualAnswerMode = false;
+  manualAnswerBuffer = [];
+  // Buffer is already cleared, so a drain still in flight resolves empty and the
+  // caller skips the request — a page turn must not fire a stale answer.
+  if (finishDrain) finishDrain('cancelled');
+  manualAnswerDraining = false;
+  debugLog({ type: 'manual_answer_cancel' });
+}
+
+export function isManualAnswerActive() { return manualAnswerMode; }
 
 function clearLiveOffScriptState(offScriptLogRef) {
   pendingPOSBuffer = [];
@@ -353,8 +406,14 @@ export async function sendAcknowledgementLog({
   signal,
 }) {
   if (!reply) return null;
+  // This await sits between the click and the request leaving the browser: on a
+  // freshly-turned page the page-description promise may still be in flight.
+  const tImageWait = performance.now();
   const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
+  const imageWaitMs = Math.round(performance.now() - tImageWait);
+  if (imageWaitMs > 50) debugLog({ type: 'ack_image_description_wait', ms: imageWaitMs });
   return streamAcknowledgement({
+    imageWaitMs,
     question,
     reply,
     currentPageQuestion,
@@ -487,8 +546,6 @@ export async function processUserUtterance({
   questionGenEnabledRef,
   isAcknowledgementModeRef,
   generatedQuestionPendingRef,
-  onQuestionAnswered,
-  onAcknowledgementUtterance
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
@@ -496,43 +553,28 @@ export async function processUserUtterance({
 
   if (!userUtterance) return;
 
-  const wasAwaiting = awaitingQuestionAnswer;
+  // Intercepted ahead of line matching so answering a question can never
+  // auto-advance the reading position or leak into off-script categorization.
+  if (manualAnswerMode || manualAnswerDraining) {
+    const answerPart = userUtterance.trim();
+    if (answerPart) {
+      manualAnswerBuffer.push(answerPart);
+      debugLog({ type: 'manual_answer_captured', utterance: answerPart, draining: manualAnswerDraining, parts: manualAnswerBuffer.length });
+    }
+    lastProcessedUtteranceRef.current = userUtterance;
+    // The tail the click was waiting on — submit now rather than sitting out the
+    // rest of the drain.
+    if (manualAnswerDraining && answerPart && finishDrain) finishDrain();
+    return;
+  }
+
+  // A pending question now only suppresses off-script categorization — it can no
+  // longer trigger an answer, and the flag is deliberately not consumed here: it
+  // stays armed until the answer window closes or the question UI is cleared.
   const ackInProgress = isAcknowledgementModeRef?.current === true;
-  awaitingQuestionAnswer = false;
-
-  const fireAcknowledgement = () => {
-    const text = (userUtterance || '').trim();
-    if (!text) return;
-
-    const answerWordCount = text.split(/\s+/).filter(Boolean).length;
-
-    if (answerWordCount < MIN_ANSWER_WORDS) {
-      if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'acknowledgement_gate_skip', reason: 'too_few_words', utterance: text, wordCount: answerWordCount });
-      return;
-    }
-    if (!/[.?!]\s*$/.test(text)) {
-      if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'acknowledgement_gate_skip', reason: 'no_terminal_punct', utterance: text });
-      return;
-    }
-    if (text === lastAcknowledgementSnapshot) {
-      if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'acknowledgement_gate_skip', reason: 'duplicate', utterance: text });
-      return;
-    }
-    if (!isUtteranceComplete(text)) {
-      if (wasAwaiting) awaitingQuestionAnswer = true;
-      debugLog({ type: 'acknowledgement_gate_skip', reason: 'pos_incomplete', utterance: text });
-      return;
-    }
-    lastAcknowledgementSnapshot = text;
-    debugLog({ type: wasAwaiting ? 'question_reply_captured' : 'acknowledgement_reply_captured', utterance: text });
-    (wasAwaiting ? onQuestionAnswered : onAcknowledgementUtterance)?.(text);
-  };
 
   const generatedQuestionPending = generatedQuestionPendingRef?.current === true;
-  const canCategorizeLive = !wasAwaiting && !ackInProgress && !generatedQuestionPending && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
+  const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && !generatedQuestionPending && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
     ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady }
     : null;
@@ -542,18 +584,12 @@ export async function processUserUtterance({
     utteranceQueuesRef.current = emptyQueues();
     lastSpeculativeSnapshot = '';
     speculativeLineEntries = [];
-    lastAcknowledgementSnapshot = '';
     currentLineTrackingRef.current = { page: state.page, index: currentLineIndex };
   }
 
   if (totalLines > 0 && state.index >= totalLines && !currentLine?.Reading) {
     lastProcessedUtteranceRef.current = userUtterance;
     debugLog({ type: 'utterance_received', utterance: userUtterance, expectedLine: '(post-last-line)', lineIndex: currentLineIndex });
-
-    if (wasAwaiting) {
-      fireAcknowledgement();
-      return;
-    }
 
     captureStableOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
 
@@ -583,22 +619,13 @@ export async function processUserUtterance({
     return;
   }
 
-  if (!currentLine?.Reading) {
-    if (wasAwaiting) {
-      lastProcessedUtteranceRef.current = userUtterance;
-      fireAcknowledgement();
-    }
-    return;
-  }
+  if (!currentLine?.Reading) return;
 
   const currentCharacter = state.CharacterRoles.find(obj => obj.Character === currentLine.Character);
   const isUserReadingRole = isHumanRead(currentCharacter?.role);
 
   if (!isUserReadingRole) {
     lastProcessedUtteranceRef.current = userUtterance;
-    if (wasAwaiting) {
-      fireAcknowledgement();
-    }
     return;
   }
 
@@ -614,12 +641,7 @@ export async function processUserUtterance({
   utteranceQueuesRef.current[1].push(...uttSlot1);
 
   const rawDialogue = stripSSMLTags(currentLine.Dialogue)?.trim();
-  if (!rawDialogue) {
-    if (wasAwaiting) {
-      fireAcknowledgement();
-    }
-    return; // nothing to match against (pure SSML or empty line)
-  }
+  if (!rawDialogue) return; // nothing to match against (pure SSML or empty line)
   const expVariants = normalizeText(rawDialogue);
   const expectedTexts = [expVariants[0], expVariants[1] ?? expVariants[0]];
   const maxReadableLookbackWords = getMaxReadableLookbackWords(state, currentLineIndex, totalLines);
@@ -692,11 +714,6 @@ export async function processUserUtterance({
   const removedWords = utteranceQueuesRef.current[0].splice(0, wordsToRelease);
   utteranceQueuesRef.current[1].splice(0, wordsToRelease);
   debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
-
-  if (wasAwaiting) {
-    fireAcknowledgement();
-    return;
-  }
 
   const transcriptEndedTerminal = /[.?!]\s*$/.test(userUtterance);
   if (transcriptEndedTerminal) {

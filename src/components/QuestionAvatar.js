@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import * as studyLog from "../utils/studyLog";
+import AnswerButton from "./AnswerButton";
+
+const THINKING_DOT_MS = 450;
 
 export default function QuestionAvatar({ 
     questionHistory,
@@ -19,9 +22,14 @@ export default function QuestionAvatar({
     narratorRole,
     onSpeakGenerated,
     onPlaySound,
+    isAnswering,
+    answerSubmitted,
+    answerDisabled,
+    onAnswerToggle,
 }) {
     const { isGeminiAudioPlaying } = useAudioStreamControl();
     const frameIndexRef = useRef(0);
+    const [thinkingDots, setThinkingDots] = useState(1);
 
     function changeFrame() {
         const imgElement = document.getElementById("role-image");
@@ -66,9 +74,24 @@ export default function QuestionAvatar({
         };
     }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isAcknowledgementPlaying, showAvatar, inAcknowledgementLoop, listeningImage]);
 
+    // From the closing click until the acknowledgement lands, the question is
+    // replaced by a thinking panel — the old question staying up read as though
+    // it were still waiting for an answer.
+    const hasAcknowledgement = questionHistory.some(m => m.type === 'acknowledgement');
+    const showThinking = Boolean(answerSubmitted) && !hasAcknowledgement;
+
+    useEffect(() => {
+        if (!showThinking) {
+            setThinkingDots(1);
+            return;
+        }
+        const intervalId = setInterval(() => setThinkingDots(d => (d % 3) + 1), THINKING_DOT_MS);
+        return () => clearInterval(intervalId);
+    }, [showThinking]);
+
     // Keep the character on screen whenever the avatar is active, even if there
     // are no messages yet (e.g. while categorization/acknowledgement is running).
-    if (questionHistory.length === 0 && !showAvatar) return null;
+    if (questionHistory.length === 0 && !showAvatar && !showThinking) return null;
 
         const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying || isAcknowledgementPlaying;
         const latestIdx = questionHistory.length - 1;
@@ -90,8 +113,10 @@ export default function QuestionAvatar({
             else onPlaySound();
             };
 
+        const showAnswerButton = inAcknowledgementLoop && avatarPhase === 'question' && !answerSubmitted;
+
         return (
-            <div className={`question-area ${showAvatar ? 'has-avatar' : ''}`}>
+            <div className={`question-area ${showAvatar ? 'has-avatar' : ''}${showAnswerButton ? ' has-answer-button' : ''}`}>
                 {showAvatar && (
                 <div className="role-image-container">
                     <img
@@ -104,14 +129,23 @@ export default function QuestionAvatar({
                 </div>
                 )}
                 <div className="question-history">
-                {questionHistory.map((msg, i) => {
+                {showThinking && (
+                    <div className="question-message thinking latest" aria-live="polite" aria-label="Thinking">
+                        <span className="thinking-dots">
+                            {Array.from({ length: thinkingDots }, (_, i) => (
+                                <span key={i} className="thinking-dot" />
+                            ))}
+                        </span>
+                    </div>
+                )}
+                {!showThinking && questionHistory.map((msg, i) => {
                     const isLatest = i === latestIdx;
                     const isPrevious = i === latestIdx - 1;
                     const isLatestGenerated = isLatest && msg.type === 'generated';
                     const isLatestAcknowledgement = isLatest && msg.type === 'acknowledgement';
                     const showThoughtTeaser = isLatestGenerated && !isThoughtRevealed;
                     const displayText = showThoughtTeaser
-                    ? 'I have a thought.'
+                    ? 'I have a question!'
                     : isLatestGenerated
                         ? (revealedQuestion || msg.text)
                         : isLatestAcknowledgement
@@ -146,6 +180,13 @@ export default function QuestionAvatar({
                     </div>
                     );
                 })}
+                {showAnswerButton && (
+                    <AnswerButton
+                        isAnswering={isAnswering}
+                        disabled={answerDisabled}
+                        onClick={onAnswerToggle}
+                    />
+                )}
                 </div>
             </div>
         );

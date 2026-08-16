@@ -1,14 +1,14 @@
 
 .row1 {
   display: flex;
-  align-items: center; /* This will vertically center-align the flex items */
-  justify-content: space-between; /* This puts space between the flex items */
+  align-items: center;
+  justify-content: space-between;
  height: 75px;
 }
 
 .wrapper {
   display: flex;
-  align-items: center; /* This will vertically center-align the flex items */
+  align-items: center;
   flex-direction: row;
 }
 .storyTitle {
@@ -586,16 +586,20 @@ img {
   align-items: flex-start;
 }
 
+.question-area.has-answer-button .question-history {
+  transform: translateY(calc(-1 * var(--answer-button-reserve)));
+}
+
 .question-history {
   --question-stack-overlap: 26px;
   --question-stack-gap: 4px;
   --question-stack-height: 120px;
+  --answer-button-reserve: 45px;
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
   height: var(--question-stack-height);
-  /* Visible so the speaking glow can extend beyond the bubble's bounding box.
-     Hidden/previous bubbles already self-hide via opacity + transform. */
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: visible;
 }
 
@@ -736,6 +740,25 @@ img {
   }
 }
 
+/* Shown between the closing click and the acknowledgement. Drawn as circles
+   rather than period glyphs: periods sit on the text baseline, so they hang low
+   in the panel no matter how the line box is centred. */
+.question-message.thinking .thinking-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 22px;
+}
+
+.question-message.thinking .thinking-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+}
+
 .question-message.exiting {
   z-index: 2;
   animation: question-slide-out 0.6s ease-in forwards;
@@ -752,4 +775,68 @@ img {
 
 @keyframes reveal-cursor-blink {
   to { visibility: hidden; }
+}
+
+/* Anchored to .question-history, which is exactly as wide as the question
+   bubble — so left/right 0 makes the button match the question panel's width.
+   The tile that the SVGs used to carry is drawn here instead: same #74C06F
+   fill, same 1px black stroke, same 4px corner radius. */
+.answer-button {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 59px;
+  padding: 0;
+  background: #74C06F;
+  border: none;
+  /* Same declaration pair as .question-message, so the corner arc matches the
+     question panel exactly rather than approximately. */
+  font-size: 22px;
+  border-radius: 1.2em;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  z-index: 3;
+  animation: answer-button-slide-down 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.answer-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Slides out from behind the question bubble. */
+@keyframes answer-button-slide-down {
+  from {
+    transform: translateY(-72px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.answer-button-frames {
+  display: block;
+  position: relative;
+  width: 59px;
+  height: 59px;
+}
+
+.answer-button-frames img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 59px;
+  height: 59px;
+  opacity: 0;
+}
+
+.answer-button-frames img.is-visible {
+  opacity: 1;
 }

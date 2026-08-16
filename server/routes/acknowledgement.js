@@ -96,6 +96,15 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
+    const t0 = Date.now();
+    const tlog = (label) => console.log(`[ack-stream] +${Date.now() - t0}ms ${label}`);
+    let tImageReady = null;
+    let tFirstToken = null;
+    let tVerdict = null;
+    let tStreamEnd = null;
+    let tFirstAudioChunk = null;
+    let tAudioEnd = null;
+
     try {
         const {
             question,
@@ -117,8 +126,13 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         }
 
         const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
-        const response = await offscript.chat.completions.create({
+        tImageReady = Date.now();
+        tlog(`page image ready (attached=${!!pageImageMessage})`);
+
+        const stream = await offscript.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
+            stream: true,
+            stream_options: { include_usage: true },
             max_completion_tokens: 256,
             reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',
@@ -145,8 +159,48 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
             ],
         });
 
-        logOpenAIUsage('acknowledgement-stream', response?.usage);
-        const parsedResult = parseAcknowledgement(response?.choices?.[0]?.message?.content, expectedAnswer);
+        tlog('stream object received (request sent to model)');
+
+        // "correct" is the first key in the response schema, so an incorrect
+        // verdict is knowable long before the rest of the object arrives — and
+        // when incorrect there is nothing else to wait for, since the text is
+        // suppressed and no TTS is synthesized. Emitting `done` at that moment
+        // lets the client start its pre-warmed handoff line immediately.
+        const gradable = !!String(expectedAnswer || '').trim();
+        let raw = '';
+        let usage = null;
+        let finishReason = null;
+        let earlyVerdictSent = false;
+
+        for await (const chunk of stream) {
+            if (chunk.usage) {
+                usage = chunk.usage;
+                continue;
+            }
+            if (chunk.choices?.[0]?.finish_reason) finishReason = chunk.choices[0].finish_reason;
+            const token = chunk.choices?.[0]?.delta?.content || '';
+            if (!token) continue;
+            if (tFirstToken === null) {
+                tFirstToken = Date.now();
+                tlog('first token');
+            }
+            raw += token;
+
+            // Only before "response" appears, so a false inside the spoken text
+            // can never be mistaken for the verdict. Ungradable turns are always
+            // correct regardless of what the model says, so they never early-exit.
+            if (!earlyVerdictSent && gradable && !raw.includes('"response"') && /"correct"\s*:\s*false/.test(raw)) {
+                earlyVerdictSent = true;
+                tVerdict = Date.now();
+                res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement: '', correct: false })}\n\n`);
+                tlog('early incorrect verdict sent — client speaks handoff now');
+            }
+        }
+        tStreamEnd = Date.now();
+        tlog('model stream complete');
+        logOpenAIUsage('acknowledgement-stream', usage);
+
+        const parsedResult = parseAcknowledgement(raw, expectedAnswer);
         const correct = parsedResult.correct;
         // On an incorrect child turn the client speaks its own handoff line, so
         // drop any text the model returned against instructions — otherwise the
@@ -157,11 +211,20 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
 
         if (!acknowledgement && !suppressText) {
             console.warn('[acknowledgement-stream] empty acknowledgement', {
-                finishReason: response?.choices?.[0]?.finish_reason,
-                completionTokens: response?.usage?.completion_tokens,
+                finishReason,
+                completionTokens: usage?.completion_tokens,
             });
         }
-        res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement, correct })}\n\n`);
+        if (earlyVerdictSent) {
+            // The early exit predicted incorrect; a full parse that disagrees
+            // means the client already acted on a wrong verdict.
+            if (correct !== false) {
+                console.warn('[ack-stream] early verdict said incorrect but full parse said correct', { raw: raw.slice(0, 200) });
+            }
+        } else {
+            tVerdict = Date.now();
+            res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement, correct })}\n\n`);
+        }
 
         if (acknowledgement) {
             try {
@@ -169,10 +232,16 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
                     text: acknowledgement,
                     voiceName: ttsVoiceName,
                 })) {
+                    if (tFirstAudioChunk === null) {
+                        tFirstAudioChunk = Date.now();
+                        tlog('first TTS chunk');
+                    }
                     const durationMs = (sampleBytes / 2) / 24;
                     res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq, audioContent, durationMs })}\n\n`);
                 }
+                tAudioEnd = Date.now();
                 res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
+                tlog('TTS complete');
             } catch (ttsErr) {
                 console.error('[acknowledgement-stream] streaming TTS failed:', ttsErr);
                 res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
@@ -180,6 +249,22 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         }
 
         res.end();
+
+        const ms = (a, b) => (a == null || b == null ? null : b - a);
+        console.log('[ack-stream] summary (ms):', {
+            pageImage: ms(t0, tImageReady),
+            modelFirstToken: ms(t0, tFirstToken),
+            verdict: ms(t0, tVerdict),
+            modelStreamEnd: ms(t0, tStreamEnd),
+            ttsFirstChunk: ms(t0, tFirstAudioChunk),
+            ttsEnd: ms(t0, tAudioEnd),
+            total: Date.now() - t0,
+            correct,
+            earlyVerdict: earlyVerdictSent,
+            gradable,
+            promptTokens: usage?.prompt_tokens ?? null,
+            cachedTokens: usage?.prompt_tokens_details?.cached_tokens ?? null,
+        });
     } catch (error) {
         console.error('Error in /api/acknowledgement-stream:', error);
         res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);

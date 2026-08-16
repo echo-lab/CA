@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { say } from "../utils/ttsClient";
-import { sendAcknowledgementLog, resetAcknowledgementSnapshot, setAwaitingQuestionAnswer, buildBookContext, setAcknowledgementTurns, clearSpeculativeOffScript } from "../utils/utteranceProcessor";
+import { sendAcknowledgementLog, setAwaitingQuestionAnswer, buildBookContext, setAcknowledgementTurns, clearSpeculativeOffScript } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 import { getParticipant } from "../utils/participant";
 
@@ -77,7 +77,6 @@ export function useAcknowledgement({
     acknowledgementSessionRef.current = { question: null, turns: [] };
     setAcknowledgementTurns([]);
     acknowledgementRequestSeqRef.current += 1;
-    resetAcknowledgementSnapshot();
     stopAcknowledgementAudio();
     generatedQuestionPendingRef.current = false;
     setInAcknowledgementLoop(false);

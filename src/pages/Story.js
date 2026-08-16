@@ -23,7 +23,7 @@ import { openDebugMonitor } from "../utils/debugMonitor";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
-import { processUserUtterance, abortCurrentCategorization, setAwaitingQuestionAnswer, setCurrentBookId } from "../utils/utteranceProcessor";
+import { processUserUtterance, abortCurrentCategorization, setAwaitingQuestionAnswer, setCurrentBookId, startManualAnswer, endManualAnswer, cancelManualAnswer } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 import { getRoleKind } from "../utils/roles";
 
@@ -133,8 +133,6 @@ function Reader() {
     userUtterance,
     speakerLabels,
     remoteAudioRef,
-    deepgramConnected,
-    deepgramTranscript,
     connectToDeepgram,
     disconnectDeepgram,
     isGeminiAudioPlaying,
@@ -188,12 +186,20 @@ function Reader() {
   const [showAvatar, setShowAvatar] = useState(false);
   const [inAcknowledgementLoop, setInAcknowledgementLoop] = useState(false);
   const [avatarPhase, setAvatarPhase] = useState('question');
+  const [isAnsweringManually, setIsAnsweringManually] = useState(false);
+  const [answerSubmitted, setAnswerSubmitted] = useState(false);
 
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
 
   const inAcknowledgementLoopRef = useRef(false);
   useEffect(() => { inAcknowledgementLoopRef.current = inAcknowledgementLoop; }, [inAcknowledgementLoop]);
+  // Reset on both edges. Opening offers the button for a new question; closing
+  // matters just as much, because ending the loop also empties questionHistory —
+  // leaving this set would put the thinking dots back up after the
+  // acknowledgement had already finished playing. The closing click does not
+  // change this value, so the flag it sets survives until the loop moves.
+  useEffect(() => { setAnswerSubmitted(false); }, [inAcknowledgementLoop]);
 
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
   const hasSlidCloserRef = useRef(false);
@@ -309,6 +315,27 @@ function Reader() {
     lastExpectedAnswerRef.current = null;
     hasSlidCloserRef.current = false;
     dismissingQuestionRef.current = null;
+    cancelManualAnswer();
+    setIsAnsweringManually(false);
+    setAnswerSubmitted(false);
+  };
+
+  const handleAnswerToggle = async () => {
+    if (isAnsweringManually) {
+      setIsAnsweringManually(false);
+      setAnswerSubmitted(true);
+      const answer = await endManualAnswer();
+      studyLog.pushEvent({ event_type: 'manual_answer_end', detail: answer });
+      if (answer) {
+        playAcknowledgement(answer);
+      } else {
+        setAnswerSubmitted(false);
+      }
+    } else {
+      startManualAnswer();
+      setIsAnsweringManually(true);
+      studyLog.pushEvent({ event_type: 'manual_answer_start' });
+    }
   };
 
   const clearQuestionUIRef = useRef(clearQuestionUI);
@@ -589,8 +616,6 @@ function Reader() {
       questionGenEnabledRef,
       isAcknowledgementModeRef: acknowledgementModeRef,
       generatedQuestionPendingRef,
-      onQuestionAnswered: playAcknowledgement,
-      onAcknowledgementUtterance: playAcknowledgement
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userUtterance]);
@@ -788,34 +813,6 @@ function Reader() {
       >Next Page</button>
     </div>
 
-    {deepgramConnected && deepgramTranscript && (
-      <div className="deepgram-transcript-container" style={{
-        margin: '10px 20px',
-        padding: '15px',
-        backgroundColor: '#f0f0f0',
-        borderRadius: '8px',
-        border: '2px solid #4CAF50'
-      }}>
-        {speakerLabels && (
-          <div style={{
-            marginBottom: '8px',
-            padding: '5px 10px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            borderRadius: '4px',
-            display: 'inline-block',
-            fontWeight: 'bold',
-            fontSize: '0.9em'
-          }}>
-            {speakerLabels}
-          </div>
-        )}
-        <div>
-          <strong>Transcript:</strong> {deepgramTranscript}
-        </div>
-      </div>
-    )}
-
     <div className="row">
       <div className="col-md-5">
         <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
@@ -855,6 +852,10 @@ function Reader() {
           narratorRole={narratorRole}
           onSpeakGenerated={speakGenerated}
           onPlaySound={playSound}
+          isAnswering={isAnsweringManually}
+          answerSubmitted={answerSubmitted}
+          answerDisabled={!isAnsweringManually && isAnyAudioPlaying}
+          onAnswerToggle={handleAnswerToggle}
         />
         </div>
       <div className="col-md-7 table-container">
