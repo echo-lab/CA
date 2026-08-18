@@ -22,7 +22,6 @@ export default function QuestionAvatar({
     narratorRole,
     onSpeakGenerated,
     onPlaySound,
-    isAnswering,
     answerSubmitted,
     answerDisabled,
     onAnswerToggle,
@@ -182,7 +181,6 @@ export default function QuestionAvatar({
                 })}
                 {showAnswerButton && (
                     <AnswerButton
-                        isAnswering={isAnswering}
                         disabled={answerDisabled}
                         onClick={onAnswerToggle}
                     />

@@ -35,35 +35,28 @@ export function clearSpeculativeOffScript() {
 
 export function setCurrentBookId(v) { currentBookId = v; }
 
-export function setAwaitingQuestionAnswer(v) { awaitingQuestionAnswer = !!v; }
+// Opening the answer window also starts capturing. There is no "begin answering"
+// click: the mic is already live, so everything said between the question ending
+// and the submit press is the answer.
+export function setAwaitingQuestionAnswer(v) {
+  const opening = !!v && !awaitingQuestionAnswer;
+  awaitingQuestionAnswer = !!v;
+  if (opening) {
+    manualAnswerBuffer = [];
+    manualAnswerDraining = false;
+    debugLog({ type: 'answer_window_open' });
+  }
+}
 
-// Manual answer window — the only route to an answer. The system never decides
-// that an answer has started or ended: every final transcript between the two
-// button clicks is buffered verbatim, and the closing click is what submits it.
-//
-// Deepgram delivers a final 0.3-2.4s after the speaker stops (endpointing 500ms
-// + utterance_end_ms 1200ms + network), and people click "done" the instant they
-// stop talking — so the tail of the answer almost always arrives AFTER the click.
-// Draining keeps the window accepting finals for a moment longer. Without it the
-// answer is silently dropped; session 0815202537 lost 10 of 11 answers this way.
 const ANSWER_DRAIN_MS = 2500;
 
-let manualAnswerMode = false;
 let manualAnswerBuffer = [];
 let manualAnswerDraining = false;
 let finishDrain = null;
 
-export function startManualAnswer() {
-  manualAnswerMode = true;
-  manualAnswerDraining = false;
-  manualAnswerBuffer = [];
-  debugLog({ type: 'manual_answer_start' });
-}
-
-// Resolves with the answer once the trailing transcript lands, or once the drain
-// times out — whichever comes first.
+// Submits what has been captured since the question ended. Resolves once the
+// trailing transcript lands, or once the drain times out — whichever comes first.
 export function endManualAnswer({ drainMs = ANSWER_DRAIN_MS } = {}) {
-  manualAnswerMode = false;
   manualAnswerDraining = true;
   awaitingQuestionAnswer = false;
 
@@ -86,8 +79,8 @@ export function endManualAnswer({ drainMs = ANSWER_DRAIN_MS } = {}) {
 }
 
 export function cancelManualAnswer() {
-  if (!manualAnswerMode && !manualAnswerDraining && manualAnswerBuffer.length === 0) return;
-  manualAnswerMode = false;
+  if (!awaitingQuestionAnswer && !manualAnswerDraining && manualAnswerBuffer.length === 0) return;
+  awaitingQuestionAnswer = false;
   manualAnswerBuffer = [];
   // Buffer is already cleared, so a drain still in flight resolves empty and the
   // caller skips the request — a page turn must not fire a stale answer.
@@ -96,7 +89,8 @@ export function cancelManualAnswer() {
   debugLog({ type: 'manual_answer_cancel' });
 }
 
-export function isManualAnswerActive() { return manualAnswerMode; }
+// True while the mic is being treated as the answer to a pending question.
+export function isManualAnswerActive() { return awaitingQuestionAnswer; }
 
 function clearLiveOffScriptState(offScriptLogRef) {
   pendingPOSBuffer = [];
@@ -555,15 +549,15 @@ export async function processUserUtterance({
 
   // Intercepted ahead of line matching so answering a question can never
   // auto-advance the reading position or leak into off-script categorization.
-  if (manualAnswerMode || manualAnswerDraining) {
+  if (awaitingQuestionAnswer || manualAnswerDraining) {
     const answerPart = userUtterance.trim();
     if (answerPart) {
       manualAnswerBuffer.push(answerPart);
       debugLog({ type: 'manual_answer_captured', utterance: answerPart, draining: manualAnswerDraining, parts: manualAnswerBuffer.length });
     }
     lastProcessedUtteranceRef.current = userUtterance;
-    // The tail the click was waiting on — submit now rather than sitting out the
-    // rest of the drain.
+    // The tail the submit press was waiting on — send now rather than sitting out
+    // the rest of the drain.
     if (manualAnswerDraining && answerPart && finishDrain) finishDrain();
     return;
   }

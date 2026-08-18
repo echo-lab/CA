@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import micIcon from "../Pictures/buttons/mic-glyph.svg";
 import pulse1 from "../Pictures/buttons/pulse1-glyph.svg";
 import pulse2 from "../Pictures/buttons/pulse2-glyph.svg";
 import pulse3 from "../Pictures/buttons/pulse3-glyph.svg";
@@ -13,20 +12,18 @@ const PULSE_FRAMES = [pulse1, pulse2, pulse3, pulse4, pulse5, pulse6, pulse7, pu
 
 const PULSE_INTERVAL_MS = 100;
 
-export default function AnswerButton({ isAnswering, disabled, onClick }) {
+// The button only appears while a question is waiting to be answered, and the mic
+// is live that whole time — so it always pulses. There is no idle state to show.
+export default function AnswerButton({ disabled, onClick }) {
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
-    if (!isAnswering) {
-      setFrame(0);
-      return;
-    }
     const intervalId = setInterval(
       () => setFrame((f) => (f + 1) % PULSE_FRAMES.length),
       PULSE_INTERVAL_MS
     );
     return () => clearInterval(intervalId);
-  }, [isAnswering]);
+  }, []);
 
   return (
     <button
@@ -34,17 +31,15 @@ export default function AnswerButton({ isAnswering, disabled, onClick }) {
       className="answer-button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={isAnswering ? "Done answering" : "Start answering"}
-      aria-pressed={isAnswering}
+      aria-label="Send my answer"
     >
       <span className="answer-button-frames">
-        <img src={micIcon} alt="" className={isAnswering ? "" : "is-visible"} />
         {PULSE_FRAMES.map((src, i) => (
           <img
             key={src}
             src={src}
             alt=""
-            className={isAnswering && i === frame ? "is-visible" : ""}
+            className={i === frame ? "is-visible" : ""}
           />
         ))}
       </span>
