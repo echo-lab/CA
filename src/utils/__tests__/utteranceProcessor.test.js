@@ -955,7 +955,7 @@ describe('utteranceProcessor', () => {
       await Promise.resolve();
 
       expect(categorizeOffScriptUtterancesStreaming).toHaveBeenCalledTimes(1);
-      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][11]).toBe(onQuestionReady);
+      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][9]).toBe(onQuestionReady);
     });
 
     it('uses the utterance copy for speculative categorization instead of the pruned matcher queue', async () => {
@@ -994,7 +994,7 @@ describe('utteranceProcessor', () => {
       await Promise.resolve();
 
       expect(categorizeOffScriptUtterancesStreaming).toHaveBeenCalledTimes(1);
-      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][11]).toBe(onQuestionReady);
+      expect(categorizeOffScriptUtterancesStreaming.mock.calls[0][9]).toBe(onQuestionReady);
     });
   });
 

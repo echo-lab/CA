@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import * as studyLog from "../utils/studyLog";
 import AnswerButton from "./AnswerButton";
+import SendButton from "./SendButton";
 
 const THINKING_DOT_MS = 450;
 
@@ -24,7 +25,12 @@ export default function QuestionAvatar({
     onPlaySound,
     answerSubmitted,
     answerDisabled,
-    onAnswerToggle,
+    onAnswerSubmit,
+    sendBlink,
+    isUserSpeaking,
+    awaitingClick,
+    onRequestQuestion,
+    generatingQuestion,
 }) {
     const { isGeminiAudioPlaying } = useAudioStreamControl();
     const frameIndexRef = useRef(0);
@@ -80,17 +86,16 @@ export default function QuestionAvatar({
     const showThinking = Boolean(answerSubmitted) && !hasAcknowledgement;
 
     useEffect(() => {
-        if (!showThinking) {
+        if (!showThinking && !generatingQuestion) {
             setThinkingDots(1);
             return;
         }
         const intervalId = setInterval(() => setThinkingDots(d => (d % 3) + 1), THINKING_DOT_MS);
         return () => clearInterval(intervalId);
-    }, [showThinking]);
+    }, [showThinking, generatingQuestion]);
 
-    // Keep the character on screen whenever the avatar is active, even if there
-    // are no messages yet (e.g. while categorization/acknowledgement is running).
-    if (questionHistory.length === 0 && !showAvatar && !showThinking) return null;
+    // The mate is always on screen — it is the manual question button as well as
+    // the speaker, so it has to be reachable even with nothing to say.
 
         const isSpeaking = isGeneratedQuestionPlaying || isPageQuestionPlaying || isAcknowledgementPlaying;
         const latestIdx = questionHistory.length - 1;
@@ -112,23 +117,53 @@ export default function QuestionAvatar({
             else onPlaySound();
             };
 
-        const showAnswerButton = inAcknowledgementLoop && avatarPhase === 'question' && !answerSubmitted;
+        // The mate itself is the manual generate button. It only speaks an existing
+        // question when one is waiting to be heard — otherwise there is nothing to
+        // replay and the tap means "give me something to ask".
+        const hasUnheardQuestion = Boolean(latest) && latest.type === 'generated' && !isThoughtRevealed;
+        // Deaf to clicks while it is talking or already writing something. A tap
+        // mid-sentence would either cut the mate off or queue a question nobody
+        // asked for on top of the one being spoken.
+        const mateBusy = generatingQuestion || isSpeaking || isGeminiAudioPlaying;
+        const handleAvatarClick = () => {
+            if (mateBusy) return;
+            if (hasUnheardQuestion) {
+                handleLatestClick();
+                return;
+            }
+            onRequestQuestion?.();
+        };
+
+        // A click question is answered on the illustration, so the speech controls are
+    // hidden: the pulse would claim the mic is being listened to for the answer,
+    // and the send button would have nothing to send.
+    const showAnswerButton = inAcknowledgementLoop && avatarPhase === 'question' && !answerSubmitted && !awaitingClick;
 
         return (
-            <div className={`question-area ${showAvatar ? 'has-avatar' : ''}${showAnswerButton ? ' has-answer-button' : ''}`}>
-                {showAvatar && (
-                <div className="role-image-container">
+            <div className={`question-area ${narratorImage ? 'has-avatar' : ''}${showAnswerButton ? ' has-answer-button' : ''}`}>
+                {/* Always present when a mate was chosen: it is the manual question
+                    button, not just the speaker. Without a chosen mate there is no
+                    image to draw, so it degrades to no avatar rather than a broken one. */}
+                {narratorImage && (
+                <div className={`role-image-container${mateBusy ? ' is-busy' : ''}`}>
                     <img
                     id="role-image"
                     src={narratorImage}
-                    alt="Narrator"
-                    onClick={handleLatestClick}
-                    style={{ cursor: 'pointer' }}
+                    alt={latest ? 'Narrator' : 'Ask for a question'}
+                    title={latest ? '' : 'Ask me a question'}
+                    onClick={handleAvatarClick}
                     />
                 </div>
                 )}
                 <div className="question-history">
-                {showThinking && (
+                {generatingQuestion && (
+                    <div className="question-message generated latest" aria-live="polite">
+                        <span className="question-bubble-text">
+                            I am coming up with a new question{'.'.repeat(thinkingDots)}
+                        </span>
+                    </div>
+                )}
+                {!generatingQuestion && showThinking && (
                     <div className="question-message thinking latest" aria-live="polite" aria-label="Thinking">
                         <span className="thinking-dots">
                             {Array.from({ length: thinkingDots }, (_, i) => (
@@ -137,7 +172,7 @@ export default function QuestionAvatar({
                         </span>
                     </div>
                 )}
-                {!showThinking && questionHistory.map((msg, i) => {
+                {!generatingQuestion && !showThinking && questionHistory.map((msg, i) => {
                     const isLatest = i === latestIdx;
                     const isPrevious = i === latestIdx - 1;
                     const isLatestGenerated = isLatest && msg.type === 'generated';
@@ -167,7 +202,11 @@ export default function QuestionAvatar({
                     ].filter(Boolean).join(' ');
                     return (
                     <div
-                        key={msg.id}
+                        // Render identity, not log identity. A generated bubble keeps
+                        // its slot when its question is rewritten, so React reuses the
+                        // node and the slide-in animation does not replay. Bubbles
+                        // without a slot never change id, so falling back is safe.
+                        key={msg.slot || msg.id}
                         className={classes}
                         onClick={isLatest ? handleLatestClick : undefined}
                         style={{ cursor: isLatest ? 'pointer' : 'default' }}
@@ -180,10 +219,14 @@ export default function QuestionAvatar({
                     );
                 })}
                 {showAnswerButton && (
-                    <AnswerButton
-                        disabled={answerDisabled}
-                        onClick={onAnswerToggle}
-                    />
+                    <div className="answer-controls">
+                        <AnswerButton isUserSpeaking={isUserSpeaking} />
+                        <SendButton
+                            blink={sendBlink}
+                            disabled={answerDisabled}
+                            onClick={onAnswerSubmit}
+                        />
+                    </div>
                 )}
                 </div>
             </div>

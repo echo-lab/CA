@@ -164,6 +164,14 @@ function openGptDebugMonitor() {
             html += field(key, val, 300);
           }
         }
+      } else if (endpoint === '/api/categorize-utterances-stream') {
+        // Verbatim dump of the messages the server sent to the question call.
+        html += field('Question Prompt (as sent)', data.questionPrompt
+          ? data.questionPrompt.map(function(m) {
+              return '--- ' + m.role + ' ---\\n' + m.content;
+            }).join('\\n\\n')
+          : '(not captured)', 200);
+        html += field('Result', JSON.stringify({ items: data.items, generatedQuestion: data.generatedQuestion, timings: data.timings }, null, 2), 400);
       } else if (endpoint === '/api/acknowledgement-stream') {
         html += field('Acknowledgement', data.acknowledgement || '(none)', 400);
       } else {

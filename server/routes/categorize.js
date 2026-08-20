@@ -13,12 +13,16 @@ const {
 const {
     JENNIE_SHARED_PROMPT_PREFIX,
     OFFSCRIPT_CATEGORIZATION_PROMPT,
-    FOLLOWUP_QUESTION_PROMPT,
 } = require('../lib/prompts');
 const { buildOpenAIDynamicPagePayload } = require('../lib/payloads');
-const { buildPageImageMessage } = require('../lib/pageImage');
-const { parseCategorizationLine, parseJsonFromModelText } = require('../lib/modelParsing');
-const { generateGeminiTtsChunks } = require('../liveTTS');
+const {
+    resolveClickMode,
+    buildQuestionMessages,
+    sanitizeMessagesForDebug,
+    resolveQuestion,
+    streamQuestionAudio,
+} = require('../lib/questionGen');
+const { parseCategorizationLine } = require('../lib/modelParsing');
 
 const router = express.Router();
 
@@ -39,7 +43,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     let tLastItem = null;
     let categorizationUsage = null;
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, lastGeneratedQuestion, systemQuestions, ttsVoiceName, book } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, lastGeneratedQuestion, systemQuestions, ttsVoiceName, book, clickTags } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -67,26 +71,32 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             },
         ];
 
-        const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
-        const questionMessages = [
-            { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
-            { role: "developer", content: FOLLOWUP_QUESTION_PROMPT },
-            ...(pageImageMessage ? [pageImageMessage] : []), // 
-            {
-                role: "user",
-                content: buildOpenAIDynamicPagePayload({
-                    currentPageQuestion,
-                    bookText,
-                    currentPageNumber,
-                    imageDescription,
-                    userAttention,
-                    utteranceTag: 'utterances',
-                    formattedUtterances,
-                    lastGeneratedQuestion: lastGeneratedQuestion,
-                    systemQuestions,
-                }),
-            },
-        ];
+        const { clickMode, clickLabels, wanted: wantsClick } = resolveClickMode(book, clickTags);
+        if (wantsClick && !clickMode) {
+            tlog(`click book but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
+        }
+
+        const questionMessages = buildQuestionMessages({
+            book,
+            currentPageNumber,
+            currentPageQuestion,
+            bookText,
+            imageDescription,
+            userAttention,
+            formattedUtterances,
+            lastGeneratedQuestion,
+            systemQuestions,
+            clickTags,
+            clickMode,
+        });
+
+        // Dump the question call's messages to the debug monitor verbatim. Only the
+        // server assembles these, so the client would otherwise be guessing at what
+        // the model actually saw.
+        res.write(`data: ${JSON.stringify({
+            type: 'question_prompt',
+            messages: sanitizeMessagesForDebug(questionMessages),
+        })}\n\n`);
 
         // Start categorization and question generation simultaneously
         const categorizationStreamPromise = offscript.chat.completions.create({
@@ -216,59 +226,30 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
 
         // Categorization done — decide whether to use or cancel question generation
         // const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
-        let generatedQuestion = null;
-        let expectedAnswer = null;
+        let { generatedQuestion, expectedAnswer, answerLabel, answerBox } =
+            { generatedQuestion: null, expectedAnswer: null, answerLabel: null, answerBox: null };
 
         if (hasOnTopic) {
             const qResult = await questionPromise;
             tlog('question generation complete');
             logOpenAIUsage('cat-stream/question', qResult?.usage);
-            const rawQuestion = qResult?.choices[0]?.message?.content?.trim() || '';
-            if (rawQuestion) {
-                // Question gen returns { question, expected_answer }. Fall back to
-                // treating the whole output as the question if it isn't valid JSON.
-                const parsed = parseJsonFromModelText(rawQuestion, null);
-                if (parsed && typeof parsed.question === 'string') {
-                    generatedQuestion = parsed.question.trim() || null;
-                    const ea = parsed.expected_answer;
-                    expectedAnswer = (ea == null || ea === '') ? null : String(ea).trim();
-                } else {
-                    generatedQuestion = rawQuestion;
-                }
-            }
+            ({ generatedQuestion, expectedAnswer, answerLabel, answerBox } = resolveQuestion(
+                qResult?.choices[0]?.message?.content,
+                { clickMode, clickTags, clickLabels, log: tlog },
+            ));
         } else {
             questionAbortController.abort();
             tlog('question generation aborted (no ON_TOPIC)');
         }
 
-        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion, expectedAnswer })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion, expectedAnswer, answerLabel, answerBox })}\n\n`);
 
-        if (generatedQuestion && ttsVoiceName) {
-            const tTtsStart = Date.now();
-            let tFirstChunkOut = null;
-            let chunksSent = 0;
-            try {
-                for await (const { seq, audioContent, sampleBytes } of generateGeminiTtsChunks({
-                    text: generatedQuestion,
-                    voiceName: ttsVoiceName,
-                })) {
-                    if (tFirstChunkOut === null) {
-                        tFirstChunkOut = Date.now();
-                        tlog(`tts first chunk after ${tFirstChunkOut - tTtsStart}ms`);
-                    }
-                    console.log(`Chunk ${seq + 1} generated`);
-                    // PCM is 16-bit (2 bytes) mono at 24kHz → durationMs = (samples / 24)
-                    const durationMs = (sampleBytes / 2) / 24;
-                    res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq, audioContent, durationMs })}\n\n`);
-                    chunksSent++;
-                }
-                res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
-                tlog(`tts streaming complete in ${Date.now() - tTtsStart}ms (${chunksSent} chunks)`);
-            } catch (ttsErr) {
-                console.error('[cat-stream] streaming TTS failed:', ttsErr);
-                res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
-            }
-        }
+        await streamQuestionAudio(res, {
+            text: generatedQuestion,
+            voiceName: ttsVoiceName,
+            tag: 'cat-stream',
+            log: tlog,
+        });
 
         res.end();
         const ms = (a, b) => a == null || b == null ? null : b - a;

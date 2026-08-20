@@ -2,7 +2,7 @@
 const { PROMPT_VERSION } = require('./openai');
 
 const JENNIE_SHARED_PROMPT_PREFIX = `JENNIE is a parent-child co-reading system for children's picture books.
-Audience: toddlers and young children, roughly ages 4-6, reading with a caregiver.
+Audience: pre-schoolers and young children, roughly ages 3-6, reading with a caregiver.
 Primary goal: keep the interaction grounded in the current book page, the child/caregiver utterance, and the visible illustration.
 Style requirements:
 - Use concrete, child-friendly language.
@@ -30,7 +30,7 @@ Categories:
 Output schema:
 {"category":"ON_TOPIC"|"OFF_TOPIC","reason":"<one short sentence, max 10 words, explaining the classification>"}`;
 
-const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a toddler, plus the answer you would expect.
+const FOLLOWUP_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a pre-schooler, plus the answer you would expect.
 
 Make a concrete Wh-Question, description prompts, simple recall, or completion-style question inspired by the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
 Each utterance is tagged with a [Line X, Turn Y] marker; the HIGHEST Turn number is the most recent. Ask a question related to the most recent two or three utterances, using earlier utterances only as supporting context.
@@ -45,6 +45,25 @@ Also decide the expected answer:
 Output JSON only. No explanation, no preface:
 {"question":"<the question>","expected_answer":"<short answer>"}`;
 
+const CLICK_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a preschooler that can be answered only by clicking or tapping one choice. Include the expected clicked answer.
+
+Make a concrete Wh-Question that is inspired by the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
+
+The <tappable_objects> block lists every object that has a clickable region on this page. The answer MUST be exactly one of those labels, copied character for character.
+- Never invent an object, and never choose something you can see in the picture but that is not in the list.
+- If several listed objects would work, pick any one of them.
+- Prefer an object a 3-6 year old can spot easily and that connects to the page text or what was just said.
+- Phrase it as an instruction to click or tap, and keep it under 15 words.
+- Never ask for a spoken answer, and never ask for any action other than clicking.
+- The <system_questions> block lists questions already authored for this book. Do not overlap with them.
+
+Example of a good question: "Which sleeping bag do you like more?" Expected answer: "blue sleeping bag" or "red sleeping bag"
+Example of a bad question: "Tap a sofa" Expected answer: "sofa" (The question is simple clicking rather than a reasoning question.)
+Example of a bad question: "Click a purple thing" Expected answer: "purple frame" (The question is simple clicking rather than a reasoning question.)
+
+Output JSON only. No explanation, no preface:
+{"question":"<the question>","answer_label":"<the exact label copied from tappable_objects>"}`;
+
 const QUESTION_ASSESSMENT_PROMPT = `Task: assess the user's answer compare to the generated question if it is a reasonable answer or not based on current page text and image context.
 Give a confidence score from 1 to 10, where 1 is very low confidence and 10 is very high confidence that the answer is reasonable. Depending on the confidence score, give a short assessment.
 Warmly affirm what the child said. Do not ask a new question.
@@ -52,19 +71,18 @@ Warmly affirm what the child said. Do not ask a new question.
 Output JSON only. No explanation, no preface in this exact shape:
 {"confidence": <number 1-10>,"reason":"<one short sentence, max 10 words, explaining the confidence score>"}`;
 
-const ACKNOWLEDGEMENT_PROMPT = `Task: assess a toddler's answer in a co-reading session, and when it is correct, generate one brief spoken response.
+const ACKNOWLEDGEMENT_PROMPT = `Task: respond to a pre-schooler's answer in a co-reading session with one brief spoken line.
 
-Use the last user utterance, the last asked question, the current page text, prior acknowledgement turns, the expected answer (when provided), and image context when available.
+Use the last user utterance, the last asked question, the current page text, prior acknowledgement turns, the Reference Answer (when provided), and image context when available.
 
-Assess the child's answer against the Expected Answer and classify it as correct or incorrect:
-- If the Expected Answer is marked open-ended: ALWAYS return correct true, whatever the child said. There is nothing to be wrong about — warmly affirm their idea. Never return false in this case.
-- If the child's answer reasonably matches the Expected Answer: treat it as correct. Warmly affirm what the child said. Do not ask a new question.
-- If the child's answer clearly contradicts or is unrelated to the Expected Answer: treat it as incorrect. Return an EMPTY response string — the application speaks its own line in this case. Do not write a hint, do not affirm the answer, do not ask anything.
+Always respond warmly, whatever the child said. Never grade the answer and never tell the child they are wrong.
+- When the answer fits the Reference Answer or the page: affirm what the child said and add one concrete detail from the page text or illustration.
+- When it does not fit: still affirm the child's idea, then gently describe what the page or picture actually shows, so the child can notice it themselves.
+- When there is no Reference Answer: the answer is the child's own idea, so simply affirm it.
 
-Keep the spoken response natural, concrete, and warm. Do not introduce unrelated facts.
+Keep the spoken line natural, concrete, and warm. Do not ask a new question. Do not introduce unrelated facts.
 
-Output ONLY a JSON object, no markdown or preface, in this exact shape:
-{"correct": true|false, "response": "<the spoken response, or \\"\\" when incorrect>"}`;
+Output ONLY the spoken line as plain text. No JSON, no markdown, no surrounding quotes, no preface.`;
 
 const GEMINI_IMAGE_CHARACTER_RULES = `You are working with JENNIE children's picture book illustrations.
 Character rules:
@@ -110,6 +128,7 @@ module.exports = {
     JENNIE_SHARED_PROMPT_PREFIX,
     OFFSCRIPT_CATEGORIZATION_PROMPT,
     FOLLOWUP_QUESTION_PROMPT,
+    CLICK_QUESTION_PROMPT,
     ACKNOWLEDGEMENT_PROMPT,
     GEMINI_IMAGE_CHARACTER_RULES,
     GEMINI_IMAGE_ANALYSIS_PROMPT,

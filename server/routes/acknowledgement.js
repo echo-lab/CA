@@ -17,79 +17,6 @@ const router = express.Router();
 const USE_BEDROCK = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
 const offscript = USE_BEDROCK ? bedrockOffscript : openai;
 
-function parseAcknowledgement(raw, expectedAnswer) {
-    const gradable = !!String(expectedAnswer || '').trim();
-    const content = (raw || '').trim();
-    if (!content) return { acknowledgement: '', correct: true };
-    try {
-        const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-        const parsed = JSON.parse(cleaned);
-        const acknowledgement = String(parsed?.response ?? '').trim();
-        const correct = (gradable && parsed?.correct === false) ? false : true;
-        return { acknowledgement, correct };
-    } catch (err) {
-        console.warn('[acknowledgement] failed to parse JSON, using raw content:', err?.message);
-        return { acknowledgement: content, correct: true };
-    }
-}
-
-router.post('/api/acknowledgement', async (req, res) => {
-    try {
-        const {
-            question,
-            reply,
-            currentPageQuestion,
-            bookText,
-            currentPageNumber,
-            imageDescription,
-            userAttention,
-            acknowledgementHistory,
-            expectedAnswer,
-            book,
-        } = req.body;
-
-        if (!reply) {
-            return res.status(400).json({ message: 'Provide reply' });
-        }
-
-        const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
-        const response = await offscript.chat.completions.create({
-            model: OPENAI_OFFSCRIPT_MODEL,
-            max_completion_tokens: 256,
-            reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
-            verbosity: 'low',
-            prompt_cache_key: OPENAI_PROMPT_CACHE_KEY,
-            prompt_cache_retention: OPENAI_PROMPT_CACHE_RETENTION,
-            messages: [
-                { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
-                { role: "developer", content: ACKNOWLEDGEMENT_PROMPT },
-                ...(pageImageMessage ? [pageImageMessage] : []),
-                {
-                    role: "user",
-                    content: buildAcknowledgementPayload({
-                        question,
-                        reply,
-                        currentPageQuestion,
-                        bookText,
-                        currentPageNumber,
-                        imageDescription,
-                        userAttention,
-                        acknowledgementHistory,
-                        expectedAnswer,
-                    }),
-                },
-            ],
-        });
-
-        logOpenAIUsage('acknowledgement', response?.usage);
-        const { acknowledgement, correct } = parseAcknowledgement(response?.choices?.[0]?.message?.content, expectedAnswer);
-        res.json({ acknowledgement, correct });
-    } catch (error) {
-        console.error('Error in /api/acknowledgement:', error);
-        res.status(500).json({ message: error.toString() });
-    }
-});
-
 router.post('/api/acknowledgement-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -100,7 +27,6 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
     const tlog = (label) => console.log(`[ack-stream] +${Date.now() - t0}ms ${label}`);
     let tImageReady = null;
     let tFirstToken = null;
-    let tVerdict = null;
     let tStreamEnd = null;
     let tFirstAudioChunk = null;
     let tAudioEnd = null;
@@ -161,16 +87,9 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
 
         tlog('stream object received (request sent to model)');
 
-        // "correct" is the first key in the response schema, so an incorrect
-        // verdict is knowable long before the rest of the object arrives — and
-        // when incorrect there is nothing else to wait for, since the text is
-        // suppressed and no TTS is synthesized. Emitting `done` at that moment
-        // lets the client start its pre-warmed handoff line immediately.
-        const gradable = !!String(expectedAnswer || '').trim();
         let raw = '';
         let usage = null;
         let finishReason = null;
-        let earlyVerdictSent = false;
 
         for await (const chunk of stream) {
             if (chunk.usage) {
@@ -185,46 +104,27 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
                 tlog('first token');
             }
             raw += token;
-
-            // Only before "response" appears, so a false inside the spoken text
-            // can never be mistaken for the verdict. Ungradable turns are always
-            // correct regardless of what the model says, so they never early-exit.
-            if (!earlyVerdictSent && gradable && !raw.includes('"response"') && /"correct"\s*:\s*false/.test(raw)) {
-                earlyVerdictSent = true;
-                tVerdict = Date.now();
-                res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement: '', correct: false })}\n\n`);
-                tlog('early incorrect verdict sent — client speaks handoff now');
-            }
         }
         tStreamEnd = Date.now();
         tlog('model stream complete');
         logOpenAIUsage('acknowledgement-stream', usage);
 
-        const parsedResult = parseAcknowledgement(raw, expectedAnswer);
-        const correct = parsedResult.correct;
-        // On an incorrect child turn the client speaks its own handoff line, so
-        // drop any text the model returned against instructions — otherwise the
-        // child hears a hint and then the handoff, and TTS gets synthesized for
-        // audio that should never play.
-        const suppressText = correct === false;
-        const acknowledgement = suppressText ? '' : parsedResult.acknowledgement;
+        // Plain text out, so nothing to parse — just guard against a stray fence
+        // or wrapping quotes if the model ignores the format instruction.
+        const acknowledgement = raw
+            .trim()
+            .replace(/^```(?:\w+)?\s*/i, '')
+            .replace(/\s*```$/, '')
+            .replace(/^"(.*)"$/s, '$1')
+            .trim();
 
-        if (!acknowledgement && !suppressText) {
+        if (!acknowledgement) {
             console.warn('[acknowledgement-stream] empty acknowledgement', {
                 finishReason,
                 completionTokens: usage?.completion_tokens,
             });
         }
-        if (earlyVerdictSent) {
-            // The early exit predicted incorrect; a full parse that disagrees
-            // means the client already acted on a wrong verdict.
-            if (correct !== false) {
-                console.warn('[ack-stream] early verdict said incorrect but full parse said correct', { raw: raw.slice(0, 200) });
-            }
-        } else {
-            tVerdict = Date.now();
-            res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement, correct })}\n\n`);
-        }
+        res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement })}\n\n`);
 
         if (acknowledgement) {
             try {
@@ -254,16 +154,17 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         console.log('[ack-stream] summary (ms):', {
             pageImage: ms(t0, tImageReady),
             modelFirstToken: ms(t0, tFirstToken),
-            verdict: ms(t0, tVerdict),
             modelStreamEnd: ms(t0, tStreamEnd),
             ttsFirstChunk: ms(t0, tFirstAudioChunk),
             ttsEnd: ms(t0, tAudioEnd),
             total: Date.now() - t0,
-            correct,
-            earlyVerdict: earlyVerdictSent,
-            gradable,
             promptTokens: usage?.prompt_tokens ?? null,
             cachedTokens: usage?.prompt_tokens_details?.cached_tokens ?? null,
+            // Splits the wait before the first content token: reasoning tokens mean
+            // the model was thinking, none means the time went to prefill.
+            reasoningTokens: usage?.completion_tokens_details?.reasoning_tokens ?? null,
+            completionTokens: usage?.completion_tokens ?? null,
+            imageAttached: !!pageImageMessage,
         });
     } catch (error) {
         console.error('Error in /api/acknowledgement-stream:', error);

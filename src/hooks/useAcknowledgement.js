@@ -1,15 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
-import { say } from "../utils/ttsClient";
 import { sendAcknowledgementLog, setAwaitingQuestionAnswer, buildBookContext, setAcknowledgementTurns, clearSpeculativeOffScript } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
-import { getParticipant } from "../utils/participant";
-
-// Names the caregiver the way the roster does ("mom", "dad", …). Stable for a
-// session, so the TTS warm-up in Story.js still hits the cache.
-export const parentHandoffLine = () =>
-  `That is an interesting idea. Do you want to talk about it with your ${getParticipant()?.['parent-figure'] || 'parent'}?`;
 
 export function useAcknowledgement({
   computeRevealLength,
@@ -43,24 +36,16 @@ export function useAcknowledgement({
   const acknowledgementActiveRef = useRef(false);
   const fullAcknowledgementTextRef = useRef('');
   const cumulativeAcknowledgementMsRef = useRef(0);
-  const acknowledgementCorrectRef = useRef(null);
-  const handoffAudioRef = useRef(null);
-  const handoffCloseTimerRef = useRef(null);
+  const silentCloseTimerRef = useRef(null);
 
   const stopAcknowledgementAudio = useCallback(() => {
     if (acknowledgementAudioRef.current) {
       acknowledgementAudioRef.current.pause();
       acknowledgementAudioRef.current = null;
     }
-    if (handoffAudioRef.current) {
-      try {
-        handoffAudioRef.current.pause();
-      } catch {}
-      handoffAudioRef.current = null;
-    }
-    if (handoffCloseTimerRef.current) {
-      clearTimeout(handoffCloseTimerRef.current);
-      handoffCloseTimerRef.current = null;
+    if (silentCloseTimerRef.current) {
+      clearTimeout(silentCloseTimerRef.current);
+      silentCloseTimerRef.current = null;
     }
     if (acknowledgementStreamingPlayerRef.current) {
       try { acknowledgementStreamingPlayerRef.current.stop(); } catch {}
@@ -106,7 +91,15 @@ export function useAcknowledgement({
   };
 
   const playAcknowledgement = async (reply) => {
-    if (isAnyAudioPlaying) return;
+    // Deliberately not gated on isAnyAudioPlaying. The answer is already captured
+    // by the time this runs, so returning here threw away what the child said —
+    // silently, and on a value read up to 2.5s earlier (the manual-answer drain
+    // resolves long after the click that closed the closure). Contention is
+    // handled downstream instead: stopAcknowledgementAudio clears a prior
+    // acknowledgement, and a busy lock falls back to showing the reply as text.
+    if (isAnyAudioPlaying) {
+      studyLog.pushEvent({ event_type: 'acknowledgement_while_audio_busy', detail: reply });
+    }
 
     const currentState = stateRef.current;
     const pageQuestion = currentState.pagesValues[currentState.page]?.question || '';
@@ -126,7 +119,6 @@ export function useAcknowledgement({
     acknowledgementAudioBlockedRef.current = false;
     fullAcknowledgementTextRef.current = '';
     cumulativeAcknowledgementMsRef.current = 0;
-    acknowledgementCorrectRef.current = null;
     setRevealedAcknowledgement('');
     setQuestionHistory([]);
 
@@ -146,83 +138,13 @@ export function useAcknowledgement({
         setAvatarPhase('question');
       };
 
-      // The handoff line is the last thing the system says. Once it has played,
-      // the pair talks it over on their own, so the loop closes and question
-      // generation resumes rather than listening for a parent reply.
-      const speakParentHandoff = async () => {
-        setAvatarPhase('question');
-
-        const handoffId = `ack-handoff-${Date.now()}`;
-        const handoffLine = parentHandoffLine();
-        fullAcknowledgementTextRef.current = handoffLine;
-        setRevealedAcknowledgement(handoffLine);
-        setQuestionHistory([{ id: handoffId, text: handoffLine, type: 'acknowledgement' }]);
-        setShowAvatar(true);
-        studyLog.pushQuestion({
-          question_id: handoffId,
-          question_type: 'acknowledgement',
-          event: 'shown',
-          question_text: handoffLine,
-          expected_answer: question || '',
-          reason: 'handoff_to_parent',
-        });
-
-        let closed = false;
-        const closeAfterHandoff = () => {
-          if (closed) return;
-          closed = true;
-          handoffAudioRef.current = null;
-          endAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT);
-          setIsAcknowledgementPlaying(false);
-          if (remoteAudioRef.current && !isMuted) remoteAudioRef.current.muted = false;
-          if (requestSeq !== acknowledgementRequestSeqRef.current) return;
-          endAcknowledgementLoop();
-        };
-
-        if (!tryBeginAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT)) {
-          // No speech to pace the line, so leave it on screen long enough to be
-          // read before the avatar closes.
-          handoffCloseTimerRef.current = setTimeout(() => {
-            handoffCloseTimerRef.current = null;
-            if (requestSeq === acknowledgementRequestSeqRef.current) endAcknowledgementLoop();
-          }, 3000);
-          return;
-        }
-
-        try {
-          if (remoteAudioRef.current) remoteAudioRef.current.muted = true;
-          setIsAcknowledgementPlaying(true);
-          const { audio } = await say({
-            text: handoffLine,
-            voiceName: narratorRole?.VA || 'kore',
-            emotion: 'neutral',
-            role: narratorRole?.role || null,
-          });
-          if (requestSeq !== acknowledgementRequestSeqRef.current) {
-            try { audio?.pause(); } catch {}
-            closeAfterHandoff();
-            return;
-          }
-          handoffAudioRef.current = audio || null;
-          if (audio) {
-            audio.addEventListener('ended', closeAfterHandoff, { once: true });
-            audio.addEventListener('error', closeAfterHandoff, { once: true });
-            if (audio.ended) closeAfterHandoff();
-          } else {
-            closeAfterHandoff();
-          }
-        } catch (err) {
-          console.error('Parent handoff TTS failed:', err);
-          closeAfterHandoff();
-        }
-      };
-
       let settled = false;
 
       const finishStreamingAcknowledgement = () => {
         if (settled) return;
         settled = true;
 
+        const heardAudio = !!acknowledgementStreamingPlayerRef.current;
         if (acknowledgementStreamingPlayerRef.current) {
           acknowledgementStreamingPlayerRef.current = null;
         }
@@ -235,8 +157,15 @@ export function useAcknowledgement({
           remoteAudioRef.current.muted = false;
         }
 
-        if (acknowledgementCorrectRef.current === false) {
-          speakParentHandoff();
+        // TTS can fail after the text already arrived (quota, network), and the
+        // audio lock can be held by another source. Closing right away would wipe
+        // a line the child never heard, so leave it on screen to be read instead.
+        if (!heardAudio && fullAcknowledgementTextRef.current) {
+          setRevealedAcknowledgement(fullAcknowledgementTextRef.current);
+          silentCloseTimerRef.current = setTimeout(() => {
+            silentCloseTimerRef.current = null;
+            if (requestSeq === acknowledgementRequestSeqRef.current) endAcknowledgementLoop();
+          }, 3000);
           return;
         }
 
@@ -249,9 +178,8 @@ export function useAcknowledgement({
         ...context,
         acknowledgementHistory: acknowledgementSessionRef.current.turns,
         ttsVoiceName: narratorRole?.VA || null,
-        onAcknowledgementReady: (acknowledgement, correct) => {
+        onAcknowledgementReady: (acknowledgement) => {
           if (requestSeq !== acknowledgementRequestSeqRef.current || !acknowledgementModeRef.current) return;
-          acknowledgementCorrectRef.current = correct === false ? false : true;
           if (!acknowledgement) {
             acknowledgementSessionRef.current.turns = [
               ...acknowledgementSessionRef.current.turns,
@@ -276,7 +204,6 @@ export function useAcknowledgement({
             event: 'shown',
             question_text: acknowledgement,
             expected_answer: question || '',
-            reason: correct === false ? 'incorrect' : 'correct',
           });
           setQuestionHistory(prev => {
             const last = prev[prev.length - 1];
@@ -337,9 +264,8 @@ export function useAcknowledgement({
         },
       });
 
-      // Fires when no audio was streamed at all — which is the normal path for
-      // an incorrect child answer, since the server returns no text and so
-      // synthesizes nothing.
+      // Safety net for a turn that produced no audio at all (empty model reply
+      // or TTS that never emitted a chunk) — without it the loop stays open.
       if (requestSeq === acknowledgementRequestSeqRef.current && !acknowledgementStreamingPlayerRef.current && !acknowledgementAudioBlockedRef.current) {
         finishStreamingAcknowledgement();
       }

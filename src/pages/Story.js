@@ -14,7 +14,7 @@ import { data as data3 } from "../Book/Book3";
 import QuestionAvatar from "../components/QuestionAvatar";
 // Hooks
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
-import { useAcknowledgement, parentHandoffLine } from "../hooks/useAcknowledgement";
+import { useAcknowledgement } from "../hooks/useAcknowledgement";
 import { useStoryNavigation } from "../hooks/useStoryNavigation";
 // Utils
 import { warmSay } from "../utils/warmSay";
@@ -23,9 +23,11 @@ import { openDebugMonitor } from "../utils/debugMonitor";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
-import { processUserUtterance, abortCurrentCategorization, setAwaitingQuestionAnswer, setCurrentBookId, endManualAnswer, cancelManualAnswer } from "../utils/utteranceProcessor";
+import { processUserUtterance, abortCurrentCategorization, abortQuestionGeneration, setAwaitingQuestionAnswer, setCurrentBookId, endManualAnswer, cancelManualAnswer, isManualAnswerActive, setClickTags } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 import { getRoleKind } from "../utils/roles";
+import { generateQuestionOnDemand } from "../utils/InnerThoughtProcessStream";
+import { assessClick, expandBox, CLICK_TOLERANCE } from "../utils/clickGeometry";
 
 class Book {
   constructor(data) {
@@ -66,6 +68,12 @@ function Reader() {
     };
   }, []);
   const PRELOAD_CONCURRENCY = 1;
+  // Quiet time after the last transcript before the send button starts blinking.
+  const SILENCE_BLINK_MS = 5000;
+  // How long after the last transcript fragment the mic is still treated as
+  // hearing speech. Interims arrive every few hundred ms while someone talks, so
+  // this only lapses in a real gap.
+  const SPEAKING_IDLE_MS = 900;
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
 
@@ -136,6 +144,7 @@ function Reader() {
     connectToDeepgram,
     disconnectDeepgram,
     isGeminiAudioPlaying,
+    deepgramTranscript,
     isAnyAudioPlaying,
     activeAudioSource,
     tryBeginAudio,
@@ -187,6 +196,13 @@ function Reader() {
   const [inAcknowledgementLoop, setInAcknowledgementLoop] = useState(false);
   const [avatarPhase, setAvatarPhase] = useState('question');
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
+  // Blinks the send button once the room has been quiet long enough that the
+  // answer looks finished. Deepgram only emits finals, which land 0.3-2.4s after
+  // the speaker stops, so this counts quiet from the last transcript, not from
+  // the last sound.
+  const [sendBlink, setSendBlink] = useState(false);
+  // Whether the mic is hearing speech right now — drives the pulse animation.
+  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
 
   const showAvatarRef = useRef(false);
   useEffect(() => { showAvatarRef.current = showAvatar; }, [showAvatar]);
@@ -206,6 +222,10 @@ function Reader() {
   const wasGeminiAudioPlayingRef = useRef(false);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
+  const [showTagBoxes, setShowTagBoxes] = useState(false);
+  // The tag whose region answers the pending click question. Null on every other
+  // book and whenever the pending question is a spoken one.
+  const [clickTarget, setClickTarget] = useState(null);
   const userAttentionRef = useRef(null);
   const pendingGeneratedQuestionRef = useRef(null);
   const lastAskedQuestionRef = useRef(null);
@@ -236,8 +256,6 @@ function Reader() {
     playSound,
     speakGenerated,
     startGeneratedQuestion,
-    handleAudioChunk,
-    handleAudioEnd,
     handleAudioError,
     computeRevealLength,
     resetGeneratedQuestionState,
@@ -304,6 +322,8 @@ function Reader() {
     abortCurrentCategorization();
     setAwaitingQuestionAnswer(false);
     setGeneratedQuestion(null);
+    setClickTarget(null);
+    setGeneratingQuestion(false);
     resetGeneratedQuestionState();
     setIsCategorizationPending(false);
     setShowAvatar(false);
@@ -330,6 +350,139 @@ function Reader() {
       // Nothing was said between the question and the press.
       studyLog.pushEvent({ event_type: 'manual_answer_empty', detail: 'no transcript captured' });
       setAnswerSubmitted(false);
+    }
+  };
+
+  // A click question is answered by clicking the picture, not by talking. The
+  // click counts only while that question is actually pending an answer.
+  const clickAnswersQuestion = !!clickTarget && inAcknowledgementLoop && !answerSubmitted;
+
+  // Correctness is decided purely by the tag's own box: the click is converted to
+  // a percentage of the rendered image and tested against the stored coordinates.
+  // Nothing the model wrote is consulted here.
+  const handleImageAnswerClick = (e) => {
+    if (!clickAnswersQuestion) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+    // Near enough counts. imageTags is passed so the margin cannot credit a click
+    // that actually landed on a different tagged object.
+    const { correct, distance, reason, hitLabel } = assessClick({
+      box: clickTarget.box_2d,
+      tags: imageTags,
+      xPct,
+      yPct,
+    });
+
+    setAnswerSubmitted(true);
+    cancelManualAnswer(); // nothing spoken counts as the answer here
+    studyLog.pushEvent({
+      event_type: 'click_answer',
+      detail: `${correct ? 'hit' : 'miss'}(${reason}) ${clickTarget.label}`
+        + `${hitLabel ? ` -> ${hitLabel}` : ''}`
+        + ` @ ${xPct.toFixed(1)}%,${yPct.toFixed(1)}% d=${distance == null ? 'n/a' : Math.round(distance)}`,
+    });
+    userAttentionRef.current = correct ? clickTarget.label : (hitLabel || clickTarget.label);
+
+    // The acknowledgement is written from what the child did, so it can affirm a
+    // hit or gently redirect a miss without ever being told to grade.
+    playAcknowledgement(correct
+      ? `I clicked on the ${clickTarget.label}.`
+      : hitLabel
+        ? `I clicked on the ${hitLabel} instead of the ${clickTarget.label}.`
+        : `I clicked somewhere else in the picture, not the ${clickTarget.label}.`);
+  };
+
+  // Tapping the mate asks for a question outright, with no utterance behind it.
+  // Refused while a question is already being spoken, answered, or acknowledged —
+  // in those states a new question would replace the one in play.
+  const manualQuestionPendingRef = useRef(false);
+  const manualQuestionAbortRef = useRef(null);
+  // Replaces the question bubble with "I am coming up with a new question..."
+  // while a manually requested one is being written, so the old question is not
+  // left up to be tapped a moment before it disappears.
+  const [generatingQuestion, setGeneratingQuestion] = useState(false);
+
+  // Committing to the question already on screen makes whatever is being generated
+  // behind it obsolete: the reader has chosen, and the next thing that matters is
+  // their answer. Cancelling here also stops a late arrival replacing the question
+  // mid-answer, and saves the TTS for one nobody will hear.
+  const stopQuestionGeneration = (why) => {
+    let stopped = abortQuestionGeneration();
+    if (manualQuestionAbortRef.current) {
+      manualQuestionAbortRef.current.abort();
+      manualQuestionAbortRef.current = null;
+      stopped = true;
+    }
+    manualQuestionPendingRef.current = false;
+    setIsCategorizationPending(false);
+    setGeneratingQuestion(false);
+    if (stopped) studyLog.pushEvent({ event_type: 'question_generation_cancelled', detail: why });
+    return stopped;
+  };
+
+  // The reader tapped the question that is already showing.
+  const handleSpeakGenerated = () => {
+    stopQuestionGeneration('question_committed');
+    speakGenerated();
+  };
+  const requestQuestion = async () => {
+    if (manualQuestionPendingRef.current) return;
+    if (isGeneratedQuestionPlayingRef.current || isManualAnswerActive() || acknowledgementModeRef.current) {
+      studyLog.pushEvent({ event_type: 'manual_question_blocked', detail: 'audio or answer in progress' });
+      return;
+    }
+    manualQuestionPendingRef.current = true;
+    const controller = new AbortController();
+    manualQuestionAbortRef.current = controller;
+    setIsCategorizationPending(true);
+    setGeneratingQuestion(true);
+    studyLog.pushEvent({ event_type: 'manual_question_request', detail: `page ${state.page + 1}` });
+
+    const page = stateRef.current.pagesValues[stateRef.current.page];
+    const pageIndex = stateRef.current.page;
+    try {
+      await generateQuestionOnDemand({
+        book: id,
+        currentPageNumber: pageIndex + 1,
+        currentPageQuestion: page?.question || '',
+        bookText: page?.text?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '',
+        imageDescription: await (imageDescriptionRef.current ?? Promise.resolve(null)),
+        userAttention: userAttentionRef.current,
+        lastGeneratedQuestion: pendingGeneratedQuestionRef.current || null,
+        systemQuestions: stateRef.current.pagesValues.map(p => (p?.question || '').trim()).filter(Boolean),
+        clickTags: String(id) === '2' ? imageTags : [],
+        ttsVoiceName: narratorRole?.VA || null,
+        onQuestionReady: (questionText, expectedAnswer, click, audioChunks) => {
+          // The reader may have moved on while the model was thinking.
+          if (stateRef.current.page !== pageIndex) return;
+          const questionId = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          studyLog.pushQuestion({
+            question_id: questionId,
+            question_type: 'generated',
+            event: 'generated',
+            question_text: questionText,
+            expected_answer: expectedAnswer ?? '',
+            reason: 'manual',
+          });
+          lastExpectedAnswerRef.current = expectedAnswer ?? null;
+          setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
+          setGeneratingQuestion(false);
+          startGeneratedQuestion(questionText, { questionId, audioChunks });
+        },
+        onAudioError: handleAudioError,
+        signal: controller.signal,
+      });
+    } finally {
+      // Only clear if this request is still the current one: a newer request may
+      // have replaced it while this one was in flight.
+      if (manualQuestionAbortRef.current === controller) manualQuestionAbortRef.current = null;
+      manualQuestionPendingRef.current = false;
+      setIsCategorizationPending(false);
+      // Safety net: covers a request that produced nothing, or failed outright.
+      setGeneratingQuestion(false);
     }
   };
 
@@ -365,6 +518,7 @@ function Reader() {
     showAvatar,
     showAvatarRef,
     inAcknowledgementLoopRef,
+    generatedQuestionPendingRef,
   });
 
   const handleTextSelection = () => {
@@ -401,6 +555,12 @@ function Reader() {
 
   useEffect(() => { setCurrentBookId(id); }, [id]);
 
+  // Only a click book needs these. Sending them elsewhere would silently turn
+  // that book's questions into click questions too.
+  useEffect(() => {
+    setClickTags(String(id) === '2' ? imageTags : []);
+  }, [id, imageTags]);
+
   useEffect(() => {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
@@ -408,6 +568,7 @@ function Reader() {
     lastExpectedAnswerRef.current = null;
     lastAskedQuestionRef.current = state.pagesValues[state.page]?.question || null;
     setImageTags([]);
+    setClickTarget(null);
     if (state.page > 0) {
       imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
       ImageTagging({ book: id, page: state.page, pageText }).then(tags => setImageTags(tags));
@@ -447,7 +608,12 @@ function Reader() {
     const pagesToWarm = [current];
     if (next?.text?.length) pagesToWarm.push(next);
 
-    const narratorInfo = voiceByChar.get('Narrator');
+    // Page questions are spoken by the mate avatar, not by whoever reads the
+    // Narrator character, so they warm with that voice — otherwise a human-read
+    // Narrator warmed nothing and every page question paid full synthesis.
+    const questionVoice = narratorRole?.VA
+      ? { voiceName: narratorRole.VA, role: narratorRole.role }
+      : null;
     const tasks = [];
     for (const page of pagesToWarm) {
       for (const line of page.text) {
@@ -461,22 +627,13 @@ function Reader() {
           role: charInfo.role
         });
       }
-      if (page.question && narratorInfo) {
+      if (page.question && questionVoice) {
         tasks.push({
           text: page.question,
-          voiceName: narratorInfo.voiceName,
-          role: narratorInfo.role
+          voiceName: questionVoice.voiceName,
+          role: questionVoice.role
         });
       }
-    }
-    // Fixed for the session, so one warm-up keeps the parent handoff line cached and
-    // it plays with no synthesis delay whenever an answer comes back wrong.
-    if (narratorInfo) {
-      tasks.push({
-        text: parentHandoffLine(),
-        voiceName: narratorInfo.voiceName,
-        role: narratorInfo.role
-      });
     }
     if (!tasks.length) return;
 
@@ -501,7 +658,7 @@ function Reader() {
 
     pump();
     return () => { stopped = true; };
-  }, [state.page, state.pagesValues, state.CharacterRoles]);
+  }, [state.page, state.pagesValues, state.CharacterRoles, narratorRole]);
 
   useEffect(() => {
     pendingGeneratedQuestionRef.current = generatedQuestion || null;
@@ -573,7 +730,7 @@ function Reader() {
         if (result?.sourcePage !== stateRef.current.page) return;
         setIsCategorizationPending(false);
       },
-      onQuestionReady: (questionText, expectedAnswer = null) => {
+      onQuestionReady: (questionText, expectedAnswer = null, click = null, audioChunks = []) => {
         if (!questionGenEnabledRef.current) return;
 
         // Logged before the suppression check so the record reflects every
@@ -598,22 +755,62 @@ function Reader() {
           });
           return;
         }
+
+        // Covers the narrow race the abort in setAwaitingQuestionAnswer cannot:
+        // a response already parsed when the window opened. Showing it here would
+        // replace the question being answered and strand the captured answer.
+        if (isManualAnswerActive() || acknowledgementModeRef.current) {
+          suppressGeneratedAudioStreamRef.current = true;
+          studyLog.pushQuestion({
+            question_id: questionId,
+            question_type: "generated",
+            event: "suppressed",
+            reason: isManualAnswerActive() ? "answering" : "acknowledging",
+            question_text: questionText,
+          });
+          return;
+        }
         lastExpectedAnswerRef.current = expectedAnswer;
-        startGeneratedQuestion(questionText, { questionId });
+        // Present only for a click question, and always a real tag's box — the
+        // server drops any question whose label was not in the tag list.
+        setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
+        startGeneratedQuestion(questionText, { questionId, audioChunks });
       },
       imageDescriptionRef,
       userAttentionRef,
       pendingGeneratedQuestionRef,
       ttsVoiceName: narratorRole?.VA || null,
-      onAudioChunk: handleAudioChunk,
-      onAudioEnd: handleAudioEnd,
       onAudioError: handleAudioError,
       questionGenEnabledRef,
       isAcknowledgementModeRef: acknowledgementModeRef,
-      generatedQuestionPendingRef,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userUtterance]);
+
+  // Interims land every few hundred ms while someone is talking, so this stays
+  // true through a sentence and lapses in the gaps. Finals are too coarse: they
+  // only arrive after the speaker has already stopped.
+  useEffect(() => {
+    if (!inAcknowledgementLoop || answerSubmitted || !deepgramTranscript) {
+      setIsUserSpeaking(false);
+      return;
+    }
+    setIsUserSpeaking(true);
+    const timer = setTimeout(() => setIsUserSpeaking(false), SPEAKING_IDLE_MS);
+    return () => clearTimeout(timer);
+  }, [deepgramTranscript, inAcknowledgementLoop, answerSubmitted, SPEAKING_IDLE_MS]);
+
+  // Keyed on interims, not finals: a final only lands once the speaker pauses, so
+  // timing off it would blink at someone still mid-sentence.
+  useEffect(() => {
+    if (!inAcknowledgementLoop || answerSubmitted) {
+      setSendBlink(false);
+      return;
+    }
+    setSendBlink(false);
+    const timer = setTimeout(() => setSendBlink(true), SILENCE_BLINK_MS);
+    return () => clearTimeout(timer);
+  }, [deepgramTranscript, inAcknowledgementLoop, answerSubmitted, SILENCE_BLINK_MS]);
 
   useHotkeys("space", (event) => {
     event.preventDefault();
@@ -796,6 +993,12 @@ function Reader() {
       >Debug</button>
 
       <button
+        onClick={() => setShowTagBoxes(v => !v)}
+        className="btn btn-outline-secondary"
+        style={{ fontSize: '12px', padding: '4px 10px' }}
+      >{showTagBoxes ? 'Hide' : 'Show'} Tags ({(imageTags || []).length})</button>
+
+      <button
         onClick={gotoPreviousPage}
         className="btn btn-primary previous-page-button"
         disabled={state.page === 0}
@@ -810,8 +1013,41 @@ function Reader() {
 
     <div className="row">
       <div className="col-md-5">
-        <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+        <div
+          style={{
+            position: 'relative', display: 'inline-block', width: '100%',
+            cursor: clickAnswersQuestion ? 'crosshair' : 'default',
+          }}
+          onClick={clickAnswersQuestion ? handleImageAnswerClick : undefined}
+        >
           <img src={state.pagesValues[state.page].img} alt="current page" style={{ width: '100%', display: 'block' }} />
+            {/* The acceptance region: how far outside its tag a click may land and
+                still be graded correct. Drawn under the red boxes so the exact tag
+                stays readable, and pointer-transparent so it never eats a click. */}
+            {showTagBoxes && (imageTags || []).map((tag, i) => {
+              const grown = expandBox(tag?.box_2d);
+              if (!grown) return null;
+              const [gy0, gx0, gy1, gx1] = grown;
+              // Corners are rounded to radius CLICK_TOLERANCE, because the hit test
+              // measures straight-line distance — a square outline here would claim
+              // the diagonal corners are accepted when they are not.
+              const rx = (CLICK_TOLERANCE / (gx1 - gx0)) * 100;
+              const ry = (CLICK_TOLERANCE / (gy1 - gy0)) * 100;
+              return (
+                <div
+                  key={`tol-${i}`}
+                  style={{
+                    position: 'absolute',
+                    top: `${gy0 / 10}%`, left: `${gx0 / 10}%`,
+                    height: `${(gy1 - gy0) / 10}%`, width: `${(gx1 - gx0) / 10}%`,
+                    border: '2px dashed #2ecc40',
+                    borderRadius: `${rx}% / ${ry}%`,
+                    boxSizing: 'border-box',
+                    pointerEvents: 'none',
+                  }}
+                />
+              );
+            })}
             {(imageTags || []).map((tag, i) => {
               if (!Array.isArray(tag?.box_2d) || tag.box_2d.length < 4) return null;
               const [y0, x0, y1, x1] = tag.box_2d;
@@ -823,10 +1059,24 @@ function Reader() {
                     top: `${y0 / 10}%`, left: `${x0 / 10}%`,
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
                     cursor: 'crosshair',
+                    // outline over border, so the stroke never changes the element's
+                    // size, and outlineOffset -2px so it is drawn *inside* the edge
+                    // rather than straddling it. Without the offset the rectangle
+                    // renders 2px wider on every side than the box it represents,
+                    // which reads as the box sitting slightly off the object.
+                    ...(showTagBoxes ? { outline: '2px solid red', outlineOffset: '-2px' } : {}),
                   }}
                   title={tag.label}
                   onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
-                />
+                >
+                  {showTagBoxes && (
+                    <span style={{
+                      position: 'absolute', top: 0, left: 0, transform: 'translateY(-100%)',
+                      background: 'red', color: '#fff', fontSize: '10px', lineHeight: 1.3,
+                      padding: '0 3px', whiteSpace: 'nowrap', pointerEvents: 'none',
+                    }}>{tag.label}</span>
+                  )}
+                </div>
               );
             })}
         </div>
@@ -845,11 +1095,16 @@ function Reader() {
           frames={frames}
           listeningImage={listeningImage}
           narratorRole={narratorRole}
-          onSpeakGenerated={speakGenerated}
+          onSpeakGenerated={handleSpeakGenerated}
           onPlaySound={playSound}
           answerSubmitted={answerSubmitted}
           answerDisabled={isAnyAudioPlaying}
-          onAnswerToggle={handleAnswerSubmit}
+          onAnswerSubmit={handleAnswerSubmit}
+          sendBlink={sendBlink}
+          isUserSpeaking={isUserSpeaking}
+          awaitingClick={clickAnswersQuestion}
+          onRequestQuestion={requestQuestion}
+          generatingQuestion={generatingQuestion}
         />
         </div>
       <div className="col-md-7 table-container">

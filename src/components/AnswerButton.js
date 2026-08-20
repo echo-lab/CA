@@ -12,27 +12,30 @@ const PULSE_FRAMES = [pulse1, pulse2, pulse3, pulse4, pulse5, pulse6, pulse7, pu
 
 const PULSE_INTERVAL_MS = 100;
 
-// The button only appears while a question is waiting to be answered, and the mic
-// is live that whole time — so it always pulses. There is no idle state to show.
-export default function AnswerButton({ disabled, onClick }) {
-  const [frame, setFrame] = useState(0);
+// pulse5 is the mid-amplitude frame, so a quiet mic rests on a steady waveform
+// rather than a flat or fully-open one.
+const REST_FRAME = PULSE_FRAMES.indexOf(pulse5);
+
+// Pure indicator: it shows that the mic is live, and no longer submits — the
+// paper-plane SendButton beside it does that. It animates only while someone is
+// actually talking, and holds a still frame through the quiet.
+export default function AnswerButton({ isUserSpeaking }) {
+  const [frame, setFrame] = useState(REST_FRAME);
 
   useEffect(() => {
+    if (!isUserSpeaking) {
+      setFrame(REST_FRAME);
+      return;
+    }
     const intervalId = setInterval(
       () => setFrame((f) => (f + 1) % PULSE_FRAMES.length),
       PULSE_INTERVAL_MS
     );
     return () => clearInterval(intervalId);
-  }, []);
+  }, [isUserSpeaking]);
 
   return (
-    <button
-      type="button"
-      className="answer-button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label="Send my answer"
-    >
+    <div className="answer-button" role="status" aria-label="Listening">
       <span className="answer-button-frames">
         {PULSE_FRAMES.map((src, i) => (
           <img
@@ -43,6 +46,6 @@ export default function AnswerButton({ disabled, onClick }) {
           />
         ))}
       </span>
-    </button>
+    </div>
   );
 }

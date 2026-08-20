@@ -120,15 +120,22 @@ export function useAudioPlayback({
     });
   }, []);
 
-  const startGeneratedQuestion = useCallback((questionText, { questionId } = {}) => {
+  // audioChunks is the question's COMPLETE audio, handed over in one piece. The
+  // stream holds everything back until its TTS has finished, so a question is only
+  // ever shown once it can be spoken — which is what stops a click landing on a
+  // half-streamed question and overlapping the previous one.
+  const startGeneratedQuestion = useCallback((questionText, { questionId, audioChunks = [] } = {}) => {
     const text = String(questionText || '').trim();
     if (!text || isGeneratedQuestionPlayingRef.current) return;
 
     const qid = questionId || `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     currentQuestionIdRef.current = qid;
 
+    // Any player from the previous question is discarded, finished or not. A
+    // half-played one left here would keep its scheduled chunks sounding
+    // underneath the new question — the overlap this replaces.
     const existing = streamingPlayerRef.current;
-    if (existing && existing.isFinished?.()) {
+    if (existing) {
       try { existing.stop(); } catch {}
       streamingPlayerRef.current = null;
     }
@@ -137,9 +144,11 @@ export function useAudioPlayback({
     generatedQuestionPendingRef.current = true;
     acknowledgementFromPageQuestionRef.current = false;
     cumulativeAudioMsRef.current = 0;
-    generatedQuestionAudioChunksRef.current = [];
-    generatedQuestionAudioEndedRef.current = false;
-    generatedQuestionAudioErrorRef.current = null;
+    // Already complete on arrival, so the audio is never in a partial state that a
+    // click could catch. An empty list means TTS failed for this question.
+    generatedQuestionAudioChunksRef.current = [...audioChunks];
+    generatedQuestionAudioEndedRef.current = true;
+    generatedQuestionAudioErrorRef.current = audioChunks.length ? null : 'no audio';
     generatedQuestionPlayRequestedRef.current = false;
     suppressGeneratedAudioStreamRef.current = false;
     pendingGeneratedQuestionRef.current = text;
@@ -161,12 +170,17 @@ export function useAudioPlayback({
           question_text: text,
           reason: last.id,
         });
+        // slot is carried over untouched. It is the bubble's render identity, and
+        // keeping it stable is what stops React remounting the node and replaying
+        // the slide-in every time an unclicked question is rewritten. The id still
+        // churns, because the study log needs to tell the two questions apart.
         return [...prev.slice(0, -1), { ...last, id: qid, text }];
       }
       return [
         ...prev,
         {
           id: qid,
+          slot: qid,
           text,
           type: "generated",
         },
@@ -304,9 +318,12 @@ export function useAudioPlayback({
   };
 
   const playSound = () => {
-    const pageNarratorRole = state.CharacterRoles.find(o => o.Character === "Narrator");
-    const voiceName = pageNarratorRole?.VA || "kore";
-    const role = pageNarratorRole?.role || null;
+    // Same voice as generated questions and acknowledgements: JENNIE speaks as the
+    // mate avatar shown beside the question. This used to follow whoever read the
+    // Narrator character instead, so a human-read Narrator gave page questions a
+    // different voice from every other thing JENNIE said.
+    const voiceName = narratorRole?.VA || "kore";
+    const role = narratorRole?.role || null;
     const question = state.pagesValues[state.page].question;
     const pageQuestionId = `page-${state.page}`;
     currentQuestionIdRef.current = pageQuestionId;

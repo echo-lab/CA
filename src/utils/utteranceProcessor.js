@@ -1,4 +1,3 @@
-import nlp from "compromise";
 import { categorizeOffScriptUtterancesStreaming, streamAcknowledgement } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
 import { normalizeText } from "./textNormalizer";
@@ -6,19 +5,11 @@ import { debugLog } from "./debugMonitor";
 import { isHumanRead } from "./roles";
 
 const VARIANT_SLOT_COUNT = 2;
-const MID_SENTENCE_TAGS = new Set([
-  'Determiner',      // "the", "a", "this"
-  'Preposition',     // "to", "of", "in"
-  'Conjunction',     // "and", "but", "because"
-  'Auxiliary',        // "is", "was", "have"
-]);
-let pendingPOSBuffer = [];
 let currentAbortController = null;
 let deferredOffScriptEntries = [];
 let deferredContext = null;
 let isCategorizationPending = false;
 let awaitingQuestionAnswer = false;
-let lastCategorizationContext = null;
 let lastSpeculativeSnapshot = '';
 let speculativeLineEntries = [];
 let currentBookId = null;
@@ -35,11 +26,27 @@ export function clearSpeculativeOffScript() {
 
 export function setCurrentBookId(v) { currentBookId = v; }
 
+// The current page's image tags, so a click-question book can be given real
+// clickable regions to choose an answer from. Module state rather than a
+// parameter because sendOffScriptLog is also called from the deferred path,
+// which has no access to component state.
+let clickTags = [];
+export function setClickTags(tags) { clickTags = Array.isArray(tags) ? tags : []; }
+
 // Opening the answer window also starts capturing. There is no "begin answering"
 // click: the mic is already live, so everything said between the question ending
 // and the submit press is the answer.
 export function setAwaitingQuestionAnswer(v) {
   const opening = !!v && !awaitingQuestionAnswer;
+  if (opening) {
+    // A categorize request started while the question was still an unclicked
+    // thought can outlive the click. Left running it delivers a question in the
+    // middle of the answer, which resets the bubble to a fresh thought while the
+    // answer sits unsent in the buffer. Nothing said from here belongs to that
+    // request anyway — it is the answer now. Must run BEFORE the assignment
+    // below: abortCurrentCategorization clears awaitingQuestionAnswer itself.
+    abortCurrentCategorization();
+  }
   awaitingQuestionAnswer = !!v;
   if (opening) {
     manualAnswerBuffer = [];
@@ -93,14 +100,14 @@ export function cancelManualAnswer() {
 export function isManualAnswerActive() { return awaitingQuestionAnswer; }
 
 function clearLiveOffScriptState(offScriptLogRef) {
-  pendingPOSBuffer = [];
+  pendingFragment = null;
   if (offScriptLogRef) {
     offScriptLogRef.current = [];
   }
 }
 
 export function resetOffScriptStateForPage(offScriptLogRef) {
-  pendingPOSBuffer = [];
+  pendingFragment = null;
   lastSpeculativeSnapshot = '';
   speculativeLineEntries = [];
   acknowledgementTurns = [];
@@ -189,17 +196,77 @@ function clearMatchState({ accumulatedUtterancesRef, utteranceQueuesRef }, words
   emitQueueState(utteranceQueuesRef);
 }
 
-function isUtteranceComplete(text) {
-  const doc = nlp(text);
-  const terms = doc.termList();
-  if (terms.length === 0) return true;
+function endsTerminal(text) {
+  return /[.?!]\s*$/.test(String(text || '').trim());
+}
 
-  const lastTerm = terms[terms.length - 1];
-  const tags = Object.keys(lastTerm.tags || {});
+// Deepgram cuts a final at every pause, so a child listing things ("my books,
+// game cards,") produces finals that stop mid-sentence. Those used to be dropped
+// outright — the words never reached categorization at all. Hold one instead and
+// prepend it to the speaker's next final.
+//
+// Never across speakers: if someone else talks next, the held fragment goes out as
+// its own line rather than being glued to a different person's words.
+let pendingFragment = null; // { text, speaker, lineIndex }
 
-  const isMidSentence = tags.some(t => MID_SENTENCE_TAGS.has(t));
-  debugLog({ type: 'pos_check', word: lastTerm.text, tags, isMidSentence });
-  return !isMidSentence;
+function speakerOf(label) {
+  return String(label || 'Unknown');
+}
+
+// Returns the entries ready to categorize now, in order. Anything still waiting
+// for its continuation stays in pendingFragment.
+function resolveUtterances({ text, speaker, lineIndex }) {
+  const incoming = String(text || '').trim();
+  if (!incoming) return [];
+
+  const who = speakerOf(speaker);
+  const out = [];
+  const held = pendingFragment;
+  pendingFragment = null;
+
+  let carried = incoming;
+  if (held) {
+    if (held.speaker === who && held.lineIndex === lineIndex) {
+      carried = `${held.text} ${incoming}`;
+      debugLog({ type: 'fragment_merged', held: held.text, incoming, speaker: who });
+    } else {
+      // A different voice (or a new line) took over, so the fragment is its own
+      // utterance — emitted unfinished rather than lost or misattributed.
+      out.push({ text: held.text, lineIndex: held.lineIndex });
+      debugLog({ type: 'fragment_flushed_speaker_change', held: held.text, heldSpeaker: held.speaker, nextSpeaker: who });
+    }
+  }
+
+  if (endsTerminal(carried)) {
+    out.push({ text: carried, lineIndex });
+  } else {
+    pendingFragment = { text: carried, speaker: who, lineIndex };
+    debugLog({ type: 'fragment_held', text: carried, speaker: who });
+  }
+  return out;
+}
+
+// ponytail: a fragment whose speaker never says anything else is dropped at the
+// next page turn or abort. Add an idle-timer flush if sessions show real content
+// stranded there — the debugLog above makes it visible either way.
+
+// Cancels an in-flight question request without disturbing the answer window.
+// abortCurrentCategorization clears awaitingQuestionAnswer, which would throw away
+// an answer already being captured — this is for the case where the reader has
+// committed to the question already on screen and the one being generated behind
+// it is no longer wanted.
+export function abortQuestionGeneration() {
+  const wasRunning = !!currentAbortController || isCategorizationPending;
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+  }
+  isCategorizationPending = false;
+  // The speculative entries belong to the request just abandoned.
+  lastSpeculativeSnapshot = '';
+  speculativeLineEntries = [];
+  if (wasRunning) debugLog({ type: 'question_generation_aborted' });
+  return wasRunning;
 }
 
 export function abortCurrentCategorization() {
@@ -210,7 +277,6 @@ export function abortCurrentCategorization() {
   clearLiveOffScriptState();
   deferredOffScriptEntries = [];
   deferredContext = null;
-  lastCategorizationContext = null;
   lastSpeculativeSnapshot = '';
   speculativeLineEntries = [];
   isCategorizationPending = false;
@@ -252,9 +318,6 @@ function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, ma
   }
   const text = snapshot.join(' ');
   if (text === lastSpeculativeSnapshot) return;
-  if (!isUtteranceComplete(text)) {
-    return;
-  }
   const previous = lastSpeculativeSnapshot;
   const delta = computeSpeculativeDelta(previous, text);
   lastSpeculativeSnapshot = text;
@@ -273,8 +336,6 @@ function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, ma
     context.onCategorizationStart,
     context.pendingGeneratedQuestionRef?.current || null,
     context.ttsVoiceName || null,
-    context.onAudioChunk || null,
-    context.onAudioEnd || null,
     context.onAudioError || null,
     context.onQuestionReady || null
   );
@@ -291,13 +352,9 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
 
   if (!context) return;
 
-  lastCategorizationContext = context;
-
-  pendingPOSBuffer.push(...words);
-  debugLog({ type: 'pos_buffer', words: pendingPOSBuffer.join(' '), count: pendingPOSBuffer.length });
 }
 
-export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady) {
+export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoiceName, onAudioError, onQuestionReady) {
   if (!offScriptLogRef?.current?.length) return;
 
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
@@ -341,7 +398,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady, controller.signal, currentBookId, systemQuestions);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioError, onQuestionReady, controller.signal, currentBookId, systemQuestions, clickTags);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -373,8 +430,6 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
         ctx.onCategorizationStart,
         ctx.pendingGeneratedQuestionRef?.current || null,
         ctx.ttsVoiceName || null,
-        ctx.onAudioChunk || null,
-        ctx.onAudioEnd || null,
         ctx.onAudioError || null,
         ctx.onQuestionReady || null
       );
@@ -533,13 +588,10 @@ export async function processUserUtterance({
   userAttentionRef,
   pendingGeneratedQuestionRef,
   ttsVoiceName,
-  onAudioChunk,
-  onAudioEnd,
   onAudioError,
   onQuestionReady,
   questionGenEnabledRef,
   isAcknowledgementModeRef,
-  generatedQuestionPendingRef,
 }) {
   const totalLines = state.pagesValues[state.page]?.text?.length || 0;
   const currentLineIndex = state.index > 0 ? state.index - 1 : 0;
@@ -567,10 +619,14 @@ export async function processUserUtterance({
   // stays armed until the answer window closes or the question UI is cleared.
   const ackInProgress = isAcknowledgementModeRef?.current === true;
 
-  const generatedQuestionPending = generatedQuestionPendingRef?.current === true;
-  const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && !generatedQuestionPending && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
+  // A pending generated question no longer blocks categorization. It used to,
+  // which meant an unclicked "I have a question!" froze generation until the page
+  // turned — and a thought the pair got to late asked about a conversation that
+  // had already moved on. Now it keeps being rewritten; startGeneratedQuestion
+  // refuses to swap one that is mid-playback, so nothing interrupts itself.
+  const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
-    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoiceName, onAudioChunk, onAudioEnd, onAudioError, onQuestionReady }
+    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoiceName, onAudioError, onQuestionReady }
     : null;
 
   if (currentLineTrackingRef.current.page !== state.page) {
@@ -588,11 +644,19 @@ export async function processUserUtterance({
     captureStableOffScriptWords(offScriptLogRef, totalLines, userUtterance.trim().split(/\s+/).filter(w => w.length > 0), categorizationContext);
 
     if (categorizationContext) {
-      const text = userUtterance.trim();
-      const transcriptEndedTerminal = /[.?!]\s*$/.test(text);
-      if (transcriptEndedTerminal && text && text !== lastSpeculativeSnapshot && isUtteranceComplete(text)) {
-        speculativeLineEntries.push({ lineIndex: totalLines, turn: speculativeLineEntries.length + 1, text });
-        lastSpeculativeSnapshot = text;
+      const ready = resolveUtterances({
+        text: userUtterance,
+        speaker: speakerLabels,
+        lineIndex: totalLines,
+      });
+      let queued = false;
+      for (const entry of ready) {
+        if (!entry.text || entry.text === lastSpeculativeSnapshot) continue;
+        speculativeLineEntries.push({ lineIndex: entry.lineIndex, turn: speculativeLineEntries.length + 1, text: entry.text });
+        lastSpeculativeSnapshot = entry.text;
+        queued = true;
+      }
+      if (queued) {
         sendOffScriptLog(
           { current: [...speculativeLineEntries] },
           categorizationContext.state.page,
@@ -603,8 +667,6 @@ export async function processUserUtterance({
           categorizationContext.onCategorizationStart,
           categorizationContext.pendingGeneratedQuestionRef?.current || null,
           categorizationContext.ttsVoiceName || null,
-          categorizationContext.onAudioChunk || null,
-          categorizationContext.onAudioEnd || null,
           categorizationContext.onAudioError || null,
           categorizationContext.onQuestionReady || null
         );
@@ -709,12 +771,19 @@ export async function processUserUtterance({
   utteranceQueuesRef.current[1].splice(0, wordsToRelease);
   debugLog({ type: 'queue_slide', removed: removedWords.join(' '), count: removedWords.length, retained: utteranceQueuesRef.current[0].length });
 
-  const transcriptEndedTerminal = /[.?!]\s*$/.test(userUtterance);
-  if (transcriptEndedTerminal) {
-    console.log('Transcript ended with terminal punctuation sending offscripts:', userUtterance);
+  // A final that stops mid-sentence is held for this speaker's next one instead of
+  // being dropped, so each entry here is already a complete utterance.
+  const ready = resolveUtterances({
+    text: userUtterance,
+    speaker: speakerLabels,
+    lineIndex: currentLineIndex,
+  });
+  if (!ready.length) {
+    console.log('Transcript held for continuation:', userUtterance);
+    return;
   }
-  else {  
-    console.log('Transcript not ended with terminal punctuation:', userUtterance);
+  for (const entry of ready) {
+    console.log('Sending offscript utterance:', entry.text);
+    sendSpeculativeQueueSnapshot(utteranceQueuesRef, entry.lineIndex, categorizationContext, maxReadableLookbackWords, true, entry.text);
   }
-  sendSpeculativeQueueSnapshot(utteranceQueuesRef, currentLineIndex, categorizationContext, maxReadableLookbackWords, transcriptEndedTerminal, userUtterance);
 }

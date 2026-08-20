@@ -221,6 +221,53 @@ img {
   overflow: visible; /* Prevent image clipping during animation */
 }
 
+/* The mate is a button — tapping it asks for a question — so it has to read as
+   one. Applied to the container rather than the img: the img already carries the
+   slide-closer/slide-back transforms, and a hover transform there would fight
+   them. The container's own animation (avatar-expand) touches only flex-basis and
+   width, so transform is free. */
+.role-image-container {
+  cursor: pointer;
+  transition: transform 0.18s ease-out, filter 0.18s ease-out;
+}
+
+/* Shrinks rather than grows. Growing overlapped the question panel beside it and
+   read as the layout shifting; receding reads as a button taking a press. */
+.role-image-container:hover {
+  transform: scale(0.95);
+  filter: drop-shadow(0 4px 10px rgba(106, 194, 106, 0.5));
+}
+
+/* Deeper on the press itself, so the click is acknowledged before the question
+   arrives. */
+.role-image-container:active {
+  transform: scale(0.90);
+  transition-duration: 0.08s;
+}
+
+/* Nothing to click while the replacement question is being written, so it must
+   not offer itself. */
+.role-image-container.is-busy {
+  cursor: default;
+}
+
+.role-image-container.is-busy:hover,
+.role-image-container.is-busy:active {
+  transform: none;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role-image-container {
+    transition: none;
+  }
+  /* Keep the glow: it is the affordance, and it does not move. */
+  .role-image-container:hover,
+  .role-image-container:active {
+    transform: none;
+  }
+}
+
 .role-image-container-text {
   display: flex;
   flex-direction: row; 
@@ -778,35 +825,101 @@ img {
 }
 
 /* Anchored to .question-history, which is exactly as wide as the question
-   bubble — so left/right 0 makes the button match the question panel's width.
-   The tile that the SVGs used to carry is drawn here instead: same #74C06F
-   fill, same 1px black stroke, same 4px corner radius. */
-.answer-button {
+   bubble — so left/right 0 makes the row match the question panel's width. The
+   listening pulse and the send button share that width on one line. */
+.answer-controls {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   margin-top: 6px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 59px;
-  padding: 0;
-  background: #74C06F;
-  border: none;
-  /* Same declaration pair as .question-message, so the corner arc matches the
-     question panel exactly rather than approximately. */
-  font-size: 22px;
-  border-radius: 1.2em;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
-  cursor: pointer;
+  align-items: stretch;
+  gap: 8px;
   z-index: 3;
   animation: answer-button-slide-down 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.answer-button:disabled {
+/* Shortened from the full width it used to span, to leave room for the send
+   button beside it. Not a control — it only shows that the mic is live, so it is
+   drawn as an outlined field rather than a filled, shadowed button: same green,
+   same 3px border and same corner arc as .question-message, no fill. */
+.answer-button {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 59px;
+  padding: 0;
+  background: transparent;
+  border: 3px solid #6ac26a;
+  font-size: 22px;
+  border-radius: 1.2em;
+}
+
+/* Same green as .question-message, so it reads as part of the question panel. */
+.send-button {
+  flex: 0 0 auto;
+  width: 92px;
+  min-height: 59px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: #6ac26a;
+  color: #fff;
+  border: none;
+  font-size: 22px;
+  border-radius: 1.2em;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.send-button:hover:not(:disabled) {
+  background: #5aad5a;
+}
+
+.send-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.send-button:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.send-button-plane {
+  width: 34px;
+  height: 34px;
+  /* Nudged along its own diagonal so the plane looks centred in the tile. */
+  transform: translate(-1px, 1px);
+}
+
+/* After a few seconds of quiet, the answer looks finished — blink to say so. */
+.send-button.is-blinking {
+  animation: send-button-blink 0.9s ease-in-out infinite;
+}
+
+@keyframes send-button-blink {
+  0%, 100% {
+    background: #6ac26a;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+  }
+  50% {
+    background: #F5C518;
+    box-shadow:
+      0 4px 6px rgba(0, 0, 0, 0.25),
+      0 0 18px 4px rgba(245, 197, 24, 0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .send-button.is-blinking {
+    animation: none;
+    background: #F5C518;
+  }
 }
 
 /* Slides out from behind the question bubble. */

@@ -52,7 +52,7 @@ Page Question: "${currentPageQuestion || ''}"
 </current_page>
 ${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}<acknowledgement_context>
 Last Asked Question: "${question || currentPageQuestion || ''}"
-Expected Answer: ${expectedAnswer ? `"${expectedAnswer}"` : '(open-ended — no single correct answer; affirm the child)'}
+Reference Answer: ${expectedAnswer ? `"${expectedAnswer}"` : '(none — open-ended; whatever the child said is their own idea)'}
 Latest User Utterance (from the child): "${reply || ''}"
 ${history ? `Prior Acknowledgement Turns:\n${history}` : 'Prior Acknowledgement Turns: none'}
 </acknowledgement_context>`;

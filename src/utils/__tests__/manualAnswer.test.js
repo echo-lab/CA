@@ -10,6 +10,7 @@ import {
   isManualAnswerActive,
   setAwaitingQuestionAnswer,
   abortCurrentCategorization,
+  abortQuestionGeneration,
 } from '../utteranceProcessor';
 import { createMockRefs, createMockState, SAMPLE_LINES } from '../testFixtures';
 
@@ -142,4 +143,40 @@ test('cancelling during the drain resolves empty', async () => {
   cancelManualAnswer();
 
   await expect(pending).resolves.toBe('');
+});
+
+// Tapping the question already on screen cancels whatever is being generated
+// behind it. That must not disturb the answer the reader is in the middle of
+// giving — abortCurrentCategorization would, which is why this is separate.
+describe('abortQuestionGeneration', () => {
+  test('leaves an answer already being captured intact', async () => {
+    setAwaitingQuestionAnswer(true);
+    feed(['The purple one', 'because it is her favourite']);
+
+    abortQuestionGeneration();
+
+    expect(isManualAnswerActive()).toBe(true);
+    await expect(close()).resolves.toBe('The purple one because it is her favourite');
+  });
+
+  test('keeps capturing utterances that arrive after the cancel', async () => {
+    setAwaitingQuestionAnswer(true);
+    feed(['I think']);
+    abortQuestionGeneration();
+    feed(['it is the star balloon']);
+
+    await expect(close()).resolves.toBe('I think it is the star balloon');
+  });
+
+  test('reports whether anything was actually running', () => {
+    abortCurrentCategorization();
+    expect(abortQuestionGeneration()).toBe(false);
+  });
+
+  test('abortCurrentCategorization still closes the window, unlike this', () => {
+    setAwaitingQuestionAnswer(true);
+    expect(isManualAnswerActive()).toBe(true);
+    abortCurrentCategorization();
+    expect(isManualAnswerActive()).toBe(false);
+  });
 });
