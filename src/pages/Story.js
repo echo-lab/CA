@@ -395,14 +395,8 @@ function Reader() {
         : `I clicked somewhere else in the picture, not the ${clickTarget.label}.`);
   };
 
-  // Tapping the mate asks for a question outright, with no utterance behind it.
-  // Refused while a question is already being spoken, answered, or acknowledged —
-  // in those states a new question would replace the one in play.
   const manualQuestionPendingRef = useRef(false);
   const manualQuestionAbortRef = useRef(null);
-  // Replaces the question bubble with "I am coming up with a new question..."
-  // while a manually requested one is being written, so the old question is not
-  // left up to be tapped a moment before it disappears.
   const [generatingQuestion, setGeneratingQuestion] = useState(false);
 
   // Committing to the question already on screen makes whatever is being generated
@@ -555,10 +549,10 @@ function Reader() {
 
   useEffect(() => { setCurrentBookId(id); }, [id]);
 
-  // Only a click book needs these. Sending them elsewhere would silently turn
-  // that book's questions into click questions too.
+  // Every book can get a click question, so every book sends its tags. The
+  // server flips a coin per question; with no usable tags it asks a spoken one.
   useEffect(() => {
-    setClickTags(String(id) === '2' ? imageTags : []);
+    setClickTags(imageTags);
   }, [id, imageTags]);
 
   useEffect(() => {
@@ -1059,11 +1053,6 @@ function Reader() {
                     top: `${y0 / 10}%`, left: `${x0 / 10}%`,
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
                     cursor: 'crosshair',
-                    // outline over border, so the stroke never changes the element's
-                    // size, and outlineOffset -2px so it is drawn *inside* the edge
-                    // rather than straddling it. Without the offset the rectangle
-                    // renders 2px wider on every side than the box it represents,
-                    // which reads as the box sitting slightly off the object.
                     ...(showTagBoxes ? { outline: '2px solid red', outlineOffset: '-2px' } : {}),
                   }}
                   title={tag.label}

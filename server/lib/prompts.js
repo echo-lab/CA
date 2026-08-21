@@ -47,7 +47,7 @@ Output JSON only. No explanation, no preface:
 
 const CLICK_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a preschooler that can be answered only by clicking or tapping one choice. Include the expected clicked answer.
 
-Make a concrete Wh-Question that is inspired by the child's and caregiver's utterance, the previous and current page text, the generated questions, and image context when available.
+Make a concrete Wh-Question that is inspired by the child's and caregiver's utterance, the generated questions, and image context when available.
 
 The <tappable_objects> block lists every object that has a clickable region on this page. The answer MUST be exactly one of those labels, copied character for character.
 - Never invent an object, and never choose something you can see in the picture but that is not in the list.
@@ -84,53 +84,10 @@ Keep the spoken line natural, concrete, and warm. Do not ask a new question. Do 
 
 Output ONLY the spoken line as plain text. No JSON, no markdown, no surrounding quotes, no preface.`;
 
-const GEMINI_IMAGE_CHARACTER_RULES = `You are working with JENNIE children's picture book illustrations.
-Character rules:
-- Zoe is the parrot. Any bird you see is always Zoe.
-- Clara is the chameleon. Any chameleon or lizard you see will most likely be Clara.
-- Always call them by name when referring to those characters.`;
-
-const GEMINI_IMAGE_ANALYSIS_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
-Answer as a parent speaking to a child.
-Give a SHORT answer of 1 sentence.`;
-
-function buildGeminiImageTaggingPrompt({ pageText = '' } = {}) {
-  return `${GEMINI_IMAGE_CHARACTER_RULES}
-You are tagging a children's storybook page for clickable image overlays.
-Your goal is NOT to detect every visible object.
-Your goal is to identify only the most useful story-relevant entities that a child or caregiver might reasonably click or discuss.
-Use the page text and image together.
-Page text:
-"""
-${pageText || '(none provided)'}
-"""
-Character List: Zoe (parrot), Clara (chameleon)
-Tagging rules:
-1. Prioritize story characters.
-2. Prioritize objects mentioned in the page text.
-3. Prioritize objects being held, used, pointed at, worn, or interacted with.
-4. Include educationally useful objects, such as animals, food, tools, toys, clothing, emotions, or actions.
-5. Ignore decorative background objects unless they are central to the page.
-6. Ignore tiny objects that would be hard for a child to click.
-7. Use stable character names from the known character list when possible.
-8. If there are duplicates, give unique labels, such as "red balloon" and "blue balloon".
-9. Return at most 10 tags.
-10. Return JSON only. Do not include markdown, comments, or explanation.
-Bounding box rules:
-- box_2d must be [y_min, x_min, y_max, x_max].
-- Coordinates must be normalized from 0 to 1000.
-- The box should tightly cover the visible object.
-- If the object is partially occluded, box only the visible part.
-- Do not guess boxes for objects that are not visible.`;
-}
-
 module.exports = {
     JENNIE_SHARED_PROMPT_PREFIX,
     OFFSCRIPT_CATEGORIZATION_PROMPT,
     FOLLOWUP_QUESTION_PROMPT,
     CLICK_QUESTION_PROMPT,
     ACKNOWLEDGEMENT_PROMPT,
-    GEMINI_IMAGE_CHARACTER_RULES,
-    GEMINI_IMAGE_ANALYSIS_PROMPT,
-    buildGeminiImageTaggingPrompt,
 };

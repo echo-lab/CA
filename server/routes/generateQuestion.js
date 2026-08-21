@@ -49,9 +49,9 @@ router.post('/api/generate-question-stream', async (req, res) => {
     } = req.body;
 
     try {
-        const { clickMode, clickLabels, wanted: wantsClick } = resolveClickMode(book, clickTags);
+        const { clickMode, clickLabels, wanted: wantsClick } = resolveClickMode(clickTags);
         if (wantsClick && !clickMode) {
-            tlog(`click book but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
+            tlog(`coin flip wanted a click question but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
         }
 
         const messages = buildQuestionMessages({

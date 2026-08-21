@@ -5,7 +5,7 @@ const crypto = require('crypto');
 
 const CFG = {
   dir: path.join(__dirname, '..', '..', 'cache', 'image'),
-  ttlSec: 30 * 24 * 60 * 60, // 30 days
+  ttlSec: 30 * 24 * 60 * 60,
   bypassHeader: 'x-bypass-cache',
   version: '3.1',
 };

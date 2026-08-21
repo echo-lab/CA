@@ -71,9 +71,9 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             },
         ];
 
-        const { clickMode, clickLabels, wanted: wantsClick } = resolveClickMode(book, clickTags);
+        const { clickMode, clickLabels, wanted: wantsClick } = resolveClickMode(clickTags);
         if (wantsClick && !clickMode) {
-            tlog(`click book but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
+            tlog(`coin flip wanted a click question but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
         }
 
         const questionMessages = buildQuestionMessages({

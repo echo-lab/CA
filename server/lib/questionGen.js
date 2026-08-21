@@ -11,8 +11,7 @@ const { buildOpenAIDynamicPagePayload } = require('./payloads');
 const { buildPageImageMessage } = require('./pageImage');
 const { parseJsonFromModelText } = require('./modelParsing');
 const {
-    isClickQuestionBook,
-    tagLabels,
+    resolveClickMode,
     buildTappableObjectsBlock,
     resolveClickAnswer,
 } = require('./clickAnswer');
@@ -22,15 +21,6 @@ const { generateGeminiTtsChunks } = require('../liveTTS');
 // rather than provoked by something said. An empty block reads as "they said
 // nothing worth using"; this says there was no conversation to draw on at all.
 const NO_UTTERANCES = '(none — no conversation to draw on yet; use the page text and illustration)';
-
-// A click book needs real tags to ask a click question. Without them there is
-// nothing to click, so it falls back to a spoken question rather than asking
-// something unanswerable.
-function resolveClickMode(book, clickTags) {
-    const clickLabels = tagLabels(clickTags);
-    const wanted = isClickQuestionBook(book);
-    return { clickMode: wanted && clickLabels.length > 0, clickLabels, wanted };
-}
 
 function buildQuestionMessages({
     book,
@@ -54,7 +44,7 @@ function buildQuestionMessages({
             role: 'user',
             content: buildOpenAIDynamicPagePayload({
                 currentPageQuestion,
-                bookText,
+                bookText: clickMode && Math.random() < 0.5 ? '' : bookText,
                 currentPageNumber,
                 imageDescription,
                 userAttention,

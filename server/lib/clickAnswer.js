@@ -3,14 +3,6 @@
 // question can never point at a box that does not exist.
 const { parseJsonFromModelText } = require('./modelParsing');
 
-// Book 2 is the click-question book. Kept here so the route and any future caller
-// agree on what "click book" means.
-const CLICK_QUESTION_BOOKS = new Set(['2']);
-
-function isClickQuestionBook(book) {
-    return CLICK_QUESTION_BOOKS.has(String(book));
-}
-
 // A tag is only usable as an answer if it has a real, non-empty box: the hit test
 // compares the click against these four numbers, so a malformed one would either
 // never match or match everywhere.
@@ -26,6 +18,16 @@ function usableTags(tags) {
 
 function tagLabels(tags) {
     return usableTags(tags).map((t) => String(t.label).trim());
+}
+
+// Every book asks both kinds; which one a turn gets is a coin flip, decided once
+// per generated question. A click question still needs real tags — without them
+// there is nothing to click, so it falls back to a spoken question rather than
+// asking something unanswerable.
+function resolveClickMode(clickTags) {
+    const clickLabels = tagLabels(clickTags);
+    const wanted = Math.random() < 0.5;
+    return { clickMode: wanted && clickLabels.length > 0, clickLabels, wanted };
 }
 
 // Renders the label list the prompt tells the model to copy from.
@@ -60,9 +62,9 @@ function resolveClickAnswer(rawModelText, tags) {
 }
 
 module.exports = {
-    isClickQuestionBook,
     usableTags,
     tagLabels,
+    resolveClickMode,
     buildTappableObjectsBlock,
     resolveClickAnswer,
 };

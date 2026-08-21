@@ -100,7 +100,7 @@ router.post('/analyze-image', async (req, res) => {
     const MODEL = 'gemini-2.5-flash';
     const bypass = req.headers[imageCache.CFG.bypassHeader] === '1';
     const { base } = imageCache.buildKey({
-      kind: 'analyze',
+      kind: 'tagging', 
       book: String(book),
       page: String(page),
       model: MODEL,

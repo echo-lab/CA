@@ -2,9 +2,9 @@
 // cover the ways the model can hand back something that does not.
 const assert = require('assert');
 const {
-    isClickQuestionBook,
     usableTags,
     tagLabels,
+    resolveClickMode,
     buildTappableObjectsBlock,
     resolveClickAnswer,
 } = require('./lib/clickAnswer');
@@ -24,12 +24,19 @@ const TAGS = [
     { label: 'short', box_2d: [0, 0] },                 // truncated box
 ];
 
-t('book 2 is the click book, others are not', () => {
-    assert.strictEqual(isClickQuestionBook(2), true);
-    assert.strictEqual(isClickQuestionBook('2'), true);
-    assert.strictEqual(isClickQuestionBook(1), false);
-    assert.strictEqual(isClickQuestionBook(3), false);
-    assert.strictEqual(isClickQuestionBook(undefined), false);
+t('click mode is a coin flip, but never without usable tags', () => {
+    const N = 4000;
+    let click = 0;
+    for (let i = 0; i < N; i++) if (resolveClickMode(TAGS).clickMode) click++;
+    // ~50%; the window is wide enough that a fair flip effectively never trips it.
+    assert.ok(click > N * 0.44 && click < N * 0.56, `click mode fired ${click}/${N} times`);
+
+    // No usable tags -> spoken every time, however the flip lands.
+    for (let i = 0; i < 200; i++) {
+        assert.strictEqual(resolveClickMode([]).clickMode, false);
+        assert.strictEqual(resolveClickMode(null).clickMode, false);
+        assert.strictEqual(resolveClickMode([{ label: 'reversed', box_2d: [400, 400, 100, 100] }]).clickMode, false);
+    }
 });
 
 t('degenerate boxes are not offered as answers', () => {
