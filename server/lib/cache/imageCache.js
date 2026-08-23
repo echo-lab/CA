@@ -7,7 +7,7 @@ const CFG = {
   dir: path.join(__dirname, '..', '..', 'cache', 'image'),
   ttlSec: 30 * 24 * 60 * 60,
   bypassHeader: 'x-bypass-cache',
-  version: '3.1',
+  version: '3.2',  // bumped to force a re-tag with the descriptive label prompt
 };
 
 function ensureDirSync(p) {
@@ -46,12 +46,14 @@ async function readIfFresh(base) {
   }
 }
 
-async function write(base, data) {
+// Cache files are hash-named, so meta records which book and page the file
+// describes. Reference only — readIfFresh ignores it, and it is not part of the key.
+async function write(base, data, meta) {
   const file = fileFor(base);
   const dir = path.dirname(file);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const tmp = `${file}.tmp-${process.pid}-${Date.now()}`;
-  const payload = JSON.stringify({ createdAt: Date.now(), data }, null, 2);
+  const payload = JSON.stringify({ createdAt: Date.now(), ...meta, data }, null, 2);
   try {
     await fsp.writeFile(tmp, payload);
     await fsp.rename(tmp, file);

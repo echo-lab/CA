@@ -17,6 +17,19 @@ const GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC = Number(process.env.GEMINI_IMAGE_CONTE
 
 const geminiImageContextCache = new Map();
 
+// The context-cache tagging branch runs without a responseSchema, so the model
+// sometimes wraps the box in an extra array: [[y0,x0,y1,x1]]. Unwrap here, the one
+// place every tag consumer reads through — render, click grading, tag editing — rather
+// than guarding a length in each. Applied to cache hits too: files written before this
+// fix are still on disk.
+function normalizeTags(tags) {
+  return (Array.isArray(tags) ? tags : []).map((t) => {
+    let box = t?.box_2d;
+    while (Array.isArray(box) && box.length === 1 && Array.isArray(box[0])) box = box[0];
+    return box === t?.box_2d ? t : { ...t, box_2d: box };
+  });
+}
+
 function normalizePageTextForCache(pageText) {
     return String(pageText || '').replace(/\s+/g, ' ').trim();
 }
@@ -161,7 +174,8 @@ router.post('/analyze-image', async (req, res) => {
     }
 
     const payload = { answer: response.text ?? '' };
-    imageCache.write(base, payload).catch(err => console.warn('[image cache] analyze write failed', err));
+    imageCache.write(base, payload, { book: String(book), page: String(page) })
+      .catch(err => console.warn('[image cache] analyze write failed', err));
     res.setHeader('x-cache', 'MISS');
     res.json(payload);
   } catch (error) {
@@ -190,7 +204,7 @@ router.post('/tag-image', async (req, res) => {
       const cached = await imageCache.readIfFresh(base);
       if (cached.state === 'HIT') {
         res.setHeader('x-cache', 'HIT');
-        return res.json(cached.data);
+        return res.json({ ...cached.data, tags: normalizeTags(cached.data?.tags) });
       }
     }
 
@@ -250,7 +264,7 @@ Return a JSON array only. Each item must be:
                   label: {
                     type: "string",
                     description:
-                      "Short, child-friendly label for the detected character or story-relevant object."
+                      "Child-friendly label as \"<name> - <description>\", e.g. \"Zoe - large red parrot in the foreground, looking left\". Name is 1-3 words; description is at most 12 words covering colour, size, position, and what it is doing. Unique within the page."
                   },
                   box_2d: {
                     type: "array",
@@ -290,9 +304,10 @@ Return a JSON array only. Each item must be:
       console.log('[image-tagging] Gemini usage', response.usageMetadata || response.usage_metadata);
     }
 
-    const tags = parseJsonFromModelText(response.text, []);
+    const tags = normalizeTags(parseJsonFromModelText(response.text, []));
     const payload = { tags };
-    imageCache.write(base, payload).catch(err => console.warn('[image cache] tag write failed', err));
+    imageCache.write(base, payload, { book: String(book), page: String(page) })
+      .catch(err => console.warn('[image cache] tag write failed', err));
     res.setHeader('x-cache', 'MISS');
     res.json(payload);
   } catch (error) {

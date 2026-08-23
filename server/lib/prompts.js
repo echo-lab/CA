@@ -84,10 +84,63 @@ Keep the spoken line natural, concrete, and warm. Do not ask a new question. Do 
 
 Output ONLY the spoken line as plain text. No JSON, no markdown, no surrounding quotes, no preface.`;
 
+const GEMINI_IMAGE_CHARACTER_RULES = `You are working with JENNIE children's picture book illustrations.
+Character rules:
+- Zoe is the parrot. Any bird you see is always Zoe.
+- Clara is the chameleon. Any chameleon or lizard you see will most likely be Clara.
+- Always call them by name when referring to those characters.`;
+
+const GEMINI_IMAGE_ANALYSIS_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
+Answer as a parent speaking to a child.
+Give a SHORT answer of 1 sentence.`;
+
+// The label is not just a name: it is the string the click-question model copies
+// verbatim as its answer, and the one handed back as the Reference Answer for the
+// acknowledgement. A bare "books" cannot tell two stacks apart or give the question
+// model anything to reason about, so each label carries its own description.
+function buildGeminiImageTaggingPrompt({ pageText = '' } = {}) {
+  return `${GEMINI_IMAGE_CHARACTER_RULES}
+You are tagging a children's storybook page for clickable image overlays.
+Your goal is NOT to detect every visible object.
+Your goal is to identify only the most useful story-relevant entities that a child or caregiver might reasonably click or discuss.
+Use the page text and image together.
+Page text:
+"""
+${pageText || '(none provided)'}
+"""
+Character List: Zoe (parrot), Clara (chameleon)
+Tagging rules:
+1. Prioritize story characters.
+2. Prioritize objects mentioned in the page text.
+3. Prioritize objects being held, used, pointed at, worn, or interacted with.
+4. Include educationally useful objects, such as animals, food, tools, toys, clothing, emotions, or actions.
+5. Ignore decorative background objects unless they are central to the page.
+6. Ignore tiny objects that would be hard for a child to click.
+7. Use stable character names from the known character list when possible.
+8. Return at most 10 tags.
+9. Return JSON only. Do not include markdown, comments, or explanation.
+Label rules:
+- Write every label as "<name> - <description>", such as "Zoe - large red parrot in the foreground, looking left".
+- The name comes first and is 1-3 words: the character name, or what the object plainly is.
+- The description follows the dash and is a short phrase, at most 12 words. Name the details a child could point at: colour, size, where it sits on the page, and what it is doing or being used for.
+- Describe only what is actually visible. Never infer a detail from the page text that the illustration does not show.
+- Every label must be unique on the page. When two things share a name, the description is what separates them: "balloon - red one held by Clara" and "balloon - blue one drifting near the window".
+- Do not repeat the word "image", "picture", or "illustration" in a label.
+Bounding box rules:
+- box_2d must be [y_min, x_min, y_max, x_max].
+- Coordinates must be normalized from 0 to 1000.
+- The box should tightly cover the visible object.
+- If the object is partially occluded, box only the visible part.
+- Do not guess boxes for objects that are not visible.`;
+}
+
 module.exports = {
     JENNIE_SHARED_PROMPT_PREFIX,
     OFFSCRIPT_CATEGORIZATION_PROMPT,
     FOLLOWUP_QUESTION_PROMPT,
     CLICK_QUESTION_PROMPT,
     ACKNOWLEDGEMENT_PROMPT,
+    GEMINI_IMAGE_CHARACTER_RULES,
+    GEMINI_IMAGE_ANALYSIS_PROMPT,
+    buildGeminiImageTaggingPrompt,
 };

@@ -20,6 +20,7 @@ const generateQuestionRoutes = require('./routes/generateQuestion');
 const acknowledgementRoutes = require('./routes/acknowledgement');
 const loggingRoutes = require('./routes/logging');
 const studyLogRoutes = require('./routes/studyLog');
+const tagEditRoutes = require('./routes/tagEdit'); // dev tool: box editor, safe to delete
 
 startPruner();
 
@@ -60,6 +61,7 @@ app.use(generateQuestionRoutes);
 app.use(acknowledgementRoutes);
 app.use(loggingRoutes);
 app.use(studyLogRoutes);
+app.use(tagEditRoutes);
 
 // WebSocket proxy endpoint for Deepgram using SDK - keeps API key on server
 function setupDeepgramProxy(server) {
@@ -68,6 +70,8 @@ function setupDeepgramProxy(server) {
     // would cause ws to abortHandshake on any non-matching path and destroy
     // sockets meant for other proxies.
     const DEEPGRAM_PATH = '/api/deepgram-proxy';
+    // 3s: two frames land inside Deepgram's 10s window even if the loop stalls.
+    const KEEPALIVE_INTERVAL_MS = 3000;
     const ws = new WebSocket.Server({ noServer: true });
     server.on('upgrade', (req, socket, head) => {
         const pathname = req.url.split('?')[0];
@@ -100,9 +104,25 @@ function setupDeepgramProxy(server) {
             keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5', 'zoodely:5', 'zoop:5'],
         });
 
+        // Deepgram closes any socket that goes 10s without audio or a text frame
+        // (NET-0001). The client deliberately sends nothing while the mic is
+        // suppressed during TTS playback, so a long narration would otherwise kill
+        // transcription for the rest of the session. KeepAlive frames hold the
+        // socket open and are not billed as audio.
+        let keepAliveTimer = null;
+        const stopKeepAlive = () => {
+            if (keepAliveTimer) {
+                clearInterval(keepAliveTimer);
+                keepAliveTimer = null;
+            }
+        };
+
         // Handle Deepgram connection opened
         deepgramLive.on(LiveTranscriptionEvents.Open, () => {
             console.log('Deepgram live connection opened');
+            keepAliveTimer = setInterval(() => {
+                if (deepgramLive.getReadyState() === 1) deepgramLive.keepAlive();
+            }, KEEPALIVE_INTERVAL_MS);
             clientWs.send(JSON.stringify({
                 type: 'server_status',
                 message: 'Connected to Deepgram with nova-3 model'
@@ -151,6 +171,7 @@ function setupDeepgramProxy(server) {
         // Handle Deepgram connection closed
         deepgramLive.on(LiveTranscriptionEvents.Close, () => {
             console.log('Deepgram connection closed');
+            stopKeepAlive();
             if (clientWs.readyState === WebSocket.OPEN) {
                 clientWs.close();
             }
@@ -167,6 +188,7 @@ function setupDeepgramProxy(server) {
         // Handle client disconnection
         clientWs.on('close', () => {
             console.log('Client disconnected from Deepgram proxy');
+            stopKeepAlive();
             // Close the Deepgram connection
             if (deepgramLive.getReadyState() === 1) {
                 deepgramLive.requestClose();
@@ -176,6 +198,7 @@ function setupDeepgramProxy(server) {
         // Handle client errors
         clientWs.on('error', (error) => {
             console.error('Client WebSocket error:', error);
+            stopKeepAlive();
             if (deepgramLive.getReadyState() === 1) {
                 deepgramLive.requestClose();
             }

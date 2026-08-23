@@ -9,15 +9,20 @@ const IMAGE_ANALYSIS_ENABLED = false;
 const analysisCache = new Map();
 const taggingCache = new Map();
 
-export async function ImageTagging({ book, page, pageText }) {
+// force re-tags a page that is already tagged: it skips the in-session memo and
+// tells the server to ignore its own cache, so the model actually runs again.
+export async function ImageTagging({ book, page, pageText, force = false }) {
   if (!IMAGE_PIPELINE_ENABLED) return [];
   const key = `${book}-${page}`;
-  if (taggingCache.has(key)) return taggingCache.get(key);
+  if (!force && taggingCache.has(key)) return taggingCache.get(key);
   const promise = (async () => {
     try {
       const res = await fetch(`${API_BASE}/tag-image`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(force ? { 'x-bypass-cache': '1' } : {}),
+        },
         body: JSON.stringify({ book, page, pageText }),
       });
       const data = await res.json();
@@ -116,4 +121,24 @@ export function prefetchPage(book, pages, currentPage) {
   const pageData = pages[targetIndex];
   const pageText = pageData?.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
   enqueuePage(book, targetIndex, pageText);
+}
+
+// Re-tags every page of one book, for the "Tag Images" button. Sequential on
+// purpose: the Vertex quota is per-minute per-project, and a 16-page burst is
+// exactly the shape that trips a 429. onProgress(done, total) drives the label.
+export async function tagBook(book, pages, onProgress = () => {}) {
+  // Index 0 is the cover, which has no Page_N image on disk.
+  const list = Object.values(pages).slice(1);
+  for (let i = 0; i < list.length; i++) {
+    const pageText = list[i]?.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
+    await ImageTagging({ book, page: i + 1, pageText, force: true });
+    onProgress(i + 1, list.length);
+  }
+  return list.length;
+}
+
+// Used by TagBoxEditor after a box edit is saved, so the next visit to this page
+// re-fetches instead of replaying the pre-edit tags. Safe to delete with it.
+export function invalidateTagCache(book, page) {
+  taggingCache.delete(`${book}-${page}`);
 }

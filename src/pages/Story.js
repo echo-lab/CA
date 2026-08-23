@@ -12,6 +12,7 @@ import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 // Components
 import QuestionAvatar from "../components/QuestionAvatar";
+import TagBoxEditor from "../components/TagBoxEditor";  // dev tool: box editor, safe to delete
 // Hooks
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
 import { useAcknowledgement } from "../hooks/useAcknowledgement";
@@ -504,7 +505,6 @@ function Reader() {
     dialogueRefs,
     tableContainerRef,
     navigate,
-    isTraining,
     name,
     id,
     isAnyAudioPlaying,
@@ -1068,6 +1068,14 @@ function Reader() {
                 </div>
               );
             })}
+            <TagBoxEditor
+              visible={showTagBoxes}
+              book={id}
+              page={state.page}
+              pageText={state.pagesValues[state.page]?.text?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || ''}
+              tags={imageTags}
+              onChange={setImageTags}
+            />
         </div>
         <QuestionAvatar
           questionHistory={questionHistory}

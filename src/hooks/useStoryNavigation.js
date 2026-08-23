@@ -25,7 +25,6 @@ export function useStoryNavigation({
   dialogueRefs,
   tableContainerRef,
   navigate,
-  isTraining,
   name,
   id,
   isAnyAudioPlaying,
@@ -84,8 +83,7 @@ export function useStoryNavigation({
         return nextState;
       });
     } else {
-      if (isTraining) navigate('/Home', { state: { name } });
-      else navigate('/Survey', { state: { id, name } });
+      navigate('/Home', { state: { name } });
     }
   };
 
@@ -300,8 +298,7 @@ export function useStoryNavigation({
     }
 
     if (state.hasReachedEnd) {
-      if (isTraining) navigate('/Home', { state: { name } });
-      else navigate('/Survey', { state: { id, name } });
+      navigate('/Home', { state: { name } });
       return;
     }
 
