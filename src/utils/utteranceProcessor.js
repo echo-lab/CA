@@ -334,7 +334,7 @@ function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, ma
     context.imageDescriptionRef,
     context.userAttentionRef?.current,
     context.onCategorizationStart,
-    context.pendingGeneratedQuestionRef?.current || null,
+    context.questionHistoryRef?.current || [],
     context.ttsVoiceName || null,
     context.onAudioError || null,
     context.onQuestionReady || null
@@ -354,7 +354,7 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
 
 }
 
-export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, pendingGeneratedQuestion, ttsVoiceName, onAudioError, onQuestionReady) {
+export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, questionHistory, ttsVoiceName, onAudioError, onQuestionReady) {
   if (!offScriptLogRef?.current?.length) return;
 
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
@@ -398,7 +398,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, pendingGeneratedQuestion, ttsVoiceName, onAudioError, onQuestionReady, controller.signal, currentBookId, systemQuestions, clickTags);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, questionHistory, ttsVoiceName, onAudioError, onQuestionReady, controller.signal, currentBookId, systemQuestions, clickTags);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -428,7 +428,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
         ctx.imageDescriptionRef,
         ctx.userAttentionRef?.current,
         ctx.onCategorizationStart,
-        ctx.pendingGeneratedQuestionRef?.current || null,
+        ctx.questionHistoryRef?.current || [],
         ctx.ttsVoiceName || null,
         ctx.onAudioError || null,
         ctx.onQuestionReady || null
@@ -586,7 +586,7 @@ export async function processUserUtterance({
   onCategorizationStart,
   imageDescriptionRef,
   userAttentionRef,
-  pendingGeneratedQuestionRef,
+  questionHistoryRef,
   ttsVoiceName,
   onAudioError,
   onQuestionReady,
@@ -626,7 +626,7 @@ export async function processUserUtterance({
   // refuses to swap one that is mid-playback, so nothing interrupts itself.
   const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
-    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, pendingGeneratedQuestionRef, ttsVoiceName, onAudioError, onQuestionReady }
+    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, questionHistoryRef, ttsVoiceName, onAudioError, onQuestionReady }
     : null;
 
   if (currentLineTrackingRef.current.page !== state.page) {
@@ -665,7 +665,7 @@ export async function processUserUtterance({
           categorizationContext.imageDescriptionRef,
           categorizationContext.userAttentionRef?.current,
           categorizationContext.onCategorizationStart,
-          categorizationContext.pendingGeneratedQuestionRef?.current || null,
+          categorizationContext.questionHistoryRef?.current || [],
           categorizationContext.ttsVoiceName || null,
           categorizationContext.onAudioError || null,
           categorizationContext.onQuestionReady || null

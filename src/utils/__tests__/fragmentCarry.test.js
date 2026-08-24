@@ -51,7 +51,7 @@ function makeHarness() {
     onCategorizationStart: jest.fn(),
     imageDescriptionRef: { current: null },
     userAttentionRef: { current: null },
-    pendingGeneratedQuestionRef: { current: null },
+    questionHistoryRef: { current: [] },
     sendContentMessage: jest.fn(),
     jumpToLine: jest.fn(),
     setAudioHasEnded: jest.fn(),

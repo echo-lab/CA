@@ -8,11 +8,14 @@ function buildOpenAIDynamicPagePayload({
     userAttention,
     utteranceTag,
     formattedUtterances,
-    lastGeneratedQuestion,
+    questionHistory,
     systemQuestions,
 }) {
-    const lastQuestionBlock = lastGeneratedQuestion
-        ? `<last_question>\n"${lastGeneratedQuestion}"\n</last_question>\n`
+    // Every question already generated on this page, oldest first. Sent as a list
+    // because a page can carry several follow-ups and the model needs to see all of
+    // them to avoid repeating one — not just the most recent.
+    const questionHistoryBlock = Array.isArray(questionHistory) && questionHistory.length
+        ? `<generated_question_list>\n${questionHistory.map((q) => `- "${q}"`).join('\n')}\n(Already asked on this page. Do NOT repeat or rephrase any of them.)\n</generated_question_list>\n`
         : '';
     const systemQuestionsBlock = Array.isArray(systemQuestions) && systemQuestions.length
         ? `<system_questions>\n${systemQuestions.map((q) => `- "${q}"`).join('\n')}\n(These questions are already authored for the book. Do NOT generate a question that overlaps with any of them.)\n</system_questions>\n`
@@ -22,7 +25,7 @@ Page: ${currentPageNumber || ''}
 Book Text: ${bookText || ''}
 Question: "${currentPageQuestion || ''}"
 </current_page>
-${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}${systemQuestionsBlock}${lastQuestionBlock}<${utteranceTag}>
+${(imageDescription || userAttention) ? `<image_context>\n${imageDescription ? `Description: ${imageDescription}` : ''}${imageDescription && userAttention ? '\n' : ''}${userAttention ? `User Attention: "${userAttention}"` : ''}\n</image_context>\n` : ''}${systemQuestionsBlock}${questionHistoryBlock}<${utteranceTag}>
 ${formattedUtterances}
 </${utteranceTag}>`;
 }

@@ -12,7 +12,6 @@ import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 // Components
 import QuestionAvatar from "../components/QuestionAvatar";
-import TagBoxEditor from "../components/TagBoxEditor";  // dev tool: box editor, safe to delete
 // Hooks
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
 import { useAcknowledgement } from "../hooks/useAcknowledgement";
@@ -28,7 +27,7 @@ import { processUserUtterance, abortCurrentCategorization, abortQuestionGenerati
 import * as studyLog from "../utils/studyLog";
 import { getRoleKind } from "../utils/roles";
 import { generateQuestionOnDemand } from "../utils/InnerThoughtProcessStream";
-import { assessClick, expandBox, CLICK_TOLERANCE } from "../utils/clickGeometry";
+import { assessClick } from "../utils/clickGeometry";
 
 class Book {
   constructor(data) {
@@ -37,6 +36,15 @@ class Book {
     this.pages = data.Book.Pages;
   }
 };
+
+// A chunky cartoon glove pointing at the target. The OS `pointer` hand is easy to
+// miss on a busy illustration, and a crosshair reads as "aim", not "tap". Inlined as
+// a data URI so there is no asset to load, with `pointer` as the fallback for any
+// browser that rejects the image. Hotspot sits on the fingertip.
+const POINT_HAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32">
+<path d="M10.5 2C9.1 2 8 3.1 8 4.5V17.2L6.4 15.4C5.4 14.3 3.7 14.3 2.7 15.4C1.8 16.4 1.8 17.9 2.7 18.9L9.5 27C10.6 28.3 12.2 29 13.9 29H21C24.3 29 27 26.3 27 23V15C27 13.6 25.9 12.5 24.5 12.5C23.9 12.5 23.4 12.7 23 13C22.8 11.8 21.8 11 20.5 11C19.7 11 19 11.4 18.5 11.9C18.2 10.8 17.2 10 16 10C15.4 10 14.9 10.2 14.5 10.5V4.5C14.5 3.1 13.4 2 12 2Z" fill="#ffffff" stroke="#000000" stroke-width="2.6" stroke-linejoin="round"/>
+</svg>`;
+const POINT_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(POINT_HAND_SVG)}") 8 2, pointer`;
 
 function Reader() {
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
@@ -223,12 +231,11 @@ function Reader() {
   const wasGeminiAudioPlayingRef = useRef(false);
   const imageDescriptionRef = useRef(null);
   const [imageTags, setImageTags] = useState([]);
-  const [showTagBoxes, setShowTagBoxes] = useState(false);
   // The tag whose region answers the pending click question. Null on every other
   // book and whenever the pending question is a spoken one.
   const [clickTarget, setClickTarget] = useState(null);
   const userAttentionRef = useRef(null);
-  const pendingGeneratedQuestionRef = useRef(null);
+  const questionHistoryRef = useRef([]);
   const lastAskedQuestionRef = useRef(null);
   const lastExpectedAnswerRef = useRef(null);
   const generatedQuestionPendingRef = useRef(false);
@@ -282,7 +289,7 @@ function Reader() {
     setAvatarPhase,
     hasSlidCloserRef,
     lastAskedQuestionRef,
-    pendingGeneratedQuestionRef,
+    questionHistoryRef,
     acknowledgementFromPageQuestionRef,
     generatedQuestionPendingRef,
     questionGenEnabledRef,
@@ -446,9 +453,9 @@ function Reader() {
         bookText: page?.text?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '',
         imageDescription: await (imageDescriptionRef.current ?? Promise.resolve(null)),
         userAttention: userAttentionRef.current,
-        lastGeneratedQuestion: pendingGeneratedQuestionRef.current || null,
+        questionHistory: questionHistoryRef.current,
         systemQuestions: stateRef.current.pagesValues.map(p => (p?.question || '').trim()).filter(Boolean),
-        clickTags: String(id) === '2' ? imageTags : [],
+        clickTags: imageTags,
         ttsVoiceName: narratorRole?.VA || null,
         onQuestionReady: (questionText, expectedAnswer, click, audioChunks) => {
           // The reader may have moved on while the model was thinking.
@@ -559,6 +566,7 @@ function Reader() {
     const pageText = state.pagesValues[state.page]?.text
       ?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
     userAttentionRef.current = null;
+    questionHistoryRef.current = [];
     lastExpectedAnswerRef.current = null;
     lastAskedQuestionRef.current = state.pagesValues[state.page]?.question || null;
     setImageTags([]);
@@ -653,10 +661,6 @@ function Reader() {
     pump();
     return () => { stopped = true; };
   }, [state.page, state.pagesValues, state.CharacterRoles, narratorRole]);
-
-  useEffect(() => {
-    pendingGeneratedQuestionRef.current = generatedQuestion || null;
-  }, [generatedQuestion]);
 
   useEffect(() => {
     const wasPlaying = wasGeminiAudioPlayingRef.current;
@@ -772,7 +776,7 @@ function Reader() {
       },
       imageDescriptionRef,
       userAttentionRef,
-      pendingGeneratedQuestionRef,
+      questionHistoryRef,
       ttsVoiceName: narratorRole?.VA || null,
       onAudioError: handleAudioError,
       questionGenEnabledRef,
@@ -987,12 +991,6 @@ function Reader() {
       >Debug</button>
 
       <button
-        onClick={() => setShowTagBoxes(v => !v)}
-        className="btn btn-outline-secondary"
-        style={{ fontSize: '12px', padding: '4px 10px' }}
-      >{showTagBoxes ? 'Hide' : 'Show'} Tags ({(imageTags || []).length})</button>
-
-      <button
         onClick={gotoPreviousPage}
         className="btn btn-primary previous-page-button"
         disabled={state.page === 0}
@@ -1010,38 +1008,11 @@ function Reader() {
         <div
           style={{
             position: 'relative', display: 'inline-block', width: '100%',
-            cursor: clickAnswersQuestion ? 'crosshair' : 'default',
+            cursor: clickAnswersQuestion ? POINT_CURSOR : 'default',
           }}
           onClick={clickAnswersQuestion ? handleImageAnswerClick : undefined}
         >
           <img src={state.pagesValues[state.page].img} alt="current page" style={{ width: '100%', display: 'block' }} />
-            {/* The acceptance region: how far outside its tag a click may land and
-                still be graded correct. Drawn under the red boxes so the exact tag
-                stays readable, and pointer-transparent so it never eats a click. */}
-            {showTagBoxes && (imageTags || []).map((tag, i) => {
-              const grown = expandBox(tag?.box_2d);
-              if (!grown) return null;
-              const [gy0, gx0, gy1, gx1] = grown;
-              // Corners are rounded to radius CLICK_TOLERANCE, because the hit test
-              // measures straight-line distance — a square outline here would claim
-              // the diagonal corners are accepted when they are not.
-              const rx = (CLICK_TOLERANCE / (gx1 - gx0)) * 100;
-              const ry = (CLICK_TOLERANCE / (gy1 - gy0)) * 100;
-              return (
-                <div
-                  key={`tol-${i}`}
-                  style={{
-                    position: 'absolute',
-                    top: `${gy0 / 10}%`, left: `${gx0 / 10}%`,
-                    height: `${(gy1 - gy0) / 10}%`, width: `${(gx1 - gx0) / 10}%`,
-                    border: '2px dashed #2ecc40',
-                    borderRadius: `${rx}% / ${ry}%`,
-                    boxSizing: 'border-box',
-                    pointerEvents: 'none',
-                  }}
-                />
-              );
-            })}
             {(imageTags || []).map((tag, i) => {
               if (!Array.isArray(tag?.box_2d) || tag.box_2d.length < 4) return null;
               const [y0, x0, y1, x1] = tag.box_2d;
@@ -1052,30 +1023,13 @@ function Reader() {
                     position: 'absolute',
                     top: `${y0 / 10}%`, left: `${x0 / 10}%`,
                     height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
-                    cursor: 'crosshair',
-                    ...(showTagBoxes ? { outline: '2px solid red', outlineOffset: '-2px' } : {}),
+                    cursor: POINT_CURSOR,
                   }}
                   title={tag.label}
                   onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
-                >
-                  {showTagBoxes && (
-                    <span style={{
-                      position: 'absolute', top: 0, left: 0, transform: 'translateY(-100%)',
-                      background: 'red', color: '#fff', fontSize: '10px', lineHeight: 1.3,
-                      padding: '0 3px', whiteSpace: 'nowrap', pointerEvents: 'none',
-                    }}>{tag.label}</span>
-                  )}
-                </div>
+                />
               );
             })}
-            <TagBoxEditor
-              visible={showTagBoxes}
-              book={id}
-              page={state.page}
-              pageText={state.pagesValues[state.page]?.text?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || ''}
-              tags={imageTags}
-              onChange={setImageTags}
-            />
         </div>
         <QuestionAvatar
           questionHistory={questionHistory}

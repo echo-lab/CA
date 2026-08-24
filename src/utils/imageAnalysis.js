@@ -136,9 +136,3 @@ export async function tagBook(book, pages, onProgress = () => {}) {
   }
   return list.length;
 }
-
-// Used by TagBoxEditor after a box edit is saved, so the next visit to this page
-// re-fetches instead of replaying the pre-edit tags. Safe to delete with it.
-export function invalidateTagCache(book, page) {
-  taggingCache.delete(`${book}-${page}`);
-}

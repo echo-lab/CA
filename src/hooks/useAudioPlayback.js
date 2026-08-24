@@ -34,7 +34,7 @@ export function useAudioPlayback({
   setAvatarPhase,
   hasSlidCloserRef,
   lastAskedQuestionRef,
-  pendingGeneratedQuestionRef,
+  questionHistoryRef,
   acknowledgementFromPageQuestionRef,
   generatedQuestionPendingRef,
   questionGenEnabledRef,
@@ -151,7 +151,12 @@ export function useAudioPlayback({
     generatedQuestionAudioErrorRef.current = audioChunks.length ? null : 'no audio';
     generatedQuestionPlayRequestedRef.current = false;
     suppressGeneratedAudioStreamRef.current = false;
-    pendingGeneratedQuestionRef.current = text;
+    // Every generated question on this page, oldest first, so the next request can be
+    // told not to repeat one. Guarded against the replace case below re-adding the
+    // same text. Cleared on page change in Story.
+    if (questionHistoryRef.current[questionHistoryRef.current.length - 1] !== text) {
+      questionHistoryRef.current.push(text);
+    }
     setRevealedQuestion('');
     setIsThoughtRevealed(false);
     setAvatarPhase('question');

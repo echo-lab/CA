@@ -43,7 +43,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     let tLastItem = null;
     let categorizationUsage = null;
 
-    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, lastGeneratedQuestion, systemQuestions, ttsVoiceName, book, clickTags } = req.body;
+    const { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, questionHistory, systemQuestions, ttsVoiceName, book, clickTags } = req.body;
 
     if (!formattedUtterances) {
         res.write(`data: ${JSON.stringify({ error: 'Missing required fields' })}\n\n`);
@@ -66,7 +66,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
                     userAttention,
                     utteranceTag: 'off_script_utterances',
                     formattedUtterances,
-                    lastGeneratedQuestion: lastGeneratedQuestion,
+                    questionHistory,
                 }),
             },
         ];
@@ -84,7 +84,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             imageDescription,
             userAttention,
             formattedUtterances,
-            lastGeneratedQuestion,
+            questionHistory,
             systemQuestions,
             clickTags,
             clickMode,

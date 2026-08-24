@@ -36,6 +36,7 @@ Make a concrete Wh-Question, description prompts, simple recall, or completion-s
 Each utterance is tagged with a [Line X, Turn Y] marker; the HIGHEST Turn number is the most recent. Ask a question related to the most recent two or three utterances, using earlier utterances only as supporting context.
 Do NOT ask a question that is similar to user's utterance, or that is a regurgitation of the current page question or a previously generated question.
 The <system_questions> block lists questions already authored for the book. Do NOT generate a question that overlaps with any of them.
+The <generated_question_list> block lists questions already generated. Do NOT generate a question that overlaps with any of them.
 User must be able to answer the question with words avoiding questions requiring gestures, pointing, or physical actions.
 
 Also decide the expected answer:
@@ -48,7 +49,6 @@ Output JSON only. No explanation, no preface:
 const CLICK_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a preschooler that can be answered only by clicking or tapping one choice. Include the expected clicked answer.
 
 Make a concrete Wh-Question that is inspired by the child's and caregiver's utterance, the generated questions, and image context when available.
-
 The <tappable_objects> block lists every object that has a clickable region on this page. The answer MUST be exactly one of those labels, copied character for character.
 - Never invent an object, and never choose something you can see in the picture but that is not in the list.
 - If several listed objects would work, pick any one of them.
@@ -56,10 +56,11 @@ The <tappable_objects> block lists every object that has a clickable region on t
 - Phrase it as an instruction to click or tap, and keep it under 15 words.
 - Never ask for a spoken answer, and never ask for any action other than clicking.
 - The <system_questions> block lists questions already authored for this book. Do not overlap with them.
+- The <questionHistory> block lists questions already generated. Do not generate a question that overlaps with any of them.
 
-Example of a good question: "Which sleeping bag do you like more?" Expected answer: "blue sleeping bag" or "red sleeping bag"
-Example of a bad question: "Tap a sofa" Expected answer: "sofa" (The question is simple clicking rather than a reasoning question.)
-Example of a bad question: "Click a purple thing" Expected answer: "purple frame" (The question is simple clicking rather than a reasoning question.)
+- Example of a good question: "Which sleeping bag do you like more?" Expected answer: "blue sleeping bag" or "red sleeping bag"
+- Example of a bad question: "Tap a sofa" Expected answer: "sofa" (The question is simple clicking rather than a reasoning question.)
+- Example of a bad question: "Click a purple thing" Expected answer: "purple frame" (The question is simple clicking rather than a reasoning question.)
 
 Output JSON only. No explanation, no preface:
 {"question":"<the question>","answer_label":"<the exact label copied from tappable_objects>"}`;

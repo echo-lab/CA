@@ -8,7 +8,7 @@ const categorizeOffScriptUtterancesStreaming = async (
     currentPageNumber,
     imageDescription,
     userAttention,
-    pendingGeneratedQuestion,
+    questionHistory,
     ttsVoiceName,
     onAudioError,
     onQuestionReady,
@@ -19,7 +19,7 @@ const categorizeOffScriptUtterancesStreaming = async (
 ) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
-    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, pendingGeneratedQuestion, systemQuestions, ttsVoiceName, book, clickTags };
+    const payload = { formattedUtterances, currentPageQuestion, bookText, currentPageNumber, imageDescription, userAttention, questionHistory, systemQuestions, ttsVoiceName, book, clickTags };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/categorize-utterances-stream', payload });
 
     const t0 = performance.now();
@@ -296,7 +296,7 @@ const generateQuestionOnDemand = async ({
     bookText,
     imageDescription,
     userAttention,
-    lastGeneratedQuestion,
+    questionHistory,
     systemQuestions,
     formattedUtterances,
     ttsVoiceName,
@@ -310,7 +310,7 @@ const generateQuestionOnDemand = async ({
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
     const payload = {
         book, currentPageNumber, currentPageQuestion, bookText, imageDescription,
-        userAttention, lastGeneratedQuestion, systemQuestions, formattedUtterances,
+        userAttention, questionHistory, systemQuestions, formattedUtterances,
         ttsVoiceName, clickTags,
     };
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/generate-question-stream', payload });
