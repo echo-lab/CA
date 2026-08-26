@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787351633240,
+  "book": "2",
+  "page": "5",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot peeking from under a blanket",
+        "box_2d": [
+          94,
+          79,
+          497,
+          262
+        ]
+      },
+      {
+        "label": "blanket - colorful scallop-patterned blanket",
+        "box_2d": [
+          202,
+          63,
+          499,
+          242
+        ]
+      },
+      {
+        "label": "armchair - green upholstered armchair",
+        "box_2d": [
+          75,
+          229,
+          411,
+          396
+        ]
+      },
+      {
+        "label": "Zoe - red parrot with widespread wings near a closet",
+        "box_2d": [
+          144,
+          533,
+          452,
+          895
+        ]
+      },
+      {
+        "label": "closet - grey and green open cabinet",
+        "box_2d": [
+          101,
+          562,
+          396,
+          945
+        ]
+      },
+      {
+        "label": "Zoe - red parrot walking past potted flowers",
+        "box_2d": [
+          500,
+          545,
+          819,
+          842
+        ]
+      },
+      {
+        "label": "flowers - row of potted blue and orange flowers",
+        "box_2d": [
+          702,
+          157,
+          897,
+          589
+        ]
+      },
+      {
+        "label": "bunny slippers - red bunny-shaped slippers on Zoe's feet",
+        "box_2d": [
+          787,
+          616,
+          872,
+          736
+        ]
+      }
+    ]
+  }
+}

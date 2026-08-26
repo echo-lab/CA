@@ -1,0 +1,45 @@
+{
+  "createdAt": 1787351183034,
+  "book": "1",
+  "page": "14",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with colorful feathers, looking at the cake",
+        "box_2d": [
+          13,
+          161,
+          813,
+          521
+        ]
+      },
+      {
+        "label": "Clara - small green striped chameleon, looking up at the cake",
+        "box_2d": [
+          701,
+          162,
+          981,
+          461
+        ]
+      },
+      {
+        "label": "Cake - tall round cake with orange and blue stripes",
+        "box_2d": [
+          408,
+          464,
+          929,
+          844
+        ]
+      },
+      {
+        "label": "Flowers - small blue and yellow smiling flower shape cake decorations on top of the cake",
+        "box_2d": [
+          448,
+          514,
+          568,
+          814
+        ]
+      }
+    ]
+  }
+}

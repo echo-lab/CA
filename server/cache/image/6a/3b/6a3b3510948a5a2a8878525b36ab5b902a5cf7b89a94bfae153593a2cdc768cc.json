@@ -1,0 +1,54 @@
+{
+  "createdAt": 1787350644568,
+  "book": "1",
+  "page": "4",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with wings spread",
+        "box_2d": [
+          108,
+          178,
+          878,
+          869
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon looking down sadly",
+        "box_2d": [
+          638,
+          739,
+          836,
+          920
+        ]
+      },
+      {
+        "label": "wall streamers - purple and green strips taped to the wall",
+        "box_2d": [
+          32,
+          141,
+          488,
+          889
+        ]
+      },
+      {
+        "label": "floor streamers - purple and green strips scattered on the floor",
+        "box_2d": [
+          479,
+          0,
+          930,
+          999
+        ]
+      },
+      {
+        "label": "tape - silver strips holding the wall streamers",
+        "box_2d": [
+          21,
+          132,
+          110,
+          914
+        ]
+      }
+    ]
+  }
+}

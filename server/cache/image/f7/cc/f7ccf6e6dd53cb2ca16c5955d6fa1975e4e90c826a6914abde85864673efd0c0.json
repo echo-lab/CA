@@ -1,0 +1,45 @@
+{
+  "createdAt": 1787345850325,
+  "book": "1",
+  "page": "1",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with striped beak and colorful wings",
+        "box_2d": [
+          38,
+          95,
+          839,
+          847
+        ]
+      },
+      {
+        "label": "Clara - green chameleon with striped tail on the floor",
+        "box_2d": [
+          569,
+          762,
+          977,
+          988
+        ]
+      },
+      {
+        "label": "Decorations - green and purple strips taped to the wall",
+        "box_2d": [
+          52,
+          20,
+          756,
+          304
+        ]
+      },
+      {
+        "label": "Tape - clear tape zoe used to put on decorations on the floor",
+        "box_2d": [
+          772,
+          285,
+          871,
+          355
+        ]
+      }
+    ]
+  }
+}

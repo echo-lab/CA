@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787350781165,
+  "book": "1",
+  "page": "5",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, looking left",
+        "box_2d": [
+          1,
+          279,
+          768,
+          721
+        ]
+      },
+      {
+        "label": "Clara - sad green chameleon, curled up on the right",
+        "box_2d": [
+          622,
+          756,
+          817,
+          969
+        ]
+      },
+      {
+        "label": "party hat - large green and purple striped hat on the left",
+        "box_2d": [
+          696,
+          50,
+          948,
+          207
+        ]
+      },
+      {
+        "label": "party hat - green and purple striped hat in the box",
+        "box_2d": [
+          468,
+          126,
+          619,
+          254
+        ]
+      },
+      {
+        "label": "party hat - small green and purple striped hat on the table",
+        "box_2d": [
+          809,
+          224,
+          971,
+          324
+        ]
+      },
+      {
+        "label": "cardboard box - open box with party hats",
+        "box_2d": [
+          411,
+          78,
+          711,
+          309
+        ]
+      },
+      {
+        "label": "colorful feathers - Zoe's wing feathers in blue, green, and yellow",
+        "box_2d": [
+          458,
+          314,
+          791,
+          712
+        ]
+      },
+      {
+        "label": "stacked plates - purple and green plates in a box",
+        "box_2d": [
+          388,
+          779,
+          534,
+          962
+        ]
+      }
+    ]
+  }
+}

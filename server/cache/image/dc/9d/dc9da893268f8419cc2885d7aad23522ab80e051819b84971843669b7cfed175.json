@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787350917365,
+  "book": "1",
+  "page": "7",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with colorful feathers, looking sad",
+        "box_2d": [
+          0,
+          80,
+          524,
+          707
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon on the table, raising a hand",
+        "box_2d": [
+          349,
+          793,
+          581,
+          1000
+        ]
+      },
+      {
+        "label": "Table - light grey surface with party decorations",
+        "box_2d": [
+          181,
+          0,
+          238,
+          24
+        ]
+      },
+      {
+        "label": "Party hat - large green and purple striped hat, front-left on the table",
+        "box_2d": [
+          476,
+          37,
+          676,
+          162
+        ]
+      },
+      {
+        "label": "Party hat - small green and purple striped hat, in the back row",
+        "box_2d": [
+          727,
+          208,
+          867,
+          298
+        ]
+      },
+      {
+        "label": "Purple plate - oval plate on the left side of the table",
+        "box_2d": [
+          868,
+          29,
+          940,
+          174
+        ]
+      },
+      {
+        "label": "Green plate - oval plate on the right side of the table",
+        "box_2d": [
+          874,
+          176,
+          943,
+          328
+        ]
+      },
+      {
+        "label": "Cardboard box - open box with a party hat graphic in the background",
+        "box_2d": [
+          227,
+          798,
+          325,
+          956
+        ]
+      },
+      {
+        "label": "Cardboard box - smaller box with folded cloth in the background",
+        "box_2d": [
+          301,
+          764,
+          414,
+          881
+        ]
+      },
+      {
+        "label": "Wall - light teal wall with vertical stripes and swirly patterns",
+        "box_2d": [
+          0,
+          0,
+          198,
+          25
+        ]
+      }
+    ]
+  }
+}

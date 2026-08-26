@@ -1,0 +1,54 @@
+{
+  "createdAt": 1787350597663,
+  "book": "1",
+  "page": "3",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, turning to the left",
+        "box_2d": [
+          122,
+          252,
+          902,
+          814
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon on the floor, looking up, hugging her tail",
+        "box_2d": [
+          592,
+          791,
+          722,
+          938
+        ]
+      },
+      {
+        "label": "streamers - purple and green, hanging on the wall",
+        "box_2d": [
+          7,
+          40,
+          689,
+          329
+        ]
+      },
+      {
+        "label": "streamers - purple and green, scattered on the floor",
+        "box_2d": [
+          771,
+          0,
+          1000,
+          1000
+        ]
+      },
+      {
+        "label": "Clara's tail - green and striped, being hugged by Clara",
+        "box_2d": [
+          710,
+          807,
+          755,
+          943
+        ]
+      }
+    ]
+  }
+}

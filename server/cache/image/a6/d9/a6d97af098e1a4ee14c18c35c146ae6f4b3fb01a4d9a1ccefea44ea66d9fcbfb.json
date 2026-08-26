@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787352490032,
+  "book": "3",
+  "page": "5",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot holding several books",
+        "box_2d": [
+          235,
+          570,
+          893,
+          950
+        ]
+      },
+      {
+        "label": "Clara - green chameleon reaching for a red book",
+        "box_2d": [
+          458,
+          104,
+          724,
+          287
+        ]
+      },
+      {
+        "label": "books - multicolor, held by Zoe",
+        "box_2d": [
+          388,
+          706,
+          508,
+          804
+        ]
+      },
+      {
+        "label": "book - red, held by Clara",
+        "box_2d": [
+          474,
+          258,
+          573,
+          338
+        ]
+      },
+      {
+        "label": "bookshelf - tall, on the left side",
+        "box_2d": [
+          39,
+          0,
+          717,
+          574
+        ]
+      },
+      {
+        "label": "book - blue, on the floor",
+        "box_2d": [
+          749,
+          216,
+          842,
+          353
+        ]
+      },
+      {
+        "label": "book - green, on the floor",
+        "box_2d": [
+          854,
+          126,
+          952,
+          266
+        ]
+      },
+      {
+        "label": "books - two red, on the floor",
+        "box_2d": [
+          830,
+          375,
+          948,
+          577
+        ]
+      }
+    ]
+  }
+}

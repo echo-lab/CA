@@ -1,0 +1,126 @@
+{
+  "createdAt": 1787444590314,
+  "book": "1",
+  "page": "8",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot, happy, squawking with open beak",
+        "box_2d": [
+          0,
+          126,
+          524,
+          591
+        ]
+      },
+      {
+        "label": "Clara - purple chameleon, laughing, curled up",
+        "box_2d": [
+          762,
+          651,
+          958,
+          835
+        ]
+      },
+      {
+        "label": "Plate - purple, oval, under large party hat",
+        "box_2d": [
+          862,
+          332,
+          926,
+          506
+        ]
+      },
+      {
+        "label": "Plate - green, oval, to the left of Clara",
+        "box_2d": [
+          856,
+          491,
+          916,
+          655
+        ]
+      },
+      {
+        "label": "Plate - purple, oval, behind large party hat",
+        "box_2d": [
+          557,
+          334,
+          621,
+          508
+        ]
+      },
+      {
+        "label": "Plate - green, oval, behind small party hat",
+        "box_2d": [
+          549,
+          823,
+          609,
+          987
+        ]
+      },
+      {
+        "label": "Plate - purple, oval, behind large party hat",
+        "box_2d": [
+          554,
+          656,
+          618,
+          830
+        ]
+      },
+      {
+        "label": "Plate - green, oval, behind small party hat",
+        "box_2d": [
+          561,
+          172,
+          621,
+          336
+        ]
+      },
+      {
+        "label": "Plate - purple, oval, behind large party hat",
+        "box_2d": [
+          550,
+          12,
+          614,
+          186
+        ]
+      },
+      {
+        "label": "Plate - green, oval, under small party hat",
+        "box_2d": [
+          865,
+          177,
+          925,
+          341
+        ]
+      },
+      {
+        "label": "Plate - green, oval, to the right of Clara",
+        "box_2d": [
+          852,
+          836,
+          912,
+          1000
+        ]
+      },
+      {
+        "label": "Plate - purple, oval, on left side of table",
+        "box_2d": [
+          856,
+          21,
+          926,
+          185
+        ]
+      },
+      {
+        "label": "Plate - green, oval, in center of table",
+        "box_2d": [
+          557,
+          508,
+          619,
+          651
+        ]
+      }
+    ]
+  }
+}

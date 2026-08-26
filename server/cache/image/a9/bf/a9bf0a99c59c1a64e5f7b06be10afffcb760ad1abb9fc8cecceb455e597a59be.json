@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787352196519,
+  "book": "2",
+  "page": "14",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, smiling, wearing a sleep mask in bed",
+        "box_2d": [
+          20,
+          169,
+          659,
+          559
+        ]
+      },
+      {
+        "label": "Clara - green chameleon, smiling and talking in bed",
+        "box_2d": [
+          397,
+          780,
+          571,
+          951
+        ]
+      },
+      {
+        "label": "Zoe's sleep mask - blue with red hearts, on her head",
+        "box_2d": [
+          55,
+          298,
+          167,
+          493
+        ]
+      },
+      {
+        "label": "Zoe's teddy bear - small brown, held in her wing",
+        "box_2d": [
+          374,
+          343,
+          488,
+          430
+        ]
+      },
+      {
+        "label": "Clara's pillow - pink, under her head",
+        "box_2d": [
+          406,
+          693,
+          520,
+          835
+        ]
+      },
+      {
+        "label": "Clara's bunny plushie - pink, next to her in bed",
+        "box_2d": [
+          430,
+          730,
+          511,
+          782
+        ]
+      },
+      {
+        "label": "Zoe's blanket - multi-colored striped, covering her body",
+        "box_2d": [
+          405,
+          122,
+          626,
+          435
+        ]
+      },
+      {
+        "label": "Clara's blanket - green and purple striped, covering her lower body",
+        "box_2d": [
+          484,
+          628,
+          715,
+          844
+        ]
+      }
+    ]
+  }
+}

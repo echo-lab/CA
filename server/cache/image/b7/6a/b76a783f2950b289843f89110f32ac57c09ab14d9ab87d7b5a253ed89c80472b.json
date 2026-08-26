@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787352715431,
+  "book": "3",
+  "page": "6",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, looking at Clara, wings outstretched",
+        "box_2d": [
+          110,
+          440,
+          540,
+          920
+        ]
+      },
+      {
+        "label": "Clara - green striped chameleon, smiling and leaning on the play table",
+        "box_2d": [
+          539,
+          198,
+          799,
+          353
+        ]
+      },
+      {
+        "label": "Colorful blocks - square toy blocks on the play table",
+        "box_2d": [
+          501,
+          390,
+          641,
+          670
+        ]
+      },
+      {
+        "label": "Toy train - wooden train with colorful cars on the play table tracks",
+        "box_2d": [
+          465,
+          547,
+          560,
+          725
+        ]
+      },
+      {
+        "label": "Bookshelves - green bookshelves lining the background wall",
+        "box_2d": [
+          33,
+          290,
+          382,
+          1000
+        ]
+      },
+      {
+        "label": "Stack of books - colorful stack of books on the floor to the far left",
+        "box_2d": [
+          354,
+          0,
+          498,
+          147
+        ]
+      },
+      {
+        "label": "Colorful stacks - colorful stacked items supporting the left side of the play table",
+        "box_2d": [
+          762,
+          359,
+          892,
+          529
+        ]
+      },
+      {
+        "label": "Colorful stacks - colorful stacked items supporting the right side of the play table",
+        "box_2d": [
+          664,
+          659,
+          795,
+          880
+        ]
+      }
+    ]
+  }
+}

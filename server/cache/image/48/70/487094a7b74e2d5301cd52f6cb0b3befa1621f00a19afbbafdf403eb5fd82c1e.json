@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787351078227,
+  "book": "1",
+  "page": "11",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot in the center",
+        "box_2d": [
+          37,
+          339,
+          767,
+          805
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon on the left",
+        "box_2d": [
+          550,
+          164,
+          893,
+          410
+        ]
+      },
+      {
+        "label": "party hat - green and purple striped hat in front of Clara",
+        "box_2d": [
+          770,
+          332,
+          954,
+          447
+        ]
+      },
+      {
+        "label": "party hat - green and purple striped hat on the far left",
+        "box_2d": [
+          646,
+          12,
+          760,
+          200
+        ]
+      },
+      {
+        "label": "party hat - green and purple striped hat on the right",
+        "box_2d": [
+          758,
+          803,
+          911,
+          950
+        ]
+      },
+      {
+        "label": "party hat - green and purple striped hat behind Zoe's feathers",
+        "box_2d": [
+          562,
+          820,
+          735,
+          983
+        ]
+      },
+      {
+        "label": "Zoe's feathers - colorful feathers fanned out below Zoe's body",
+        "box_2d": [
+          558,
+          154,
+          904,
+          925
+        ]
+      },
+      {
+        "label": "party streamers - green and purple ribbons hanging in the background",
+        "box_2d": [
+          95,
+          0,
+          269,
+          875
+        ]
+      }
+    ]
+  }
+}

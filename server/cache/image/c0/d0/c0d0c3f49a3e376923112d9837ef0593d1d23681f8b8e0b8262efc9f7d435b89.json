@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787346909783,
+  "book": "3",
+  "page": "13",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with colorful feathers",
+        "box_2d": [
+          287,
+          545,
+          937,
+          977
+        ]
+      },
+      {
+        "label": "Clara - green chameleon with purple eyes",
+        "box_2d": [
+          318,
+          372,
+          555,
+          458
+        ]
+      },
+      {
+        "label": "Stage - curved wooden platform",
+        "box_2d": [
+          189,
+          143,
+          679,
+          780
+        ]
+      },
+      {
+        "label": "Book - single red book under Clara's right foot",
+        "box_2d": [
+          538,
+          335,
+          597,
+          448
+        ]
+      },
+      {
+        "label": "Books - stack of blue and green books under Clara's left foot",
+        "box_2d": [
+          530,
+          439,
+          614,
+          550
+        ]
+      },
+      {
+        "label": "Open book - colorful with flowers on the stage",
+        "box_2d": [
+          461,
+          220,
+          541,
+          345
+        ]
+      },
+      {
+        "label": "Books - stack of blue and yellow books on the ground",
+        "box_2d": [
+          665,
+          87,
+          742,
+          212
+        ]
+      },
+      {
+        "label": "Books - stack of red and purple books on the ground",
+        "box_2d": [
+          684,
+          214,
+          778,
+          339
+        ]
+      },
+      {
+        "label": "Stool - small red stool with a yellow star",
+        "box_2d": [
+          415,
+          180,
+          483,
+          241
+        ]
+      },
+      {
+        "label": "Stool - small orange stool with a blue heart",
+        "box_2d": [
+          390,
+          247,
+          462,
+          309
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787345990476,
+  "book": "1",
+  "page": "9",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with striped beak, facing right",
+        "box_2d": [
+          175,
+          12,
+          990,
+          680
+        ]
+      },
+      {
+        "label": "Clara - small green striped chameleon on the right, looking up",
+        "box_2d": [
+          515,
+          705,
+          895,
+          985
+        ]
+      },
+      {
+        "label": "Balloon - red circle balloon between two yellow star balloons",
+        "box_2d": [
+          30,
+          165,
+          180,
+          330
+        ]
+      },
+      {
+        "label": "Balloon - red circle balloon on the far right",
+        "box_2d": [
+          25,
+          815,
+          175,
+          975
+        ]
+      },
+      {
+        "label": "Star balloon - yellow star balloon on the far left",
+        "box_2d": [
+          15,
+          25,
+          175,
+          170
+        ]
+      },
+      {
+        "label": "Star balloon - yellow star balloon to the right of the first red balloon",
+        "box_2d": [
+          15,
+          340,
+          175,
+          485
+        ]
+      },
+      {
+        "label": "Star balloon - yellow star balloon in the middle, near Zoe's wing",
+        "box_2d": [
+          15,
+          500,
+          175,
+          645
+        ]
+      },
+      {
+        "label": "Star balloon - yellow star balloon to the left of the far right red balloon",
+        "box_2d": [
+          15,
+          655,
+          175,
+          800
+        ]
+      }
+    ]
+  }
+}

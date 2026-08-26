@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787351595717,
+  "book": "2",
+  "page": "4",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot in the foreground, with colorful wings",
+        "box_2d": [
+          462,
+          5,
+          981,
+          761
+        ]
+      },
+      {
+        "label": "Drawing - yellow paper with Zoe and Clara taped to the wall",
+        "box_2d": [
+          96,
+          53,
+          264,
+          178
+        ]
+      },
+      {
+        "label": "picture of clara- small green chameleon in the drawing",
+        "box_2d": [
+          171,
+          55,
+          222,
+          114
+        ]
+      },
+      {
+        "label": "Basket - brown woven container filled with colorful blocks",
+        "box_2d": [
+          268,
+          131,
+          387,
+          309
+        ]
+      },
+      {
+        "label": "Blocks - various colorful square toys in the basket",
+        "box_2d": [
+          240,
+          141,
+          315,
+          286
+        ]
+      },
+      {
+        "label": "Books - colorful stacks on the floor",
+        "box_2d": [
+          345,
+          15,
+          470,
+          278
+        ]
+      },
+      {
+        "label": "Curtain - green panel with flower and heart patterns",
+        "box_2d": [
+          14,
+          334,
+          331,
+          650
+        ]
+      },
+      {
+        "label": "Armchair - comfortable green padded chair",
+        "box_2d": [
+          146,
+          683,
+          442,
+          981
+        ]
+      },
+      {
+        "label": "Bunny - small pink stuffed animal on the striped mat",
+        "box_2d": [
+          367,
+          569,
+          452,
+          657
+        ]
+      },
+      {
+        "label": "Bag - yellow polka dot tote with a teddy bear inside",
+        "box_2d": [
+          655,
+          620,
+          914,
+          967
+        ]
+      }
+    ]
+  }
+}

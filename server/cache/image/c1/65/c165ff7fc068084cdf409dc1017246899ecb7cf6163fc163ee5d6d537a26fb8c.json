@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787351562612,
+  "book": "2",
+  "page": "3",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with colorful feathers, partially visible",
+        "box_2d": [
+          379,
+          115,
+          980,
+          481
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon crawling on the floor",
+        "box_2d": [
+          452,
+          679,
+          664,
+          925
+        ]
+      },
+      {
+        "label": "basket - brown basket filled with colorful blocks",
+        "box_2d": [
+          248,
+          131,
+          396,
+          316
+        ]
+      },
+      {
+        "label": "books - stack of colorful books near the basket",
+        "box_2d": [
+          361,
+          1,
+          472,
+          186
+        ]
+      },
+      {
+        "label": "sleeping mat - orange and blue striped mat on the floor",
+        "box_2d": [
+          327,
+          329,
+          654,
+          487
+        ]
+      },
+      {
+        "label": "sleeping mat - purple and green striped mat on the floor",
+        "box_2d": [
+          341,
+          509,
+          647,
+          703
+        ]
+      },
+      {
+        "label": "Zoe's bag - colorful bag with a brown teddy bear",
+        "box_2d": [
+          628,
+          617,
+          916,
+          818
+        ]
+      },
+      {
+        "label": "armchair - green upholstered armchair with a plaid pillow",
+        "box_2d": [
+          136,
+          641,
+          510,
+          1000
+        ]
+      },
+      {
+        "label": "bunny toy - small pink rabbit on the armchair",
+        "box_2d": [
+          239,
+          796,
+          344,
+          851
+        ]
+      },
+      {
+        "label": "drawing - child's drawing of Zoe and Clara taped to the wall",
+        "box_2d": [
+          81,
+          35,
+          291,
+          191
+        ]
+      }
+    ]
+  }
+}

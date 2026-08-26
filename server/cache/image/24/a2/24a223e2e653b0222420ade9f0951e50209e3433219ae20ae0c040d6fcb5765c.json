@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787352417348,
+  "book": "3",
+  "page": "4",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot hanging upside down, looking at a book",
+        "box_2d": [
+          180,
+          436,
+          855,
+          685
+        ]
+      },
+      {
+        "label": "Clara - green chameleon with purple eyes, looking up",
+        "box_2d": [
+          633,
+          73,
+          912,
+          196
+        ]
+      },
+      {
+        "label": "bookshelf - tilted green one",
+        "box_2d": [
+          87,
+          486,
+          604,
+          753
+        ]
+      },
+      {
+        "label": "book - open with hearts, held by Zoe",
+        "box_2d": [
+          636,
+          372,
+          795,
+          497
+        ]
+      },
+      {
+        "label": "book - red one flying above Zoe's back",
+        "box_2d": [
+          112,
+          714,
+          252,
+          804
+        ]
+      },
+      {
+        "label": "book - orange one flying near Zoe's tail",
+        "box_2d": [
+          237,
+          587,
+          341,
+          699
+        ]
+      },
+      {
+        "label": "book - open with buttons, flying to the right",
+        "box_2d": [
+          376,
+          711,
+          507,
+          844
+        ]
+      },
+      {
+        "label": "book - yellow one on the floor near Clara",
+        "box_2d": [
+          557,
+          237,
+          675,
+          341
+        ]
+      },
+      {
+        "label": "book - dark blue one on the floor near Clara",
+        "box_2d": [
+          703,
+          291,
+          800,
+          375
+        ]
+      },
+      {
+        "label": "book - green one on the floor, in front",
+        "box_2d": [
+          802,
+          745,
+          927,
+          855
+        ]
+      }
+    ]
+  }
+}

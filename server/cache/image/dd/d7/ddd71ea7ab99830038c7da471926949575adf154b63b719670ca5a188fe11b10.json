@@ -1,0 +1,63 @@
+{
+  "createdAt": 1787351690163,
+  "book": "2",
+  "page": "7",
+  "data": {
+    "tags": [
+      {
+        "label": "Clara - bright green chameleon on the left curtain, smiling with arms raised",
+        "box_2d": [
+          260,
+          70,
+          740,
+          270
+        ]
+      },
+      {
+        "label": "Zoe - large red parrot in the center, wings spread and dancing",
+        "box_2d": [
+          190,
+          300,
+          780,
+          950
+        ]
+      },
+      {
+        "label": "Bunny slipper - pink bunny slipper with surprised face on Zoe's right foot",
+        "box_2d": [
+          530,
+          320,
+          710,
+          440
+        ]
+      },
+      {
+        "label": "Bunny slipper - pink bunny toy with surprised face on Zoe's left foot",
+        "box_2d": [
+          808,
+          428,
+          968,
+          568
+        ]
+      },
+      {
+        "label": "Curtain - light green curtain with flower and heart pattern on the left",
+        "box_2d": [
+          0,
+          0,
+          715,
+          253
+        ]
+      },
+      {
+        "label": "Curtain - light green curtain with flower and heart pattern on the right",
+        "box_2d": [
+          0,
+          513,
+          629,
+          963
+        ]
+      }
+    ]
+  }
+}

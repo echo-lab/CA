@@ -1,0 +1,144 @@
+{
+  "createdAt": 1787443479573,
+  "book": "1",
+  "page": "6",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with black and white beak",
+        "box_2d": [
+          13,
+          193,
+          534,
+          745
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon with purple eyelids, on the table",
+        "box_2d": [
+          649,
+          738,
+          866,
+          985
+        ]
+      },
+      {
+        "label": "hat - large striped party hat, top row left",
+        "box_2d": [
+          458,
+          51,
+          675,
+          223
+        ]
+      },
+      {
+        "label": "hat - large striped party hat, top row center",
+        "box_2d": [
+          470,
+          296,
+          687,
+          426
+        ]
+      },
+      {
+        "label": "hat - small striped party hat, top row right",
+        "box_2d": [
+          561,
+          678,
+          686,
+          761
+        ]
+      },
+      {
+        "label": "hat - small striped party hat, top row right",
+        "box_2d": [
+          800,
+          239,
+          925,
+          322
+        ]
+      },
+      {
+        "label": "hat - small striped party hat, top row right",
+        "box_2d": [
+          552,
+          218,
+          677,
+          301
+        ]
+      },
+      {
+        "label": "hat - small striped party hat, top row right",
+        "box_2d": [
+          559,
+          449,
+          684,
+          532
+        ]
+      },
+      {
+        "label": "hat - large striped party hat, bottom row left",
+        "box_2d": [
+          720,
+          113,
+          932,
+          234
+        ]
+      },
+      {
+        "label": "hat - large striped party hat, bottom row left",
+        "box_2d": [
+          486,
+          536,
+          695,
+          651
+        ]
+      },
+      {
+        "label": "hat - large striped party hat, bottom row left",
+        "box_2d": [
+          724,
+          557,
+          927,
+          686
+        ]
+      },
+      {
+        "label": "hat - large striped party hat, bottom row left",
+        "box_2d": [
+          730,
+          328,
+          931,
+          460
+        ]
+      },
+      {
+        "label": "hat - small striped party hat, bottom row center",
+        "box_2d": [
+          809,
+          452,
+          946,
+          577
+        ]
+      },
+      {
+        "label": "hat - small striped party hat, bottom row right",
+        "box_2d": [
+          813,
+          685,
+          949,
+          800
+        ]
+      },
+      {
+        "label": "plates - stack of purple and green plates in a box",
+        "box_2d": [
+          379,
+          790,
+          530,
+          966
+        ]
+      }
+    ]
+  }
+}

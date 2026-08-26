@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787352278586,
+  "book": "2",
+  "page": "15",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot wearing a sleep mask, holding a patterned blanket",
+        "box_2d": [
+          68,
+          217,
+          621,
+          429
+        ]
+      },
+      {
+        "label": "Clara - smiling green chameleon sitting on a blanket, extending a hand",
+        "box_2d": [
+          347,
+          727,
+          771,
+          928
+        ]
+      },
+      {
+        "label": "Blanket - orange, yellow, and red patterned one, held by Zoe and Clara",
+        "box_2d": [
+          374,
+          442,
+          677,
+          749
+        ]
+      },
+      {
+        "label": "Sleep mask - blue with red hearts, on Zoe's head",
+        "box_2d": [
+          39,
+          295,
+          154,
+          490
+        ]
+      },
+      {
+        "label": "Bunny - small pink toy, next to Clara on a blanket",
+        "box_2d": [
+          820,
+          712,
+          909,
+          814
+        ]
+      },
+      {
+        "label": "Pillow - pink one behind Clara",
+        "box_2d": [
+          354,
+          651,
+          615,
+          960
+        ]
+      },
+      {
+        "label": "Blanket - rainbow striped one under Zoe",
+        "box_2d": [
+          624,
+          77,
+          944,
+          571
+        ]
+      },
+      {
+        "label": "Pillow - yellow one in Zoe's pile",
+        "box_2d": [
+          81,
+          763,
+          188,
+          885
+        ]
+      },
+      {
+        "label": "Pillow - green one in Zoe's pile",
+        "box_2d": [
+          103,
+          597,
+          210,
+          715
+        ]
+      },
+      {
+        "label": "Blanket - green, purple, and pink striped one under Clara",
+        "box_2d": [
+          652,
+          705,
+          891,
+          1000
+        ]
+      }
+    ]
+  }
+}

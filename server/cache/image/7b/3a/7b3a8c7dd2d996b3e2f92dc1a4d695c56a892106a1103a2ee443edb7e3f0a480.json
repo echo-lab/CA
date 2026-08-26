@@ -1,0 +1,45 @@
+{
+  "createdAt": 1787351660920,
+  "book": "2",
+  "page": "6",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot looking back behind the curtains",
+        "box_2d": [
+          229,
+          342,
+          996,
+          918
+        ]
+      },
+      {
+        "label": "Clara - green chameleon peeking from under the curtain",
+        "box_2d": [
+          776,
+          109,
+          828,
+          274
+        ]
+      },
+      {
+        "label": "curtains - green fabric with grey flowers and hearts",
+        "box_2d": [
+          0,
+          1,
+          786,
+          1000
+        ]
+      },
+      {
+        "label": "slipper - pink bunny slipper on Zoe's foot",
+        "box_2d": [
+          791,
+          513,
+          917,
+          638
+        ]
+      }
+    ]
+  }
+}

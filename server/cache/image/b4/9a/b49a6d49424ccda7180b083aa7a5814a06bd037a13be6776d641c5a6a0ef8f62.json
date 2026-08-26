@@ -1,0 +1,90 @@
+{
+  "createdAt": 1787353083874,
+  "book": "3",
+  "page": "14",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot on stage, wearing a blue hat and holding a book",
+        "box_2d": [
+          209,
+          291,
+          660,
+          489
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon on the ground, holding a purple book",
+        "box_2d": [
+          639,
+          627,
+          828,
+          791
+        ]
+      },
+      {
+        "label": "book - small orange prop held by Zoe",
+        "box_2d": [
+          280,
+          439,
+          442,
+          532
+        ]
+      },
+      {
+        "label": "books - red and green stack of books near Zoe's feet",
+        "box_2d": [
+          646,
+          391,
+          724,
+          582
+        ]
+      },
+      {
+        "label": "books - stack of blue and orange books near Clara on the ground",
+        "box_2d": [
+          610,
+          829,
+          806,
+          988
+        ]
+      },
+      {
+        "label": "string lights - colorful lights hanging above the stage",
+        "box_2d": [
+          5,
+          220,
+          114,
+          829
+        ]
+      },
+      {
+        "label": "Zoe's hat - blue hat with a pink flower on her head",
+        "box_2d": [
+          146,
+          283,
+          240,
+          471
+        ]
+      },
+      {
+        "label": "Zoe's necklace - colorful beaded necklace around her neck",
+        "box_2d": [
+          319,
+          333,
+          470,
+          443
+        ]
+      },
+      {
+        "label": "small stool - blue stool with a red heart on the stage",
+        "box_2d": [
+          548,
+          450,
+          640,
+          515
+        ]
+      }
+    ]
+  }
+}

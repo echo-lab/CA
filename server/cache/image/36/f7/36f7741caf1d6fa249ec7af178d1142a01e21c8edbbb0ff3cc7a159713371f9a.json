@@ -1,0 +1,90 @@
+{
+  "createdAt": 1787443277774,
+  "book": "3",
+  "page": "8",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, holding a green book",
+        "box_2d": [
+          78,
+          577,
+          713,
+          994
+        ]
+      },
+      {
+        "label": "Clara - green chameleon, peeking from behind table",
+        "box_2d": [
+          115,
+          145,
+          267,
+          309
+        ]
+      },
+      {
+        "label": "cushion - green one held by Zoe",
+        "box_2d": [
+          422,
+          521,
+          559,
+          735
+        ]
+      },
+      {
+        "label": "cushions - tall stack on the floor",
+        "box_2d": [
+          532,
+          528,
+          716,
+          705
+        ]
+      },
+      {
+        "label": "cushions - medium stack on the floor",
+        "box_2d": [
+          577,
+          300,
+          761,
+          477
+        ]
+      },
+      {
+        "label": "cushions - short stack of orange and green on floor",
+        "box_2d": [
+          690,
+          30,
+          800,
+          276
+        ]
+      },
+      {
+        "label": "blocks - tall stack on play table",
+        "box_2d": [
+          122,
+          292,
+          358,
+          362
+        ]
+      },
+      {
+        "label": "blocks - short stack on play table",
+        "box_2d": [
+          216,
+          182,
+          334,
+          294
+        ]
+      },
+      {
+        "label": "train - wooden toy train on track",
+        "box_2d": [
+          244,
+          482,
+          368,
+          658
+        ]
+      }
+    ]
+  }
+}

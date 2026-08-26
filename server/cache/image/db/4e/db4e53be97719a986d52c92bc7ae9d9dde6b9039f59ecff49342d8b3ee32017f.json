@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787351275405,
+  "book": "1",
+  "page": "15",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, wearing a party hat, eating cake",
+        "box_2d": [
+          121,
+          110,
+          612,
+          978
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon, wearing a party hat, looking at the cake",
+        "box_2d": [
+          621,
+          224,
+          867,
+          454
+        ]
+      },
+      {
+        "label": "Cake - striped orange and blue cake, with a bite taken out",
+        "box_2d": [
+          484,
+          468,
+          864,
+          761
+        ]
+      },
+      {
+        "label": "Zoe's party hat - striped purple and green, with a pink pom-pom, on her head",
+        "box_2d": [
+          28,
+          662,
+          255,
+          808
+        ]
+      },
+      {
+        "label": "Clara's party hat - striped purple and green, with a pink pom-pom, on her head",
+        "box_2d": [
+          602,
+          338,
+          741,
+          436
+        ]
+      },
+      {
+        "label": "Party hat - striped purple and green, on the left side of the table",
+        "box_2d": [
+          687,
+          123,
+          859,
+          225
+        ]
+      },
+      {
+        "label": "Party hat - striped purple and green, on the right side of the table",
+        "box_2d": [
+          781,
+          627,
+          979,
+          754
+        ]
+      },
+      {
+        "label": "Plate - green oval plate, on the left side of the table",
+        "box_2d": [
+          833,
+          32,
+          896,
+          220
+        ]
+      },
+      {
+        "label": "Plate - purple oval plate, below Zoe's right wing",
+        "box_2d": [
+          889,
+          747,
+          966,
+          882
+        ]
+      },
+      {
+        "label": "Streamers - green and purple lines, on the background wall and floor",
+        "box_2d": [
+          7,
+          12,
+          241,
+          556
+        ]
+      }
+    ]
+  }
+}

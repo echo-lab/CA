@@ -1,0 +1,63 @@
+{
+  "createdAt": 1787352338057,
+  "book": "3",
+  "page": "2",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot in the foreground, facing left with colorful wings",
+        "box_2d": [
+          399,
+          502,
+          948,
+          870
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon on the floor, pointing at books",
+        "box_2d": [
+          626,
+          251,
+          776,
+          400
+        ]
+      },
+      {
+        "label": "bookshelves - long green shelves filled with many colorful books in the background",
+        "box_2d": [
+          10,
+          0,
+          520,
+          1000
+        ]
+      },
+      {
+        "label": "Clara's book stack - first stack of one orange book on the floor",
+        "box_2d": [
+          807,
+          116,
+          908,
+          224
+        ]
+      },
+      {
+        "label": "Clara's book stack - second stack of two orange and blue books",
+        "box_2d": [
+          780,
+          237,
+          909,
+          364
+        ]
+      },
+      {
+        "label": "Clara's book stack - third stack of three green, red, and purple books",
+        "box_2d": [
+          765,
+          390,
+          895,
+          560
+        ]
+      }
+    ]
+  }
+}

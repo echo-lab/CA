@@ -1,0 +1,54 @@
+{
+  "createdAt": 1787351721507,
+  "book": "2",
+  "page": "8",
+  "data": {
+    "tags": [
+      {
+        "label": "Clara - green chameleon, sitting on the left, speaking and raising a hand",
+        "box_2d": [
+          566,
+          167,
+          937,
+          416
+        ]
+      },
+      {
+        "label": "Zoe - red parrot, on the right, looking worried, holding colorful feathers",
+        "box_2d": [
+          170,
+          450,
+          990,
+          990
+        ]
+      },
+      {
+        "label": "Feathers - colorful, held by Zoe",
+        "box_2d": [
+          490,
+          455,
+          810,
+          700
+        ]
+      },
+      {
+        "label": "Curtain - left green patterned with hearts and flowers",
+        "box_2d": [
+          0,
+          0,
+          710,
+          390
+        ]
+      },
+      {
+        "label": "Curtain - right green patterned with hearts and flowers",
+        "box_2d": [
+          0,
+          610,
+          710,
+          1000
+        ]
+      }
+    ]
+  }
+}

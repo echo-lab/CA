@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787352946847,
+  "book": "3",
+  "page": "11",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot in the center",
+        "box_2d": [
+          254,
+          319,
+          568,
+          782
+        ]
+      },
+      {
+        "label": "Clara - surprised green chameleon on the left",
+        "box_2d": [
+          98,
+          174,
+          280,
+          324
+        ]
+      },
+      {
+        "label": "Cushion - orange flat cushion flying above Zoe",
+        "box_2d": [
+          32,
+          379,
+          181,
+          546
+        ]
+      },
+      {
+        "label": "Cushion - green flat cushion on Zoe's back",
+        "box_2d": [
+          48,
+          674,
+          179,
+          858
+        ]
+      },
+      {
+        "label": "Cushion - purple flat cushion flying on the lower right",
+        "box_2d": [
+          689,
+          609,
+          911,
+          940
+        ]
+      },
+      {
+        "label": "Cushion - large grey flat cushion flying on the lower left",
+        "box_2d": [
+          552,
+          60,
+          740,
+          303
+        ]
+      },
+      {
+        "label": "Block - green cube flying near Clara",
+        "box_2d": [
+          43,
+          882,
+          135,
+          964
+        ]
+      },
+      {
+        "label": "Block - pink cube flying on the left",
+        "box_2d": [
+          310,
+          9,
+          416,
+          104
+        ]
+      },
+      {
+        "label": "Block - blue cube flying on the right",
+        "box_2d": [
+          291,
+          904,
+          401,
+          999
+        ]
+      },
+      {
+        "label": "Block - yellow cube flying on the lower left",
+        "box_2d": [
+          768,
+          23,
+          844,
+          105
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787351794842,
+  "book": "2",
+  "page": "9",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, looking pensive",
+        "box_2d": [
+          100,
+          506,
+          928,
+          1000
+        ]
+      },
+      {
+        "label": "Clara - green chameleon, smiling and reaching out",
+        "box_2d": [
+          365,
+          199,
+          810,
+          484
+        ]
+      },
+      {
+        "label": "feathers - colorful feathers on Zoe's wing",
+        "box_2d": [
+          372,
+          498,
+          718,
+          762
+        ]
+      },
+      {
+        "label": "bunny toy - pink stuffed rabbit on the striped bed",
+        "box_2d": [
+          178,
+          65,
+          362,
+          166
+        ]
+      },
+      {
+        "label": "bunny slippers - pair of red slippers shaped like rabbits",
+        "box_2d": [
+          771,
+          391,
+          934,
+          581
+        ]
+      },
+      {
+        "label": "bed - striped green and purple bed",
+        "box_2d": [
+          136,
+          8,
+          818,
+          228
+        ]
+      },
+      {
+        "label": "curtain - green curtain with grey hearts above the sleeping bag",
+        "box_2d": [
+          0,
+          0,
+          107,
+          399
+        ]
+      },
+      {
+        "label": "blanket - colorful striped blanket on the chair",
+        "box_2d": [
+          350,
+          805,
+          685,
+          1000
+        ]
+      },
+      {
+        "label": "cushion - blue plaid cushion on the floor",
+        "box_2d": [
+          729,
+          153,
+          892,
+          510
+        ]
+      },
+      {
+        "label": "chair - grey upholstered chair behind Zoe",
+        "box_2d": [
+          0,
+          525,
+          517,
+          1000
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787346000287,
+  "book": "1",
+  "page": "10",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot looking right, holding a string",
+        "box_2d": [
+          260,
+          131,
+          977,
+          632
+        ]
+      },
+      {
+        "label": "Clara - green chameleon on the right, holding a string",
+        "box_2d": [
+          632,
+          722,
+          947,
+          987
+        ]
+      },
+      {
+        "label": "balloon - first yellow star-shaped",
+        "box_2d": [
+          23,
+          17,
+          304,
+          198
+        ]
+      },
+      {
+        "label": "balloon - second yellow star-shaped",
+        "box_2d": [
+          13,
+          198,
+          294,
+          381
+        ]
+      },
+      {
+        "label": "balloon - first red circle-shaped",
+        "box_2d": [
+          20,
+          370,
+          289,
+          541
+        ]
+      },
+      {
+        "label": "balloon - third yellow star-shaped",
+        "box_2d": [
+          26,
+          504,
+          298,
+          685
+        ]
+      },
+      {
+        "label": "balloon - fourth yellow star-shaped",
+        "box_2d": [
+          28,
+          674,
+          301,
+          855
+        ]
+      },
+      {
+        "label": "balloon - second red circle-shaped",
+        "box_2d": [
+          40,
+          838,
+          309,
+          1000
+        ]
+      }
+    ]
+  }
+}

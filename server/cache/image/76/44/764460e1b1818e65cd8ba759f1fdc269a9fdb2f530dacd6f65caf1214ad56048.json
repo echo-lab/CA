@@ -1,0 +1,45 @@
+{
+  "createdAt": 1787351900639,
+  "book": "2",
+  "page": "11",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot on the left",
+        "box_2d": [
+          26,
+          79,
+          996,
+          466
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon on the right",
+        "box_2d": [
+          254,
+          605,
+          451,
+          849
+        ]
+      },
+      {
+        "label": "Zoe's blanket - colorful blanket with blue, yellow, and red scalloped stripes",
+        "box_2d": [
+          372,
+          180,
+          989,
+          636
+        ]
+      },
+      {
+        "label": "Clara's blanket - colorful blanket with purple, pink, and green scalloped stripes",
+        "box_2d": [
+          356,
+          564,
+          738,
+          959
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787451856948,
+  "book": "2",
+  "page": "12",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot with colorful feathers",
+        "box_2d": [
+          206,
+          548,
+          915,
+          938
+        ]
+      },
+      {
+        "label": "Clara - green chameleon smiling and pointing",
+        "box_2d": [
+          436,
+          128,
+          718,
+          281
+        ]
+      },
+      {
+        "label": "Zoe's bunny slippers - pink footwear with bunny faces",
+        "box_2d": [
+          785,
+          614,
+          917,
+          804
+        ]
+      },
+      {
+        "label": "Clara's blue flowers - in a green pot, first from left",
+        "box_2d": [
+          660,
+          14,
+          825,
+          143
+        ]
+      },
+      {
+        "label": "Clara's orange flowers - in a purple pot, second from left",
+        "box_2d": [
+          669,
+          151,
+          810,
+          264
+        ]
+      },
+      {
+        "label": "Clara's blue flowers - in a green pot, third from left",
+        "box_2d": [
+          670,
+          287,
+          818,
+          398
+        ]
+      },
+      {
+        "label": "Clara's orange flowers - in a purple pot, fourth from left",
+        "box_2d": [
+          658,
+          420,
+          814,
+          533
+        ]
+      },
+      {
+        "label": "Zoe's thought bubble - cloud containing red pots with yellow flowers",
+        "box_2d": [
+          24,
+          62,
+          369,
+          619
+        ]
+      },
+      {
+        "label": "child's drawing - green chameleon and pink parrot with hearts",
+        "box_2d": [
+          165,
+          800,
+          426,
+          966
+        ]
+      },
+      {
+        "label": "Zoe's rainbow blanket - red, yellow, and blue striped blanket around her neck",
+        "box_2d": [
+          322,
+          761,
+          547,
+          884
+        ]
+      }
+    ]
+  }
+}

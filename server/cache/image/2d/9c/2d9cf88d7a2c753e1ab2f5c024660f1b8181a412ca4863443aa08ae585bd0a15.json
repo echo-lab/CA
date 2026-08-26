@@ -1,0 +1,72 @@
+{
+  "createdAt": 1787353137212,
+  "book": "3",
+  "page": "15",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot smiling, wearing a hat and beads",
+        "box_2d": [
+          368,
+          219,
+          705,
+          599
+        ]
+      },
+      {
+        "label": "Clara - green chameleon laughing, next to an open book",
+        "box_2d": [
+          744,
+          611,
+          881,
+          799
+        ]
+      },
+      {
+        "label": "hat - blue hat with a pink flower worn by Zoe",
+        "box_2d": [
+          415,
+          209,
+          569,
+          286
+        ]
+      },
+      {
+        "label": "beads - colorful necklace worn by Zoe",
+        "box_2d": [
+          591,
+          203,
+          681,
+          338
+        ]
+      },
+      {
+        "label": "books - various colorful books scattered on the stage",
+        "box_2d": [
+          779,
+          49,
+          884,
+          420
+        ]
+      },
+      {
+        "label": "open book - book with a cat and bird illustration, near Clara",
+        "box_2d": [
+          824,
+          462,
+          944,
+          592
+        ]
+      },
+      {
+        "label": "stacked books - tall pile of colorful books on the ground",
+        "box_2d": [
+          634,
+          810,
+          824,
+          977
+        ]
+      }
+    ]
+  }
+}

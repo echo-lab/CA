@@ -1,0 +1,90 @@
+{
+  "createdAt": 1787346050304,
+  "book": "1",
+  "page": "12",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot playing two drums and wearing a party hat",
+        "box_2d": [
+          91,
+          411,
+          988,
+          936
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon looking up at Zoe",
+        "box_2d": [
+          666,
+          177,
+          987,
+          359
+        ]
+      },
+      {
+        "label": "drum - purple and white instrument being played by Zoe",
+        "box_2d": [
+          549,
+          429,
+          747,
+          680
+        ]
+      },
+      {
+        "label": "drumstick - brown one in Zoe's upper right hand",
+        "box_2d": [
+          159,
+          442,
+          238,
+          511
+        ]
+      },
+      {
+        "label": "drumstick - brown one in Zoe's lower left hand",
+        "box_2d": [
+          544,
+          551,
+          640,
+          629
+        ]
+      },
+      {
+        "label": "party hat - colorful striped cone hat on Zoe's head",
+        "box_2d": [
+          45,
+          722,
+          277,
+          862
+        ]
+      },
+      {
+        "label": "present - red box with yellow dots and purple ribbon",
+        "box_2d": [
+          601,
+          0,
+          831,
+          237
+        ]
+      },
+      {
+        "label": "present - green box with purple dots and blue ribbon",
+        "box_2d": [
+          397,
+          804,
+          617,
+          1000
+        ]
+      },
+      {
+        "label": "gift bag - pink, with frilly tissue paper",
+        "box_2d": [
+          537,
+          145,
+          738,
+          303
+        ]
+      }
+    ]
+  }
+}

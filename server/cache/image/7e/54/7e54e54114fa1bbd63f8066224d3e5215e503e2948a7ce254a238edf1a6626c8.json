@@ -1,0 +1,99 @@
+{
+  "createdAt": 1787353013604,
+  "book": "3",
+  "page": "12",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot lying on the floor",
+        "box_2d": [
+          240,
+          274,
+          720,
+          750
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon on Zoe's back",
+        "box_2d": [
+          255,
+          531,
+          418,
+          694
+        ]
+      },
+      {
+        "label": "play table - wooden table with a train track",
+        "box_2d": [
+          76,
+          0,
+          139,
+          83
+        ]
+      },
+      {
+        "label": "toy train - colorful wooden train on the track",
+        "box_2d": [
+          60,
+          253,
+          192,
+          474
+        ]
+      },
+      {
+        "label": "shape block - orange diamond on Zoe's chest",
+        "box_2d": [
+          455,
+          435,
+          577,
+          690
+        ]
+      },
+      {
+        "label": "cube block - light green cube on Zoe's right wing",
+        "box_2d": [
+          511,
+          444,
+          595,
+          513
+        ]
+      },
+      {
+        "label": "shape block - large green diamond on the left",
+        "box_2d": [
+          152,
+          0,
+          238,
+          155
+        ]
+      },
+      {
+        "label": "shape block - large blue diamond near Zoe's head",
+        "box_2d": [
+          357,
+          212,
+          500,
+          347
+        ]
+      },
+      {
+        "label": "cube block - purple cube on the play table",
+        "box_2d": [
+          102,
+          724,
+          179,
+          798
+        ]
+      },
+      {
+        "label": "shape block - blue parallelogram block under Zoe's tail",
+        "box_2d": [
+          831,
+          618,
+          936,
+          691
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "createdAt": 1787351504839,
+  "book": "2",
+  "page": "2",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot, sitting on a sleeping bag",
+        "box_2d": [
+          129,
+          40,
+          679,
+          405
+        ]
+      },
+      {
+        "label": "Clara - green chameleon, sitting on a sleeping bag",
+        "box_2d": [
+          455,
+          735,
+          825,
+          990
+        ]
+      },
+      {
+        "label": "sleeping bag - Zoe's yellow and blue striped",
+        "box_2d": [
+          415,
+          260,
+          926,
+          475
+        ]
+      },
+      {
+        "label": "sleeping bag - Clara's green and purple striped",
+        "box_2d": [
+          432,
+          547,
+          889,
+          783
+        ]
+      },
+      {
+        "label": "teddy bear - brown, on Zoe's chest",
+        "box_2d": [
+          358,
+          157,
+          438,
+          249
+        ]
+      },
+      {
+        "label": "bunny toys - two pink, on Zoe's sleeping bag",
+        "box_2d": [
+          574,
+          304,
+          740,
+          420
+        ]
+      }
+    ]
+  }
+}

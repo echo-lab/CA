@@ -1,0 +1,81 @@
+{
+  "createdAt": 1787352901929,
+  "book": "3",
+  "page": "10",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, balancing on cushions",
+        "box_2d": [
+          111,
+          440,
+          739,
+          980
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon, peeking over a table",
+        "box_2d": [
+          271,
+          153,
+          378,
+          261
+        ]
+      },
+      {
+        "label": "Cushions stack - tall stack of colorful cushions, Zoe is on top",
+        "box_2d": [
+          660,
+          577,
+          942,
+          834
+        ]
+      },
+      {
+        "label": "Cushions stack - orange and blue stack of cushions on the floor",
+        "box_2d": [
+          771,
+          369,
+          928,
+          553
+        ]
+      },
+      {
+        "label": "Cushions stack - green and orange stack of cushions on the floor",
+        "box_2d": [
+          819,
+          111,
+          952,
+          283
+        ]
+      },
+      {
+        "label": "Blocks stack - tallest stack of colorful blocks on the table",
+        "box_2d": [
+          229,
+          346,
+          473,
+          401
+        ]
+      },
+      {
+        "label": "Blocks stack - medium stack of colorful blocks on the table",
+        "box_2d": [
+          312,
+          290,
+          484,
+          342
+        ]
+      },
+      {
+        "label": "Blocks stack - shortest stack of colorful blocks on the table",
+        "box_2d": [
+          384,
+          239,
+          476,
+          286
+        ]
+      }
+    ]
+  }
+}

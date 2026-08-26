@@ -1,0 +1,45 @@
+{
+  "createdAt": 1787346677401,
+  "book": "3",
+  "page": "1",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, wings spread, running forward, squawking",
+        "box_2d": [
+          168,
+          351,
+          882,
+          988
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon, shushing with a finger to her mouth",
+        "box_2d": [
+          680,
+          100,
+          920,
+          293
+        ]
+      },
+      {
+        "label": "bookshelves - tall green shelves filled with many colorful books",
+        "box_2d": [
+          75,
+          29,
+          610,
+          654
+        ]
+      },
+      {
+        "label": "books - colorful books of various patterns on the shelves",
+        "box_2d": [
+          77,
+          122,
+          584,
+          650
+        ]
+      }
+    ]
+  }
+}

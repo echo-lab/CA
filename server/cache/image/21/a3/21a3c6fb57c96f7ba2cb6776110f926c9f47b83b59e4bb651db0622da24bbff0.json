@@ -1,0 +1,72 @@
+{
+  "createdAt": 1787443591460,
+  "book": "1",
+  "page": "2",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot looking at a tablet",
+        "box_2d": [
+          203,
+          0,
+          985,
+          542
+        ]
+      },
+      {
+        "label": "Clara - green chameleon on Zoe's head",
+        "box_2d": [
+          87,
+          138,
+          296,
+          436
+        ]
+      },
+      {
+        "label": "tablet - black screen displaying cakes",
+        "box_2d": [
+          217,
+          465,
+          717,
+          923
+        ]
+      },
+      {
+        "label": "cake - tall purple and green striped cake on the tablet screen",
+        "box_2d": [
+          252,
+          457,
+          635,
+          645
+        ]
+      },
+      {
+        "label": "cake - orange and blue striped cake with candles on the tablet screen",
+        "box_2d": [
+          293,
+          721,
+          490,
+          851
+        ]
+      },
+      {
+        "label": "cake - purple, green, and yellow striped cake with candles on the tablet screen",
+        "box_2d": [
+          502,
+          672,
+          687,
+          796
+        ]
+      },
+      {
+        "label": "Zoe's feathers - blue, green, and yellow feathers on her wing",
+        "box_2d": [
+          621,
+          59,
+          946,
+          548
+        ]
+      }
+    ]
+  }
+}

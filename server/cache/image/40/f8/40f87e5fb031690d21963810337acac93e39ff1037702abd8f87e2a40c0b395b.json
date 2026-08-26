@@ -1,0 +1,90 @@
+{
+  "createdAt": 1787351451755,
+  "book": "2",
+  "page": "1",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - large red parrot, holding items for sleepover",
+        "box_2d": [
+          118,
+          14,
+          961,
+          400
+        ]
+      },
+      {
+        "label": "Clara - small green chameleon, welcoming with open arms",
+        "box_2d": [
+          536,
+          699,
+          980,
+          932
+        ]
+      },
+      {
+        "label": "blanket - rolled blue and orange, carried by Zoe",
+        "box_2d": [
+          379,
+          239,
+          508,
+          359
+        ]
+      },
+      {
+        "label": "teddy bear - brown, peeking from Zoe's outfit",
+        "box_2d": [
+          471,
+          172,
+          559,
+          240
+        ]
+      },
+      {
+        "label": "slippers - pink bunny, worn by Zoe",
+        "box_2d": [
+          820,
+          145,
+          940,
+          368
+        ]
+      },
+      {
+        "label": "door - light green, with arched top",
+        "box_2d": [
+          89,
+          339,
+          777,
+          604
+        ]
+      },
+      {
+        "label": "framed picture - purple, hanging on the wall",
+        "box_2d": [
+          142,
+          755,
+          451,
+          943
+        ]
+      },
+      {
+        "label": "chameleon - larger green, in framed picture",
+        "box_2d": [
+          174,
+          818,
+          419,
+          941
+        ]
+      },
+      {
+        "label": "chameleon - smaller green, in framed picture",
+        "box_2d": [
+          239,
+          763,
+          431,
+          864
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "createdAt": 1787352747184,
+  "book": "3",
+  "page": "7",
+  "data": {
+    "tags": [
+      {
+        "label": "Clara - green chameleon building with blocks",
+        "box_2d": [
+          346,
+          301,
+          492,
+          482
+        ]
+      },
+      {
+        "label": "Zoe - red parrot next to a toy train",
+        "box_2d": [
+          218,
+          660,
+          668,
+          925
+        ]
+      },
+      {
+        "label": "blocks - small stack of two colorful blocks",
+        "box_2d": [
+          519,
+          298,
+          606,
+          366
+        ]
+      },
+      {
+        "label": "blocks - medium stack of four colorful blocks",
+        "box_2d": [
+          470,
+          356,
+          615,
+          423
+        ]
+      },
+      {
+        "label": "blocks - tall stack of six colorful blocks",
+        "box_2d": [
+          388,
+          420,
+          588,
+          487
+        ]
+      },
+      {
+        "label": "toy train - colorful engine and two cars on the track",
+        "box_2d": [
+          545,
+          612,
+          631,
+          745
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "createdAt": 1787346548729,
+  "book": "2",
+  "page": "10",
+  "data": {
+    "tags": [
+      {
+        "label": "Zoe - red parrot with colorful feathers",
+        "box_2d": [
+          378,
+          483,
+          903,
+          761
+        ]
+      },
+      {
+        "label": "Clara - green chameleon on a striped blanket",
+        "box_2d": [
+          498,
+          230,
+          804,
+          429
+        ]
+      },
+      {
+        "label": "Curtains - green with flowers and hearts pattern",
+        "box_2d": [
+          3,
+          0,
+          706,
+          425
+        ]
+      },
+      {
+        "label": "Curtains - red with stars and hearts pattern in thought bubble",
+        "box_2d": [
+          47,
+          499,
+          442,
+          737
+        ]
+      },
+      {
+        "label": "Feathers - colorful feathers held by Zoe",
+        "box_2d": [
+          594,
+          396,
+          829,
+          584
+        ]
+      },
+      {
+        "label": "Blanket - striped green and purple blanket",
+        "box_2d": [
+          665,
+          114,
+          959,
+          403
+        ]
+      },
+      {
+        "label": "Toy rabbit - small pink toy next to Clara",
+        "box_2d": [
+          687,
+          276,
+          764,
+          344
+        ]
+      }
+    ]
+  }
+}
