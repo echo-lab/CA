@@ -19,7 +19,6 @@ import { useStoryNavigation } from "../hooks/useStoryNavigation";
 // Utils
 import { warmSay } from "../utils/warmSay";
 import { unlockTtsAudio } from "../utils/ttsClient";
-import { openDebugMonitor } from "../utils/debugMonitor";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
 import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysis";
@@ -983,12 +982,6 @@ function Reader() {
       </div>
 
     <div className="navigation-buttons-container">
-
-      <button
-        onClick={openDebugMonitor}
-        className="btn btn-outline-secondary"
-        style={{ fontSize: '12px', padding: '4px 10px' }}
-      >Debug</button>
 
       <button
         onClick={gotoPreviousPage}

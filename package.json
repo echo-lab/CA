@@ -38,7 +38,7 @@
   },
   "proxy": "https://localhost:5001",
   "scripts": {
-    "start": "cross-env HTTPS=true  react-scripts start --openssl-legacy-provider",
+    "start": "cross-env HTTPS=true DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start --openssl-legacy-provider",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
