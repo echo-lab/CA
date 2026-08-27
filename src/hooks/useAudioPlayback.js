@@ -85,13 +85,17 @@ export function useAudioPlayback({
   // `reason` separates a genuine completion from the four error/degraded paths
   // that also land here, so "played" in the log means actually heard.
   const finishGeneratedPlayback = useCallback((questionText, reason = 'ended') => {
-    studyLog.pushQuestion({
-      question_id: currentQuestionIdRef.current || '',
-      question_type: 'generated',
-      event: reason === 'ended' ? 'play_ended' : 'play_failed',
-      reason,
-      question_text: questionText || '',
-    });
+    // A clean finish is not logged: only the four error/degraded paths are, so a
+    // row here always means something went wrong.
+    if (reason !== 'ended') {
+      studyLog.pushQuestion({
+        question_id: currentQuestionIdRef.current || '',
+        question_type: 'generated',
+        event: 'play_failed',
+        reason,
+        question_text: questionText || '',
+      });
+    }
     if (remoteAudioRef.current && !isMuted) remoteAudioRef.current.muted = false;
     generatedQuestionPlayRequestedRef.current = false;
     setIsGeneratedQuestionPlaying(false);
@@ -264,7 +268,6 @@ export function useAudioPlayback({
   };
 
   const speakGenerated = () => {
-    logPlay('play_requested', '', generatedQuestion || '');
 
     if (isGeneratedQuestionPlaying) {
       logPlay('play_failed', 'already_playing', generatedQuestion || '');
@@ -302,7 +305,6 @@ export function useAudioPlayback({
       streamingPlayerRef.current = createGeneratedQuestionPlayer(cachedQuestion);
     }
 
-    logPlay('play_started', '', cachedQuestion);
     generatedQuestionPlayRequestedRef.current = true;
     setIsGeneratedQuestionPlaying(true);
     setIsThoughtRevealed(true);
@@ -428,15 +430,6 @@ export function useAudioPlayback({
 
     if (audio) {
         audio.removeEventListener("ended", audioEnded);
-    }
-
-    if (isPageQuestionPlayingRef.current) {
-      studyLog.pushQuestion({
-        question_id: currentQuestionIdRef.current || '',
-        question_type: 'page',
-        event: 'play_ended',
-        reason: 'ended',
-      });
     }
 
     if (isPageQuestionPlayingRef.current && questionGenEnabledRef.current) {

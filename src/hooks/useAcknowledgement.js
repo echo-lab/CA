@@ -243,7 +243,11 @@ export function useAcknowledgement({
             question_type: 'acknowledgement',
             event: 'shown',
             question_text: acknowledgement,
+            // expected_answer carries the question this turn is answering;
+            // user_answer is what the child actually said (or, for a click
+            // question, the phrasing built from where they clicked).
             expected_answer: question || '',
+            user_answer: reply || '',
           });
           setQuestionHistory(prev => {
             const last = prev[prev.length - 1];

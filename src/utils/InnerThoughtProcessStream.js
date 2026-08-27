@@ -99,15 +99,6 @@ const categorizeOffScriptUtterancesStreaming = async (
                                 ? 'aborted — no categorization items parsed'
                                 : 'aborted — no ON_TOPIC utterances';
                             gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: reason });
-                            // Records that generation ran and produced nothing,
-                            // which is otherwise indistinguishable from never
-                            // having been attempted.
-                            studyLog.pushQuestion({
-                                question_id: '',
-                                question_type: 'generated',
-                                event: 'generated_none',
-                                reason,
-                            });
                         }
                     } else if (parsed.type === 'audio_chunk') {
                         if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();

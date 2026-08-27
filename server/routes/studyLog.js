@@ -32,7 +32,7 @@ const STREAM_HEADERS = {
     questions: [
         'session_id', 'user_id', 'book_id', 'q_seq', 'timestamp', 'question_id', 
         'question_type', 'event', 'reason', 'question_text', 'expected_answer', 
-        'page_number', 'line_index'
+        'page_number', 'line_index', 'user_answer'
     ]
 };
 
