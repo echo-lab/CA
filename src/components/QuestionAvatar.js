@@ -31,6 +31,7 @@ export default function QuestionAvatar({
     awaitingClick,
     onRequestQuestion,
     generatingQuestion,
+    answerRetryText,
 }) {
     const { isGeminiAudioPlaying } = useAudioStreamControl();
     const frameIndexRef = useRef(0);
@@ -163,13 +164,21 @@ export default function QuestionAvatar({
                         </span>
                     </div>
                 )}
+                {/* The retry line takes the dots' place rather than becoming a bubble of
+                    its own: it is a prompt to act, not part of the conversation, so it
+                    leaves no trace once spoken. */}
                 {!generatingQuestion && showThinking && (
-                    <div className="question-message thinking latest" aria-live="polite" aria-label="Thinking">
-                        <span className="thinking-dots">
-                            {Array.from({ length: thinkingDots }, (_, i) => (
-                                <span key={i} className="thinking-dot" />
-                            ))}
-                        </span>
+                    <div className="question-message thinking latest" aria-live="polite"
+                         aria-label={answerRetryText || "Thinking"}>
+                        {answerRetryText ? (
+                            <span>{answerRetryText}</span>
+                        ) : (
+                            <span className="thinking-dots">
+                                {Array.from({ length: thinkingDots }, (_, i) => (
+                                    <span key={i} className="thinking-dot" />
+                                ))}
+                            </span>
+                        )}
                     </div>
                 )}
                 {!generatingQuestion && !showThinking && questionHistory.map((msg, i) => {

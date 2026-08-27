@@ -1,5 +1,0 @@
-[
-  { "user_id": "T001", "parent": "parent1", "child":"child1", "parent-figure": "mom" },
-  { "user_id": "T002", "parent": "parent2", "child":"child2", "parent-figure": "dad" },
-  { "user_id": "T003", "parent": "parent3", "child":"child3", "parent-figure": "mom" }
-]

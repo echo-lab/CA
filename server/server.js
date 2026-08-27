@@ -20,6 +20,7 @@ const generateQuestionRoutes = require('./routes/generateQuestion');
 const acknowledgementRoutes = require('./routes/acknowledgement');
 const loggingRoutes = require('./routes/logging');
 const studyLogRoutes = require('./routes/studyLog');
+const adminRoutes = require('./routes/admin');
 
 startPruner();
 
@@ -60,6 +61,7 @@ app.use(generateQuestionRoutes);
 app.use(acknowledgementRoutes);
 app.use(loggingRoutes);
 app.use(studyLogRoutes);
+app.use(adminRoutes);
 
 // WebSocket proxy endpoint for Deepgram using SDK - keeps API key on server
 function setupDeepgramProxy(server) {

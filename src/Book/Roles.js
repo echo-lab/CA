@@ -15,7 +15,7 @@ export const roles = [
   },
   {
     Role: "Violet Victor",
-    RoleParameter: "orus",
+    RoleParameter: "Enceladus",
     img: require("../Pictures/Mate03/Mates-03.png"),
     voiceColor: "Violet",
     cloudVoice: "en-GB-Wavenet-D"
@@ -40,6 +40,14 @@ export const roles = [
     img: require("../Pictures/Mate05/Mates-05.png"),
     voiceColor: "Coral",
     cloudVoice: "en-US-Wavenet-C"
+  },
+  {
+    Role: "Jennie",
+    RoleParameter: "Aoede",
+    img: require("../Pictures/Mate09/Mates-09.png"),
+    voiceColor: "Orange",
+    cloudVoice: "en-US-Wavenet-H",
+    questionMate: true
   },
   {
     Role: "Parent",

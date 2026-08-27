@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import './App.css';
 import Home from './pages/Home';
+import Admin from './pages/Admin';
 import Story from './pages/Story';
 import Signup from './pages/Signup';
 import ChildrenAvatarSelecter from './pages/ChildrenAvatarSelecter';
@@ -30,6 +31,7 @@ function App() {
             <Route path='/AvatarSelecter' element={<AvatarSelecter />}/>
             <Route path='/Signup' element={<Signup />}/>
             <Route path='/Home' element={<Home />}/>
+            <Route path='/Admin' element={<Admin />}/>
             <Route path='/Story' element={<Story />}/>
             <Route path='/Character' element={<CharacterSelecter />}/>
           </Routes>

@@ -4,6 +4,10 @@ import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { sendAcknowledgementLog, setAwaitingQuestionAnswer, buildBookContext, setAcknowledgementTurns, clearSpeculativeOffScript } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 
+// Spoken aloud by the mate, not just printed: a silent failure looks identical to
+// the app ignoring the child.
+export const ANSWER_RETRY_TEXT = "Can you please say it again?";
+
 export function useAcknowledgement({
   computeRevealLength,
   isAnyAudioPlaying,
@@ -23,9 +27,13 @@ export function useAcknowledgement({
   setInAcknowledgementLoop,
   setAvatarPhase,
   setShowAvatar,
+  setAnswerSubmitted,
+  speak,
 }) {
   const [isAcknowledgementPlaying, setIsAcknowledgementPlaying] = useState(false);
   const [revealedAcknowledgement, setRevealedAcknowledgement] = useState('');
+  // Shown in place of the thinking dots while the mate asks for the answer again.
+  const [answerRetryText, setAnswerRetryText] = useState('');
 
   const acknowledgementModeRef = useRef(false);
   const acknowledgementSessionRef = useRef({ question: null, turns: [] });
@@ -57,8 +65,40 @@ export function useAcknowledgement({
     endAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT);
   }, [endAudio]);
 
+
+  const askAnswerAgain = useCallback((reason) => {
+    studyLog.pushEvent({ event_type: 'answer_retry_prompt', detail: reason });
+    stopAcknowledgementAudio();
+    acknowledgementRequestSeqRef.current += 1;  // orphan anything still in flight
+    acknowledgementModeRef.current = true;
+    setAnswerRetryText(ANSWER_RETRY_TEXT);
+    setShowAvatar(true);
+    setInAcknowledgementLoop(true);
+    setIsAcknowledgementPlaying(true);
+
+    let done = false;
+    const reopen = () => {
+      if (done) return;
+      done = true;
+      setIsAcknowledgementPlaying(false);
+      setAnswerRetryText('');           // line goes away, question comes back
+      setAvatarPhase('question');       // restores the answer controls panel
+      setAnswerSubmitted?.(false);      // manual send returns
+      setAwaitingQuestionAnswer(true);  // mic counts as the answer again
+    };
+
+    Promise.resolve(
+      speak?.(ANSWER_RETRY_TEXT, narratorRole?.VA || 'kore', 'neutral', narratorRole?.role || null,
+        AUDIO_SOURCES.ACKNOWLEDGEMENT, { onEnded: reopen, onError: reopen })
+    ).then((started) => {
+      if (!started) reopen();
+    }).catch(() => reopen());
+  }, [speak, narratorRole, stopAcknowledgementAudio, setAvatarPhase,
+      setShowAvatar, setInAcknowledgementLoop, setAnswerSubmitted]);
+
   const closeAcknowledgementMode = useCallback(() => {
     acknowledgementModeRef.current = false;
+    setAnswerRetryText('');
     acknowledgementSessionRef.current = { question: null, turns: [] };
     setAcknowledgementTurns([]);
     acknowledgementRequestSeqRef.current += 1;
@@ -274,33 +314,31 @@ export function useAcknowledgement({
       if (requestSeq === acknowledgementRequestSeqRef.current) {
         acknowledgementAudioBlockedRef.current = false;
         setIsAcknowledgementPlaying(false);
-        if (fullAcknowledgementTextRef.current) setRevealedAcknowledgement(fullAcknowledgementTextRef.current);
         endAudio(AUDIO_SOURCES.ACKNOWLEDGEMENT);
         if (remoteAudioRef.current && !isMuted) {
           remoteAudioRef.current.muted = false;
         }
-        // A thrown request used to leave the loop stuck open. There is no
-        // further turn to recover into, so close it out.
-        acknowledgementModeRef.current = false;
-        setAwaitingQuestionAnswer(false);
-        setInAcknowledgementLoop(false);
-        setShowAvatar(false);
-        setAvatarPhase('question');
+        // A thrown request used to close the loop out, leaving no sign the answer
+        // went nowhere. Ask for it again instead.
+        askAnswerAgain(`acknowledgement request failed: ${error?.message || error}`);
       }
     }
   };
 
   const resetAcknowledgementRevealState = useCallback(() => {
     setRevealedAcknowledgement('');
+    setAnswerRetryText('');
     fullAcknowledgementTextRef.current = '';
     cumulativeAcknowledgementMsRef.current = 0;
   }, []);
 
   return {
     isAcknowledgementPlaying,
+    answerRetryText,
     revealedAcknowledgement,
     acknowledgementModeRef,
     playAcknowledgement,
+    askAnswerAgain,
     closeAcknowledgementMode,
     stopAcknowledgementAudio,
     resetAcknowledgementRevealState,

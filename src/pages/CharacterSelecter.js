@@ -247,7 +247,7 @@ export default function CharaterSelecter() {
 
   const deckRoles = React.useMemo(() => {
     return roles
-      .filter((r) => !assignedRoleNames.has(r.Role))
+      .filter((r) => !r.questionMate && !assignedRoleNames.has(r.Role))
       .sort((a, b) => {
         const pa = ROLE_PRIORITY[a.Role] ?? 2;
         const pb = ROLE_PRIORITY[b.Role] ?? 2;

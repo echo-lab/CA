@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const participants = require('../lib/participants');
+const { requireAdmin } = require('../lib/adminAuth');
 const { appendRows, upsertRow, concatBodies } = require('../lib/csv');
 
 const router = express.Router();
@@ -150,7 +151,7 @@ router.post('/api/study-log/batch', (req, res) => {
     res.json({ success: true, counts, accepted_seq: { ...state } });
 });
 
-router.get('/api/study-log/download/:stream', (req, res) => {
+router.get('/api/study-log/download/:stream', requireAdmin, (req, res) => {
     const { stream } = req.params;
     const headers = STREAM_HEADERS[stream];
     if (!headers) {
@@ -183,7 +184,7 @@ router.get('/api/study-log/download/:stream', (req, res) => {
 // Session metadata, concatenated across every participant folder. There is no
 // longer a single global sessions.csv on disk — this endpoint is what rebuilds
 // the cross-participant view on demand.
-router.get('/api/study-log/download-sessions', (req, res) => {
+router.get('/api/study-log/download-sessions', requireAdmin, (req, res) => {
     const participant = req.query.participant;
     let files = collectSessionFiles();
     if (participant) files = filterToParticipant(files, participant);

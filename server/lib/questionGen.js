@@ -66,6 +66,17 @@ function sanitizeMessagesForDebug(messages) {
 }
 
 // Always returns the four fields, nulled out when nothing usable came back.
+// Every click question ends with the same instruction. Appended here rather than
+// asked for in the prompt so the wording is identical every time and the model
+// cannot forget it, paraphrase it, or bury it mid-sentence.
+const CLICK_SUFFIX = 'Click it.';
+function withClickSuffix(question) {
+    const q = String(question || '').trim();
+    if (!q) return q;
+    if (/\bclick it[.!?]?$/i.test(q)) return q;  // model already ended with it
+    return `${q} ${CLICK_SUFFIX}`;
+}
+
 function resolveQuestion(rawQuestion, { clickMode, clickTags, clickLabels, log = () => {} }) {
     const raw = String(rawQuestion || '').trim();
     const empty = { generatedQuestion: null, expectedAnswer: null, answerLabel: null, answerBox: null };
@@ -83,9 +94,10 @@ function resolveQuestion(rawQuestion, { clickMode, clickTags, clickLabels, log =
             });
             return empty;
         }
-        log(`click question -> "${click.question}" (answer: "${click.answerLabel}" at [${click.answerBox}])`);
+        const question = withClickSuffix(click.question);
+        log(`click question -> "${question}" (answer: "${click.answerLabel}" at [${click.answerBox}])`);
         return {
-            generatedQuestion: click.question,
+            generatedQuestion: question,
             expectedAnswer: click.answerLabel,
             answerLabel: click.answerLabel,
             answerBox: click.answerBox,

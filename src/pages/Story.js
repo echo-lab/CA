@@ -25,6 +25,7 @@ import { ImageAnalysis, ImageTagging, prefetchPage } from "../utils/imageAnalysi
 import { processUserUtterance, abortCurrentCategorization, abortQuestionGeneration, setAwaitingQuestionAnswer, setCurrentBookId, endManualAnswer, cancelManualAnswer, isManualAnswerActive, setClickTags } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 import { getRoleKind } from "../utils/roles";
+import { roles as MATE_DEFINITIONS } from "../Book/Roles";
 import { generateQuestionOnDemand } from "../utils/InnerThoughtProcessStream";
 import { assessClick } from "../utils/clickGeometry";
 
@@ -44,6 +45,23 @@ const POINT_HAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" heigh
 <path d="M10.5 2C9.1 2 8 3.1 8 4.5V17.2L6.4 15.4C5.4 14.3 3.7 14.3 2.7 15.4C1.8 16.4 1.8 17.9 2.7 18.9L9.5 27C10.6 28.3 12.2 29 13.9 29H21C24.3 29 27 26.3 27 23V15C27 13.6 25.9 12.5 24.5 12.5C23.9 12.5 23.4 12.7 23 13C22.8 11.8 21.8 11 20.5 11C19.7 11 19 11.4 18.5 11.9C18.2 10.8 17.2 10 16 10C15.4 10 14.9 10.2 14.5 10.5V4.5C14.5 3.1 13.4 2 12 2Z" fill="#ffffff" stroke="#000000" stroke-width="2.6" stroke-linejoin="round"/>
 </svg>`;
 const POINT_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(POINT_HAND_SVG)}") 8 2, pointer`;
+
+// Every question-side voice and avatar is one fixed mate, whichever mates the
+// family cast for the story characters. JENNIE is always the same character when
+// she asks something, so the child hears one consistent asker across page
+// questions, generated questions, and acknowledgements.
+//
+// Defined at module scope, not inside the component: narratorRole sits in a
+// useEffect dependency array, and rebuilding the object every render would
+// re-fire that effect on every render.
+const QUESTION_MATE_DEF = MATE_DEFINITIONS.find((r) => r.questionMate);
+const QUESTION_MATE_NAME = QUESTION_MATE_DEF?.Role;
+const QUESTION_MATE = QUESTION_MATE_DEF && {
+  role: QUESTION_MATE_DEF.Role,
+  VA: QUESTION_MATE_DEF.RoleParameter,
+  img: QUESTION_MATE_DEF.img,
+  voiceColor: QUESTION_MATE_DEF.voiceColor,
+};
 
 function Reader() {
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
@@ -112,6 +130,12 @@ function Reader() {
       require("../Pictures/Mate04/Mates-04-2.png"),
       require("../Pictures/Mate04/Mates-04-3.png"),
     ],
+    [QUESTION_MATE_NAME]: [
+      require("../Pictures/Mate09/Mates-09.png"),
+      require("../Pictures/Mate09/Mates-09-1.png"),
+      require("../Pictures/Mate09/Mates-09-2.png"),
+      require("../Pictures/Mate09/Mates-09-3.png"),
+    ],
     "Ruby Randy": [
       require("../Pictures/Mate06/Mates-06.png"),
       require("../Pictures/Mate06/Mates-06-1.png"),
@@ -131,13 +155,12 @@ function Reader() {
     "Yellow Yancey": require("../Pictures/Mate02/Mates-02-L.png"),
     "Violet Victor": require("../Pictures/Mate03/Mates-03-L.png"),
     "Blue Beatrice": require("../Pictures/Mate04/Mates-04-L.png"),
+    [QUESTION_MATE_NAME]: require("../Pictures/Mate09/Mates-09-L.png"),
     "Ruby Randy": require("../Pictures/Mate06/Mates-06-L.png"),
     "Coral Carly": require("../Pictures/Mate05/Mates-05-L.png"),
   };
   
-  const narratorRole = Array.isArray(selectedOptions)
-    ? selectedOptions.find(o => mateFrames[o.role])
-    : null;
+  const narratorRole = QUESTION_MATE;
   const narratorImage = narratorRole?.img;
   const frames = narratorRole ? mateFrames[narratorRole.role] : [narratorImage];
   const listeningImage = (narratorRole && mateListeningImages[narratorRole.role]) || narratorImage;
@@ -298,9 +321,11 @@ function Reader() {
 
   const {
     isAcknowledgementPlaying,
+    answerRetryText,
     revealedAcknowledgement,
     acknowledgementModeRef,
     playAcknowledgement,
+    askAnswerAgain,
     closeAcknowledgementMode,
     resetAcknowledgementRevealState,
   } = useAcknowledgement({
@@ -322,6 +347,8 @@ function Reader() {
     setInAcknowledgementLoop,
     setAvatarPhase,
     setShowAvatar,
+    setAnswerSubmitted,
+    speak,
   });
 
   const clearQuestionUI = () => {
@@ -354,9 +381,10 @@ function Reader() {
     if (answer) {
       playAcknowledgement(answer);
     } else {
-      // Nothing was said between the question and the press.
+      // A silent answer: the press happened but nothing was transcribed. Ask again
+      // rather than dropping the child back to a send button with no explanation.
       studyLog.pushEvent({ event_type: 'manual_answer_empty', detail: 'no transcript captured' });
-      setAnswerSubmitted(false);
+      askAnswerAgain('no transcript captured');
     }
   };
 
@@ -567,7 +595,7 @@ function Reader() {
     userAttentionRef.current = null;
     questionHistoryRef.current = [];
     lastExpectedAnswerRef.current = null;
-    lastAskedQuestionRef.current = state.pagesValues[state.page]?.question || null;
+    lastAskedQuestionRef.current = null;
     setImageTags([]);
     setClickTarget(null);
     if (state.page > 0) {
@@ -580,17 +608,8 @@ function Reader() {
   }, [state.page, id]);
 
   useEffect(() => {
-    const pq = state.pagesValues[state.page]?.question;
-    setQuestionHistory(pq ? [{ id: `page-${state.page}`, text: pq, type: 'page' }] : []);
+    setQuestionHistory([]);
     setShowAvatar(false);
-    if (pq) {
-      studyLog.pushQuestion({
-        question_id: `page-${state.page}`,
-        question_type: 'page',
-        event: 'shown',
-        question_text: pq,
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.page]);
 
@@ -1041,6 +1060,7 @@ function Reader() {
           narratorRole={narratorRole}
           onSpeakGenerated={handleSpeakGenerated}
           onPlaySound={playSound}
+          answerRetryText={answerRetryText}
           answerSubmitted={answerSubmitted}
           answerDisabled={isAnyAudioPlaying}
           onAnswerSubmit={handleAnswerSubmit}

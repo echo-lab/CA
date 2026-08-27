@@ -135,9 +135,36 @@ function filterToParticipant(files, participant) {
     return files.filter((f) => f.toLowerCase().startsWith(dir));
 }
 
+// --- roster writes (admin only) -------------------------------------------
+// loadRoster() returns a normalized Map for lookups; these two work on the raw
+// array so hand-written fields survive a round trip. Every write is atomic and
+// bumps mtime, which is what makes loadRoster pick the change up with no restart.
+function readRoster() {
+    try {
+        const parsed = JSON.parse(fs.readFileSync(ROSTER_PATH, 'utf8'));
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+        if (err.code === 'ENOENT') return [];
+        throw err;   // a malformed roster must not be silently overwritten
+    }
+}
+
+function writeRoster(rows) {
+    // One record per line, matching how the file is written by hand — an admin
+    // edit should not reflow every row and bury the real change in a diff.
+    const body = rows.map((r) => `  ${JSON.stringify(r)}`).join(',\n');
+    const tmp = `${ROSTER_PATH}.tmp-${process.pid}-${Date.now()}`;
+    fs.writeFileSync(tmp, `[\n${body}\n]\n`);
+    fs.renameSync(tmp, ROSTER_PATH);
+}
+
 module.exports = {
     lookup,
     isEnforced,
+    normalizeId,
+    readRoster,
+    writeRoster,
+    LOGS_DIR,
     participantDirName,
     participantDir,
     ensureParticipantDir,
