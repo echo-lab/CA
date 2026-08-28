@@ -214,11 +214,8 @@ export function useStoryNavigation({
   }, [audioHasEnded, isPlaying, handleNextClick, generatedQuestion, showAvatar, state.page, state.index, state.pagesValues]);
 
   useEffect(() => {
-    // An unclicked thought counts too. It shows the avatar but never enters the
-    // acknowledgement loop, so the old condition let it sit through a line advance
-    // and linger for the rest of the page. Resuming reading means the pair passed
-    // on it, so it goes.
-    if (showAvatarRef.current && (inAcknowledgementLoopRef?.current || generatedQuestionPendingRef?.current)) {
+    const leftThePage = prevPageRef.current !== null && prevPageRef.current !== state.page;
+    if (showAvatarRef.current && (leftThePage || inAcknowledgementLoopRef?.current)) {
       clearQuestionUIRef.current();
     }
     const key = `${state.page}:${state.index}`;
