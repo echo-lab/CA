@@ -23,6 +23,7 @@ const {
     streamQuestionAudio,
 } = require('../lib/questionGen');
 const { parseCategorizationLine } = require('../lib/modelParsing');
+const { buildPageImageMessage } = require('../lib/pageImage');
 
 const router = express.Router();
 
@@ -53,9 +54,16 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     try {
         const questionAbortController = new AbortController();
         tlog(`handler start, both OpenAI calls about to launch promptVersion=${PROMPT_VERSION} cacheKey=${OPENAI_PROMPT_CACHE_KEY}`);
+        // The illustration goes to the classifier as well as to the question call.
+        // Without it, a remark about something the child is looking at ("that one's
+        // funny") was judged on page text alone and often came back off-topic —
+        // which aborts the question call that could already see the picture.
+        // Same cached data URL both calls use, so this costs no extra disk read.
+        const categorizationImageMessage = buildPageImageMessage(book, currentPageNumber);
         const categorizationMessages = [
             { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
             { role: "developer", content: OFFSCRIPT_CATEGORIZATION_PROMPT },
+            ...(categorizationImageMessage ? [categorizationImageMessage] : []),
             {
                 role: "user",
                 content: buildOpenAIDynamicPagePayload({
