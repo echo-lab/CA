@@ -570,6 +570,7 @@ export function useAudioPlayback({
     // refs needed by Story's orchestration effect
     isGeneratedQuestionPlayingRef,
     suppressGeneratedAudioStreamRef,
+    generatedQuestionAudioEndedRef,
     // functions
     speak,
     continueReading,

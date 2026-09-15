@@ -281,6 +281,7 @@ function Reader() {
     isThoughtRevealed,
     isGeneratedQuestionPlayingRef,
     suppressGeneratedAudioStreamRef,
+    generatedQuestionAudioEndedRef,
     speak,
     continueReading,
     playSound,
@@ -456,7 +457,11 @@ function Reader() {
 
   // The reader tapped the question that is already showing.
   const handleSpeakGenerated = () => {
-    stopQuestionGeneration('question_committed');
+    // Only cancel work that would REPLACE this question. Delivery happens on the
+    // first audio chunk, so while its own audio is still streaming the in-flight
+    // request is the one feeding the speech about to play — aborting it there cuts
+    // the question off mid-sentence, which is what an early tap used to do.
+    if (generatedQuestionAudioEndedRef.current) stopQuestionGeneration('question_committed');
     speakGenerated();
   };
   const requestQuestion = async () => {
