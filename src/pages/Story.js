@@ -9,7 +9,7 @@ import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 import { data as data4 } from "../Book/Book4";
-import parentImage from "../Pictures/Virtual.png";
+import questionAgent from "../Pictures/Virtual.png";
 import ReactScrollableFeed from 'react-scrollable-feed';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
@@ -904,7 +904,7 @@ function stripSSMLTags(text) {
            <div>
                 <div className="wrapper">
                   <div className="role-image-container">
-                    <img src={parentImage} alt="Parent" onClick={() => { playSound(); }} style={{ width: '100px', cursor: 'pointer' }} />
+                    <img src={questionAgent} alt="Question Agent" onClick={() => { playSound(); }} style={{ width: '100px', cursor: 'pointer' }} />
                   </div>
                   <div className="question-dialogue d-flex justify-content-between align-items-center" onClick={() => { playSound(); }} style={{ cursor: 'pointer' }}>
                       <div className="storyTitle m-0"></div>
