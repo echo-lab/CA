@@ -1,6 +1,10 @@
 /**
- * A question must not reach the UI until its TTS is complete. Otherwise a click
- * lands on a half-streamed question and its audio overlaps the previous one.
+ * A question must not reach the UI until its TTS has STARTED — it is handed over on
+ * the first audio chunk so the child sees it while the rest is still synthesising,
+ * and never before there is audio to speak. What still must not happen: delivering
+ * twice, delivering with no audio at all, or leaving a fragment behind after a
+ * mid-stream failure, any of which lets a click catch a half-streamed question and
+ * overlap the previous one.
  */
 import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from 'util';
 
@@ -35,37 +39,51 @@ const DONE = { type: 'done', generatedQuestion: 'Which plate is purple?', expect
 const CHUNK = (seq) => ({ type: 'audio_chunk', seq, audioContent: `pcm${seq}`, durationMs: 100 });
 
 // Only the args the question path uses; the rest are positional filler.
-const run = (onQuestionReady) => categorizeOffScriptUtterancesStreaming(
+const run = (onQuestionReady, onAudioChunk) => categorizeOffScriptUtterancesStreaming(
   '[Line 1, Turn 1] "hi"', 'q', 'text', 1, null, null, null, 'kore',
-  null, onQuestionReady, undefined, 1, [], [],
+  null, onQuestionReady, undefined, 1, [], [], onAudioChunk,
 );
 
 beforeEach(() => { jest.spyOn(console, 'log').mockImplementation(() => {}); });
 afterEach(() => { jest.restoreAllMocks(); });
 
-describe('question is committed only once its audio is complete', () => {
-  test('nothing is delivered before audio_end', async () => {
-    global.fetch = mockStream([ITEM, DONE, CHUNK(0), CHUNK(1)]);
+describe('question is committed once its audio has started', () => {
+  test('nothing is delivered before the first audio chunk', async () => {
+    global.fetch = mockStream([ITEM, DONE]);
     const ready = jest.fn();
     await run(ready);
-    // Stream closed without audio_end, so it still commits — but exactly once,
-    // and only after every chunk was collected.
+    // 'done' alone is not enough — there is a question but nothing can speak it,
+    // so it waits for the stream to close rather than showing an unspeakable one.
     expect(ready).toHaveBeenCalledTimes(1);
-    expect(ready.mock.calls[0][3]).toHaveLength(2);
     expect(ready.mock.calls[0][4]).toBe('stream_closed');
+    expect(ready.mock.calls[0][3]).toEqual([]);
   });
 
-  test('delivers once at audio_end, carrying every chunk', async () => {
+  test('delivers once on the first chunk, marked incomplete, rest streamed after', async () => {
     global.fetch = mockStream([ITEM, DONE, CHUNK(0), CHUNK(1), CHUNK(2), { type: 'audio_end' }]);
     const ready = jest.fn();
-    await run(ready);
+    const chunk = jest.fn();
+    await run(ready, chunk);
+
     expect(ready).toHaveBeenCalledTimes(1);
-    const [question, expected, click, chunks, reason] = ready.mock.calls[0];
+    const [question, expected, click, chunks, reason, audioComplete] = ready.mock.calls[0];
     expect(question).toBe('Which plate is purple?');
     expect(expected).toBe('the purple one');
     expect(click).toEqual({ answerLabel: null, answerBox: null });
-    expect(chunks.map((c) => c.audioContent)).toEqual(['pcm0', 'pcm1', 'pcm2']);
-    expect(reason).toBe('audio_ready');
+    // Only chunk 0 was in hand at delivery; the caller is told more are coming.
+    expect(chunks.map((c) => c.audioContent)).toEqual(['pcm0']);
+    expect(reason).toBe('audio_started');
+    expect(audioComplete).toBe(false);
+    // The remainder arrives through onAudioChunk, in order, exactly once each.
+    expect(chunk.mock.calls.map((c) => c[1])).toEqual(['pcm1', 'pcm2']);
+  });
+
+  test('audio_end closes the question it already delivered, without redelivering', async () => {
+    global.fetch = mockStream([ITEM, DONE, CHUNK(0), { type: 'audio_end' }]);
+    const ready = jest.fn();
+    await run(ready, jest.fn());
+    expect(ready).toHaveBeenCalledTimes(1);
+    expect(ready.mock.calls[0][5]).toBe(false);
   });
 
   test('a TTS failure still delivers the question, with no audio', async () => {
@@ -80,7 +98,11 @@ describe('question is committed only once its audio is complete', () => {
   test('chunks that arrived before a failure are discarded, not half-played', async () => {
     global.fetch = mockStream([ITEM, DONE, CHUNK(0), { type: 'audio_error', message: 'died mid-stream' }]);
     const ready = jest.fn();
-    await run(ready);
+    await run(ready, jest.fn());
+    // The question was already delivered on chunk 0, so the caller holds this exact
+    // array — it must be emptied in place, or a tap plays a fragment and hangs
+    // waiting for an end() that the failed stream will never send.
+    expect(ready).toHaveBeenCalledTimes(1);
     expect(ready.mock.calls[0][3]).toEqual([]);
   });
 

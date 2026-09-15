@@ -55,7 +55,11 @@ export function setAwaitingQuestionAnswer(v) {
   }
 }
 
-const ANSWER_DRAIN_MS = 2500;
+// How long endManualAnswer waits after Send for a trailing transcript before the
+// acknowledgement request goes out. finishDrain() short-circuits it the moment a tail
+// final lands, so this is only paid in full when nothing more arrives — but when it is
+// paid, it is dead air the child sits through. Lowered from 2500.
+const ANSWER_DRAIN_MS = 1200;
 
 let manualAnswerBuffer = [];
 let manualAnswerDraining = false;
@@ -337,7 +341,9 @@ function sendSpeculativeQueueSnapshot(utteranceQueuesRef, lineIndex, context, ma
     context.questionHistoryRef?.current || [],
     context.ttsVoiceName || null,
     context.onAudioError || null,
-    context.onQuestionReady || null
+    context.onQuestionReady || null,
+    context.onAudioChunk || null,
+    context.onAudioEnd || null
   );
 }
 
@@ -354,7 +360,7 @@ function captureStableOffScriptWords(offScriptLogRef, lineIndex, stableWords, co
 
 }
 
-export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, questionHistory, ttsVoiceName, onAudioError, onQuestionReady) {
+export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult, imageDescriptionRef, userAttention, onStart, questionHistory, ttsVoiceName, onAudioError, onQuestionReady, onAudioChunk, onAudioEnd) {
   if (!offScriptLogRef?.current?.length) return;
 
   const currentPageQuestion = state.pagesValues[oldPage]?.question || '';
@@ -398,7 +404,7 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
   onStart?.();
   try {
     const imageDescription = await (imageDescriptionRef?.current ?? Promise.resolve(null));
-    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, questionHistory, ttsVoiceName, onAudioError, onQuestionReady, controller.signal, currentBookId, systemQuestions, clickTags);
+    const r = await categorizeOffScriptUtterancesStreaming(formattedLog, currentPageQuestion, bookText, oldPage + 1, imageDescription, userAttention, questionHistory, ttsVoiceName, onAudioError, onQuestionReady, controller.signal, currentBookId, systemQuestions, clickTags, onAudioChunk, onAudioEnd);
     if (controller.signal.aborted) return;
     onResult?.({ ...r, sourcePage: oldPage });
   } catch (err) {
@@ -431,7 +437,9 @@ export async function sendOffScriptLog(offScriptLogRef, oldPage, state, onResult
         ctx.questionHistoryRef?.current || [],
         ctx.ttsVoiceName || null,
         ctx.onAudioError || null,
-        ctx.onQuestionReady || null
+        ctx.onQuestionReady || null,
+        ctx.onAudioChunk || null,
+        ctx.onAudioEnd || null
       );
     }
   }
@@ -590,6 +598,8 @@ export async function processUserUtterance({
   ttsVoiceName,
   onAudioError,
   onQuestionReady,
+  onAudioChunk,
+  onAudioEnd,
   questionGenEnabledRef,
   isAcknowledgementModeRef,
 }) {
@@ -626,7 +636,7 @@ export async function processUserUtterance({
   // refuses to swap one that is mid-playback, so nothing interrupts itself.
   const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
-    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, questionHistoryRef, ttsVoiceName, onAudioError, onQuestionReady }
+    ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, questionHistoryRef, ttsVoiceName, onAudioError, onQuestionReady, onAudioChunk, onAudioEnd }
     : null;
 
   if (currentLineTrackingRef.current.page !== state.page) {
@@ -668,7 +678,9 @@ export async function processUserUtterance({
           categorizationContext.questionHistoryRef?.current || [],
           categorizationContext.ttsVoiceName || null,
           categorizationContext.onAudioError || null,
-          categorizationContext.onQuestionReady || null
+          categorizationContext.onQuestionReady || null,
+          categorizationContext.onAudioChunk || null,
+          categorizationContext.onAudioEnd || null
         );
       }
     }

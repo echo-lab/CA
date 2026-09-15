@@ -12,6 +12,7 @@ const { JENNIE_SHARED_PROMPT_PREFIX, ACKNOWLEDGEMENT_PROMPT } = require('../lib/
 const { buildAcknowledgementPayload } = require('../lib/payloads');
 const { buildPageImageMessage } = require('../lib/pageImage');
 const { generateGeminiTtsChunks } = require('../liveTTS');
+const { takeCompleteSentences } = require('../lib/modelParsing');
 
 const router = express.Router();
 const USE_BEDROCK = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
@@ -91,6 +92,43 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         let usage = null;
         let finishReason = null;
 
+        // TTS is pipelined against generation: each finished sentence is synthesised
+        // while the model is still writing the next one, rather than waiting for the
+        // whole reply. Synthesis stays serial so chunks reach the client in playback
+        // order, and `seq` keeps counting across sentence boundaries.
+        let spokenUpTo = 0;
+        let ttsSeq = 0;
+        let ttsFailed = false;
+        let spokeAnything = false;
+        let ttsChain = Promise.resolve();
+
+        const speak = (segment) => {
+            const text = segment.trim();
+            if (!text) return;
+            spokeAnything = true;
+            ttsChain = ttsChain.then(async () => {
+                if (ttsFailed) return;
+                for await (const { audioContent, sampleBytes } of generateGeminiTtsChunks({ text, voiceName: ttsVoiceName })) {
+                    if (tFirstAudioChunk === null) {
+                        tFirstAudioChunk = Date.now();
+                        tlog('first TTS chunk');
+                    }
+                    const durationMs = (sampleBytes / 2) / 24;
+                    res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq: ttsSeq++, audioContent, durationMs })}\n\n`);
+                }
+            }).catch((ttsErr) => {
+                if (ttsFailed) return;
+                ttsFailed = true;
+                console.error('[acknowledgement-stream] streaming TTS failed:', ttsErr);
+                res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
+            });
+        };
+
+        // A leading fence or quote means the model ignored the plain-text instruction,
+        // so the reply needs the cleanup below before any of it is safe to speak —
+        // fall back to synthesising the cleaned whole once the stream ends.
+        const canSpeakAhead = () => !/^\s*[`"']/.test(raw);
+
         for await (const chunk of stream) {
             if (chunk.usage) {
                 usage = chunk.usage;
@@ -104,6 +142,14 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
                 tlog('first token');
             }
             raw += token;
+
+            if (ttsVoiceName && !ttsFailed && canSpeakAhead()) {
+                const segment = takeCompleteSentences(raw.slice(spokenUpTo));
+                if (segment) {
+                    speak(segment);
+                    spokenUpTo += segment.length;
+                }
+            }
         }
         tStreamEnd = Date.now();
         tlog('model stream complete');
@@ -126,26 +172,22 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         }
         res.write(`data: ${JSON.stringify({ type: 'done', acknowledgement })}\n\n`);
 
-        if (acknowledgement) {
-            try {
-                for await (const { seq, audioContent, sampleBytes } of generateGeminiTtsChunks({
-                    text: acknowledgement,
-                    voiceName: ttsVoiceName,
-                })) {
-                    if (tFirstAudioChunk === null) {
-                        tFirstAudioChunk = Date.now();
-                        tlog('first TTS chunk');
-                    }
-                    const durationMs = (sampleBytes / 2) / 24;
-                    res.write(`data: ${JSON.stringify({ type: 'audio_chunk', seq, audioContent, durationMs })}\n\n`);
-                }
-                tAudioEnd = Date.now();
-                res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
-                tlog('TTS complete');
-            } catch (ttsErr) {
-                console.error('[acknowledgement-stream] streaming TTS failed:', ttsErr);
-                res.write(`data: ${JSON.stringify({ type: 'audio_error', message: String(ttsErr?.message || ttsErr) })}\n\n`);
+        if (acknowledgement && ttsVoiceName) {
+            if (spokenUpTo === 0) {
+                // Nothing went out early — either the reply was one short sentence or
+                // it arrived fenced/quoted. Speak the cleaned whole, as before.
+                speak(acknowledgement);
+            } else {
+                // Whatever trailed the last spoken sentence, minus a closing fence.
+                speak(raw.slice(spokenUpTo).replace(/\s*```$/, '').replace(/"$/, ''));
             }
+        }
+
+        await ttsChain;
+        if (spokeAnything && !ttsFailed) {
+            tAudioEnd = Date.now();
+            res.write(`data: ${JSON.stringify({ type: 'audio_end' })}\n\n`);
+            tlog(`TTS complete (${ttsSeq} chunks, ${spokenUpTo > 0 ? 'pipelined' : 'single segment'})`);
         }
 
         res.end();

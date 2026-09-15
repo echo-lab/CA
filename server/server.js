@@ -98,7 +98,12 @@ function setupDeepgramProxy(server) {
             interim_results: true,
             diarize_model: 'v1',
             smart_format: true,
-            endpointing: 500,
+            // Silence before a transcript is finalised, so it is a floor under every
+            // response: nothing is even sent until it elapses. Lowered from 500 to
+            // trim that floor. Calibration value, not a constant to minimise — a
+            // child pausing mid-thought gets cut off if this goes too low. Raise it
+            // back toward 500 if utterances start arriving truncated.
+            endpointing: 300,
             utterance_end_ms: 1200,
             vad_events: true,
             keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5', 'zoodely:5', 'zoop:5'],

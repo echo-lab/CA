@@ -128,7 +128,7 @@ export function useAudioPlayback({
   // stream holds everything back until its TTS has finished, so a question is only
   // ever shown once it can be spoken — which is what stops a click landing on a
   // half-streamed question and overlapping the previous one.
-  const startGeneratedQuestion = useCallback((questionText, { questionId, audioChunks = [] } = {}) => {
+  const startGeneratedQuestion = useCallback((questionText, { questionId, audioChunks = [], audioComplete = true } = {}) => {
     const text = String(questionText || '').trim();
     if (!text || isGeneratedQuestionPlayingRef.current) return;
 
@@ -148,11 +148,16 @@ export function useAudioPlayback({
     generatedQuestionPendingRef.current = true;
     acknowledgementFromPageQuestionRef.current = false;
     cumulativeAudioMsRef.current = 0;
-    // Already complete on arrival, so the audio is never in a partial state that a
-    // click could catch. An empty list means TTS failed for this question.
+    // The question arrives once its audio has started, not once it has finished, so
+    // the chunk list may still be filling — handleAudioChunk appends the rest and
+    // handleAudioEnd closes it. A click mid-stream is safe: speakGenerated plays what
+    // has arrived and only calls end() once audioComplete.
+    //
+    // While streaming, an empty list is simply "not yet"; it only means TTS failed
+    // when the audio is already complete and nothing came.
     generatedQuestionAudioChunksRef.current = [...audioChunks];
-    generatedQuestionAudioEndedRef.current = true;
-    generatedQuestionAudioErrorRef.current = audioChunks.length ? null : 'no audio';
+    generatedQuestionAudioEndedRef.current = audioComplete;
+    generatedQuestionAudioErrorRef.current = (audioComplete && !audioChunks.length) ? 'no audio' : null;
     generatedQuestionPlayRequestedRef.current = false;
     suppressGeneratedAudioStreamRef.current = false;
     // Every generated question on this page, oldest first, so the next request can be
@@ -249,6 +254,12 @@ export function useAudioPlayback({
       return;
     }
     generatedQuestionAudioErrorRef.current = message || 'Generated question audio failed';
+    // The question is already on screen by now (delivery happens on the first chunk),
+    // so whatever arrived before the failure has to go: a tap would otherwise play a
+    // fragment and hang, since no audio_end is coming to end() the player. Marking it
+    // ended sends speakGenerated down its tts_unavailable path instead.
+    generatedQuestionAudioChunksRef.current = [];
+    generatedQuestionAudioEndedRef.current = true;
     if (fullQuestionTextRef.current) setRevealedQuestion(fullQuestionTextRef.current);
     if (generatedQuestionPlayRequestedRef.current) {
       finishGeneratedPlayback(fullQuestionTextRef.current);

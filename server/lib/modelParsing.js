@@ -48,7 +48,23 @@ function parseJsonFromModelText(text, fallback) {
     }
 }
 
+// Pulls the leading run of finished sentences out of a partially-streamed reply, so
+// it can be sent to TTS while the model is still writing the rest. Returns '' until
+// there is something worth synthesising on its own.
+//
+// A sentence counts as finished only when whitespace follows its terminator, so a
+// trailing "Yes." mid-stream waits for the next token instead of being spoken and
+// then contradicted. The match is greedy: several sentences arriving in one chunk go
+// out as a single segment rather than one synthesis call each. Fragments shorter than
+// minChars also wait, since a two-word segment costs a full round-trip to speak.
+function takeCompleteSentences(pending, minChars = 15) {
+    const match = /^[\s\S]*[.!?…]["')\]]*(?=\s)/.exec(String(pending || ''));
+    if (!match) return '';
+    return match[0].trim().length >= minChars ? match[0] : '';
+}
+
 module.exports = {
     parseCategorizationLine,
     parseJsonFromModelText,
+    takeCompleteSentences,
 };

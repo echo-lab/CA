@@ -286,6 +286,8 @@ function Reader() {
     playSound,
     speakGenerated,
     startGeneratedQuestion,
+    handleAudioChunk,
+    handleAudioEnd,
     handleAudioError,
     computeRevealLength,
     resetGeneratedQuestionState,
@@ -484,7 +486,7 @@ function Reader() {
         systemQuestions: stateRef.current.pagesValues.map(p => (p?.question || '').trim()).filter(Boolean),
         clickTags: imageTags,
         ttsVoiceName: narratorRole?.VA || null,
-        onQuestionReady: (questionText, expectedAnswer, click, audioChunks) => {
+        onQuestionReady: (questionText, expectedAnswer, click, audioChunks, reason, audioComplete = true) => {
           // The reader may have moved on while the model was thinking.
           if (stateRef.current.page !== pageIndex) return;
           const questionId = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -499,8 +501,10 @@ function Reader() {
           lastExpectedAnswerRef.current = expectedAnswer ?? null;
           setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
           setGeneratingQuestion(false);
-          startGeneratedQuestion(questionText, { questionId, audioChunks });
+          startGeneratedQuestion(questionText, { questionId, audioChunks, audioComplete });
         },
+        onAudioChunk: handleAudioChunk,
+        onAudioEnd: handleAudioEnd,
         onAudioError: handleAudioError,
         signal: controller.signal,
       });
@@ -746,7 +750,7 @@ function Reader() {
         if (result?.sourcePage !== stateRef.current.page) return;
         setIsCategorizationPending(false);
       },
-      onQuestionReady: (questionText, expectedAnswer = null, click = null, audioChunks = []) => {
+      onQuestionReady: (questionText, expectedAnswer = null, click = null, audioChunks = [], reason = '', audioComplete = true) => {
         if (!questionGenEnabledRef.current) return;
 
         // Logged before the suppression check so the record reflects every
@@ -790,12 +794,14 @@ function Reader() {
         // Present only for a click question, and always a real tag's box — the
         // server drops any question whose label was not in the tag list.
         setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
-        startGeneratedQuestion(questionText, { questionId, audioChunks });
+        startGeneratedQuestion(questionText, { questionId, audioChunks, audioComplete });
       },
       imageDescriptionRef,
       userAttentionRef,
       questionHistoryRef,
       ttsVoiceName: narratorRole?.VA || null,
+      onAudioChunk: handleAudioChunk,
+      onAudioEnd: handleAudioEnd,
       onAudioError: handleAudioError,
       questionGenEnabledRef,
       isAcknowledgementModeRef: acknowledgementModeRef,

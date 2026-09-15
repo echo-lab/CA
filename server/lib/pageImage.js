@@ -7,7 +7,13 @@ function resolveImagePath(book, page) {
     const fileName = String(book) === '3'
         ? `${page} Library.jpg`
         : `Page_${page}.jpg`;
-    return path.join(__dirname, '..', '..', 'src', 'Pictures', `book${book}`, fileName);
+    const dir = path.join(__dirname, '..', '..', 'src', 'Pictures', `book${book}`);
+    // The model gets the downscaled copy from llm/ (1024px, ~135KB) instead of the
+    // full-res original the UI displays (~2.3MB). Identical tile/token count, ~17x
+    // less upload. Regenerate with scripts/make-llm-images.sh. Falls back to the
+    // original so a missing llm/ copy degrades to the old behaviour, not a failure.
+    const lowRes = path.join(dir, 'llm', fileName);
+    return fs.existsSync(lowRes) ? lowRes : path.join(dir, fileName);
 }
 
 // Returns a base64 data URL for the page image, or null if unavailable.

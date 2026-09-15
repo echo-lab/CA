@@ -15,7 +15,9 @@ const categorizeOffScriptUtterancesStreaming = async (
     signal,
     book,
     systemQuestions,
-    clickTags
+    clickTags,
+    onAudioChunk,
+    onAudioEnd
 ) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
 
@@ -26,6 +28,20 @@ const categorizeOffScriptUtterancesStreaming = async (
     let tFirstItem = null;
     let tLastItem = null;
     let tFirstAudioChunk = null;
+    let tAudioEnd = null;
+
+    // Exactly one terminal audio signal reaches the player, whatever becomes of
+    // the stream. The player releases the audio lock only from its onEnded, and
+    // onEnded needs end() — so a body cut short mid-speech, or an error event,
+    // would otherwise strand it: lock held, Next button dead, no further TTS.
+    let audioStarted = false;
+    let audioSettled = false;
+    const settleAudio = () => {
+        if (audioSettled) return;
+        audioSettled = true;
+        if (typeof onAudioEnd !== 'function') return;
+        try { onAudioEnd(); } catch (cbErr) { console.error('onAudioEnd callback error:', cbErr); }
+    };
 
     try {
         const response = await fetch(`${BASE_URL}/api/categorize-utterances-stream`, {
@@ -46,18 +62,22 @@ const categorizeOffScriptUtterancesStreaming = async (
         let generatedQuestion = null;
         let questionPrompt = null;
         let buffer = '';
-        // The question and its audio are held here until the stream says the audio
-        // is complete, then handed over in one call. Nothing reaches the UI early,
-        // so a question can never be shown — or clicked — before it can be spoken,
-        // and two streams racing each other cannot interleave their chunks.
+        // The question is handed over on the FIRST audio chunk rather than the last,
+        // so the child sees it while the rest of the speech is still synthesising.
+        // The invariant that it can never be shown before it can be spoken still
+        // holds — delivery is gated on audio having actually started — and the
+        // `audioComplete: false` flag tells the caller more chunks are coming, so a
+        // tap mid-stream plays what has arrived and keeps filling. Chunks after
+        // delivery go to onAudioChunk, whose suppression flag is what stops two
+        // racing streams from interleaving.
         let pending = null;
         let pendingChunks = [];
         let delivered = false;
-        const deliver = (reason) => {
+        const deliver = (reason, audioComplete) => {
             if (delivered || !pending) return;
             delivered = true;
             if (typeof onQuestionReady !== 'function') return;
-            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason); }
+            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete); }
             catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
         };
 
@@ -102,16 +122,37 @@ const categorizeOffScriptUtterancesStreaming = async (
                         }
                     } else if (parsed.type === 'audio_chunk') {
                         if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
-                        if (parsed.audioContent) pendingChunks.push({ seq: parsed.seq, audioContent: parsed.audioContent, durationMs: parsed.durationMs });
+                        if (parsed.audioContent) {
+                            audioStarted = true;
+                            if (delivered) {
+                                // Already on screen — feed the live player directly.
+                                if (typeof onAudioChunk === 'function') {
+                                    try { onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs); }
+                                    catch (cbErr) { console.error('onAudioChunk callback error:', cbErr); }
+                                }
+                            } else {
+                                pendingChunks.push({ seq: parsed.seq, audioContent: parsed.audioContent, durationMs: parsed.durationMs });
+                                deliver('audio_started', false);
+                            }
+                        }
                     } else if (parsed.type === 'audio_end') {
-                        deliver('audio_ready');
+                        if (tAudioEnd === null) tAudioEnd = performance.now();
+                        // Covers the case where no chunk ever arrived (no TTS voice).
+                        deliver('audio_ready', true);
+                        settleAudio();
                     } else if (parsed.type === 'audio_error') {
+                        // onAudioError finishes the playback itself, so it is this
+                        // stream's terminal audio signal.
+                        audioSettled = true;
                         // The question still gets shown; it simply cannot be spoken.
-                        pendingChunks = [];
+                        // Emptied in place, not rebound: once delivery has happened the
+                        // caller holds this exact array, and a fragment left in it would
+                        // play half a question with no end() ever coming.
+                        pendingChunks.length = 0;
                         if (typeof onAudioError === 'function') {
                             try { onAudioError(parsed.message); } catch (cbErr) { console.error('onAudioError callback error:', cbErr); }
                         }
-                        deliver('audio_failed');
+                        deliver('audio_failed', true);
                     } else if (parsed.type === 'error') {
                         throw new Error(parsed.error);
                     }
@@ -123,7 +164,7 @@ const categorizeOffScriptUtterancesStreaming = async (
 
         // No audio_end arrived (no TTS voice configured, or the body was cut short).
         // The question is still worth showing, just silent.
-        deliver('stream_closed');
+        deliver('stream_closed', true);
 
         const tDone = performance.now();
         const ms = (a, b) => a == null || b == null ? null : Math.round(b - a);
@@ -134,6 +175,10 @@ const categorizeOffScriptUtterancesStreaming = async (
             requestToDoneMs: ms(t0, tDone),
             lastItemToQuestionMs: ms(tLastItem, tDone),
             requestToFirstAudioChunkMs: ms(t0, tFirstAudioChunk),
+            // What the child actually waits through: the question is now on screen at
+            // requestToFirstAudioChunkMs, so the gap to this is speech still arriving,
+            // not dead time. Before pipelining the two were the same moment.
+            requestToAudioEndMs: ms(t0, tAudioEnd),
             itemCount: items.length,
             generatedQuestion: !!generatedQuestion,
         };
@@ -156,6 +201,10 @@ const categorizeOffScriptUtterancesStreaming = async (
         console.error('Error in streaming categorization:', error);
         gptDebugLog({ type: 'gpt_error', endpoint: '/api/categorize-utterances-stream', error: error.message });
         return null;
+    } finally {
+        // Only once audio actually started: a stream that produced none never
+        // took the lock, and its own no-audio path has already settled the turn.
+        if (audioStarted) settleAudio();
     }
 };
 
@@ -199,6 +248,19 @@ const streamAcknowledgement = async ({
     let tFirstAudioChunk = null;
     let tAudioEnd = null;
 
+    // Exactly one terminal audio signal reaches the player, whatever becomes of
+    // the stream. The player releases the audio lock only from its onEnded, and
+    // onEnded needs end() — so a body cut short mid-speech, or an error event,
+    // would otherwise strand it: lock held, Next button dead, no further TTS.
+    let audioStarted = false;
+    let audioSettled = false;
+    const settleAudio = () => {
+        if (audioSettled) return;
+        audioSettled = true;
+        if (typeof onAudioEnd !== 'function') return;
+        try { onAudioEnd(); } catch (cbErr) { console.error('onAudioEnd callback error:', cbErr); }
+    };
+
     try {
         const response = await fetch(`${BASE_URL}/api/acknowledgement-stream`, {
             method: 'POST',
@@ -238,13 +300,16 @@ const streamAcknowledgement = async ({
                         }
                     } else if (parsed.type === 'audio_chunk') {
                         if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
-                        if (parsed.audioContent && typeof onAudioChunk === 'function') {
-                            onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs);
+                        if (parsed.audioContent) {
+                            audioStarted = true;
+                            if (typeof onAudioChunk === 'function') onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs);
                         }
                     } else if (parsed.type === 'audio_end') {
                         tAudioEnd = performance.now();
-                        if (typeof onAudioEnd === 'function') onAudioEnd();
+                        settleAudio();
                     } else if (parsed.type === 'audio_error') {
+                        // onAudioError finishes the turn itself — terminal.
+                        audioSettled = true;
                         if (typeof onAudioError === 'function') onAudioError(parsed.message);
                     } else if (parsed.type === 'error') {
                         throw new Error(parsed.error);
@@ -275,6 +340,10 @@ const streamAcknowledgement = async ({
         console.error('Error in acknowledgement streaming:', error);
         gptDebugLog({ type: 'gpt_error', endpoint: '/api/acknowledgement-stream', error: error.message });
         return null;
+    } finally {
+        // Only once audio actually started: a stream that produced none never
+        // took the lock, and its own no-audio path has already settled the turn.
+        if (audioStarted) settleAudio();
     }
 };
 
@@ -307,6 +376,19 @@ const generateQuestionOnDemand = async ({
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/generate-question-stream', payload });
 
     const t0 = performance.now();
+    // Exactly one terminal audio signal reaches the player, whatever becomes of
+    // the stream. The player releases the audio lock only from its onEnded, and
+    // onEnded needs end() — so a body cut short mid-speech, or an error event,
+    // would otherwise strand it: lock held, Next button dead, no further TTS.
+    let audioStarted = false;
+    let audioSettled = false;
+    const settleAudio = () => {
+        if (audioSettled) return;
+        audioSettled = true;
+        if (typeof onAudioEnd !== 'function') return;
+        try { onAudioEnd(); } catch (cbErr) { console.error('onAudioEnd callback error:', cbErr); }
+    };
+
     try {
         const response = await fetch(`${BASE_URL}/api/generate-question-stream`, {
             method: 'POST',
@@ -321,16 +403,17 @@ const generateQuestionOnDemand = async ({
         let buffer = '';
         let generatedQuestion = null;
         let questionPrompt = null;
-        // Same atomic hand-over as the categorize stream: held until the audio is
-        // complete, so the mate never swaps in a question it cannot yet speak.
+        // Same hand-over as the categorize stream: delivered on the first audio chunk,
+        // so the mate never swaps in a question it cannot yet speak, but does not wait
+        // out the whole synthesis before showing one it can.
         let pending = null;
         let pendingChunks = [];
         let delivered = false;
-        const deliver = (reason) => {
+        const deliver = (reason, audioComplete) => {
             if (delivered || !pending) return;
             delivered = true;
             if (typeof onQuestionReady !== 'function') return;
-            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason); }
+            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete); }
             catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
         };
 
@@ -369,13 +452,24 @@ const generateQuestionOnDemand = async ({
                             });
                         }
                     } else if (parsed.type === 'audio_chunk') {
-                        if (parsed.audioContent) pendingChunks.push({ seq: parsed.seq, audioContent: parsed.audioContent, durationMs: parsed.durationMs });
+                        if (parsed.audioContent) {
+                            audioStarted = true;
+                            if (delivered) {
+                                if (typeof onAudioChunk === 'function') onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs);
+                            } else {
+                                pendingChunks.push({ seq: parsed.seq, audioContent: parsed.audioContent, durationMs: parsed.durationMs });
+                                deliver('audio_started', false);
+                            }
+                        }
                     } else if (parsed.type === 'audio_end') {
-                        deliver('audio_ready');
+                        deliver('audio_ready', true);
+                        settleAudio();
                     } else if (parsed.type === 'audio_error') {
-                        pendingChunks = [];
+                        // onAudioError finishes the playback itself — terminal.
+                        audioSettled = true;
+                        pendingChunks.length = 0;
                         if (typeof onAudioError === 'function') onAudioError(parsed.message);
-                        deliver('audio_failed');
+                        deliver('audio_failed', true);
                     } else if (parsed.type === 'error') {
                         throw new Error(parsed.error);
                     }
@@ -385,7 +479,7 @@ const generateQuestionOnDemand = async ({
             }
         }
 
-        deliver('stream_closed');
+        deliver('stream_closed', true);
 
         gptDebugLog({
             type: 'gpt_response',
@@ -401,6 +495,10 @@ const generateQuestionOnDemand = async ({
         console.error('Error generating question on demand:', error);
         gptDebugLog({ type: 'gpt_error', endpoint: '/api/generate-question-stream', error: error.message });
         return null;
+    } finally {
+        // Only once audio actually started: a stream that produced none never
+        // took the lock, and its own no-audio path has already settled the turn.
+        if (audioStarted) settleAudio();
     }
 };
 
