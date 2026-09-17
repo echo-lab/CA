@@ -90,12 +90,16 @@
   min-width: var(--deck-width);
 }
 
+.characterSelecter .page-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .characterSelecter .flex-body {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
+  flex: 1 1 auto;
   min-height: 0;
-  height: calc(100vh - 88px);
-  height: calc(100dvh - 88px);
   overflow: hidden;
 }
 
@@ -105,10 +109,6 @@
   max-width: var(--deck-width);
   padding: 8px;
 
-  position: sticky;
-  top: 88px;
-  height: calc(100vh - 88px);
-  height: calc(100dvh - 88px);
   overflow-y: auto;
   overflow-x: visible;
   -webkit-overflow-scrolling: touch;

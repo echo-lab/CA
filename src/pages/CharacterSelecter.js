@@ -358,7 +358,7 @@ export default function CharaterSelecter() {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveRole(null)}
       >
-        <div className="d-flex flex-column min-vh-100">
+        <div className="d-flex flex-column page-shell">
           <div className="d-flex justify-content-between p-3 bg-light">
             <button className="btn btn-primary" onClick={() => navigate("/Home")}>
               <KeyboardDoubleArrowLeftIcon fontSize="large" />
