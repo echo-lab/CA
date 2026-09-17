@@ -1,5 +1,8 @@
   .home {
     width: 100%;
+    /* fill the height left by the navbar so .book-row's bottom edge is the page bottom */
+    flex: 1 1 auto;
+    min-height: 0;
     /* height: 90vh; */
     display: flex;
     justify-content: center;
@@ -9,12 +12,6 @@
     background-repeat: no-repeat;
     background-size: cover;
     font-family: "Gill Sans", "Gill Sans MT", "Calibri", "Trebuchet MS", sans-serif;
-  }
-
-  .go-home-button {
-    position: absolute;
-    top: 20px;
-    left: 20px;
   }
   
 
@@ -35,3 +32,23 @@
 }
 
   
+/* Book cards keep their 18rem width and scroll horizontally when they do not fit.
+   `safe center` centers them while they fit, but falls back to flex-start on
+   overflow -- plain `center` would push the first card off the left edge, where
+   a scrollbar cannot reach it. */
+.book-row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: safe center;
+  align-items: flex-start; /* cards stay at the top of the stretched row */
+
+  /* stretch to the bottom of the page so this row's own scrollbar lands there */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.book-row > * {
+  flex: 0 0 auto; /* never shrink the cards */
+}

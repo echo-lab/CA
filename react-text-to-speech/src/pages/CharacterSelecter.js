@@ -292,7 +292,10 @@ export default function CharaterSelecter() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="d-flex flex-column min-vh-100">
           <div className="d-flex justify-content-between p-3 bg-light">
-            <button className="btn btn-primary" onClick={() => navigate("/")}>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate("/Home", { state: { userName } })}
+            >
               <KeyboardDoubleArrowLeftIcon fontSize="large" />
             </button>
             <div className="text-center">

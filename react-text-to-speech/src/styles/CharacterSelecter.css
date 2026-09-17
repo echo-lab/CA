@@ -92,8 +92,9 @@
 .characterSelecter .flex-body {
   display: flex;
   align-items: flex-start;
+  /* take whatever height the header leaves, instead of assuming it is 88px */
+  flex: 1 1 auto;
   min-height: 0;
-  height: calc(100vh - 88px);
   overflow: hidden;
 }
 
@@ -102,10 +103,10 @@
   width: var(--deck-width);
   max-width: var(--deck-width);
   padding: 8px;
+  /* extra bottom room so the last tile's play button clears the edge */
+  padding-bottom: 32px;
 
-  position: sticky;
-  top: 88px;
-  height: calc(100vh - 88px);
+  height: 100%;
   overflow-y: auto;
   overflow-x: visible;
   -webkit-overflow-scrolling: touch;

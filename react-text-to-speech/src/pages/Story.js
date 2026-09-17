@@ -8,9 +8,8 @@ import { Link, useLocation, useNavigate  } from 'react-router-dom';
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
-import parentImage from "../Pictures/virtual.webp"
+import parentImage from "../Pictures/Virtual.png"
 import ReactScrollableFeed from 'react-scrollable-feed';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { say } from "../utils/ttsClient";
 import { warmSay } from "../utils/warmSay";
 
@@ -25,7 +24,7 @@ class Book {
 
 
 function Reader() {
-  // If env true then limit to first three pages
+  // If env true then limit to the cover plus three story pages
   const previewOnly = process.env.REACT_APP_PREVIEW_ONLY === 'true';
   const location = useLocation();
   const navigate = useNavigate();
@@ -61,8 +60,10 @@ function Reader() {
 
   const allKeys = Object.keys(CurrentBook.pages);
   const allValues = Object.values(CurrentBook.pages);
-  const pagesKeys = previewOnly ? allKeys.slice(0, 3) : allKeys;
-  const pagesValues = previewOnly ? allValues.slice(0, 3) : allValues;
+  // Cover + first three story pages
+  const PREVIEW_PAGES = 4;
+  const pagesKeys = previewOnly ? allKeys.slice(0, PREVIEW_PAGES) : allKeys;
+  const pagesValues = previewOnly ? allValues.slice(0, PREVIEW_PAGES) : allValues;
 
   const [state, setState] = useState({
     page: 0,
@@ -177,7 +178,7 @@ const gotoNextPage = () => {
     }
     setState(prevState => ({ ...prevState, page: prevState.page + 1, index: 0 }));
   } else {
-    navigate('/Home', { state: { id: 1 } });
+    navigate('/Home');
   }
 };
 
@@ -569,13 +570,24 @@ function stripSSMLTags(text) {
            <div>
                 <div className="wrapper">
                 <div className="role-image-container">
-                  <img src={parentImage} alt="Parent" />
-                  <button onClick={playSound} className="play-sound-button">
-                  <PlayArrowIcon />
+                  <button
+                    onClick={playSound}
+                    className="play-sound-button"
+                    aria-label="Read the question aloud"
+                    title="Read the question aloud"
+                  >
+                    <img src={parentImage} alt="Parent" />
                   </button>
                   </div>
                   
-                  <div className="question-dialogue d-flex justify-content-between align-items-center">
+                  <div
+                    className="question-dialogue clickable-question d-flex justify-content-between align-items-center"
+                    onClick={() => {
+                      // don't fire while the parent is selecting the text to re-read
+                      if (window.getSelection().toString().trim() === "") playSound();
+                    }}
+                    title="Read the question aloud"
+                  >
                     <div className="storyTitle m-0"></div>
                     {state.pagesValues[state.page].question}
                 </div>
@@ -661,7 +673,7 @@ function stripSSMLTags(text) {
 
     // If we have reached the end, navigate to another page
     if (state.hasReachedEnd) {
-      navigate('/', { state: { id: 1 } }); // Change '/Home' to your desired route
+      navigate('/Home');
       return;
     }
 
@@ -707,7 +719,7 @@ function stripSSMLTags(text) {
     <div className="story container-fluid reader-container">
       <div className="navbar navbar-light bg-light row1">
         <div className="home btn col-1">
-          <Link to={{ pathname: "/Home", state: { id: 1 } }}>
+          <Link to="/Home">
             <button className="btn btn-primary">
               <i>
                 <KeyboardDoubleArrowLeftIcon />

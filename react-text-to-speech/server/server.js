@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
 const https = require('https');
-require('dotenv').config({ path: '.env.local' });
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env.local') });
 const { registerLiveTtsRoutes } = require('./liveTTS'); 
 
 const { startPruner } = require('./cache/prune');

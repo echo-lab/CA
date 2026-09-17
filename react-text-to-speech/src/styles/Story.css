@@ -138,10 +138,10 @@ img {
  }
 
  .role-image-container img {
-  display: flex;  
-  align-items: center; /* Center children horizontally */
-  height: 60px;
+  display: block;
+  height: 120px;
   width: auto;
+  margin-bottom: 0; /* overrides the global img rule; the button owns spacing */
 }
 
 .role-image-container {
@@ -253,21 +253,39 @@ img {
   padding: 20px; /* Add padding as needed */
 }
 
+/* The parent image IS the play button — no separate icon underneath. */
 .play-sound-button {
-  /* Style your button as needed */
- 
   background: transparent;
   border: none;
+  padding: 0;
+  line-height: 0;
   cursor: pointer;
-  width: auto;
-  width: 50px; /* Adjust the width as needed */
-  height: 50px; /* Adjust the height as needed */
-  
-  /* Add other styles as needed */
+  border-radius: 50%;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-.play-sound-button .MuiSvgIcon-root {
-  font-size: 3rem; /* Adjust the size of the icon as needed */
+.play-sound-button:hover {
+  transform: scale(1.06);
+  filter: brightness(1.05);
+}
+
+.play-sound-button:active {
+  transform: scale(0.97);
+}
+
+/* the question box is a second click target for the same playSound() */
+.clickable-question {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.clickable-question:hover {
+  background-color: #86c886;
+}
+
+.play-sound-button:focus-visible {
+  outline: 3px solid #2196f3;
+  outline-offset: 3px;
 }
 
 /* Child interaction hand pointer */

@@ -34,16 +34,10 @@ function Home() {
     <>
     <div className=''> <NavigationBar />
     </div>
-
-    <div className="go-home-button p-3">
-  <Link to="/">
-    <button className="btn btn-outline-secondary">Go Home</button>
-  </Link>
-</div>
     
     <div className='home'>
       <p className='title display-3'>TaleMate</p>
-      <div className= "d-flex justify-content-center">
+      <div className="book-row">
             {bookInfo.map(renderCard)}
       </div>
     </div>

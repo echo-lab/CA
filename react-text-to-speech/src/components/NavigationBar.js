@@ -6,9 +6,11 @@ function NavigationBar() {
 
   return (
         <nav className="navbar navbar-light bg-light" >
-            <ul className="nav navbar-nav navbar-right"></ul>
+            <Link to="/" className="ms-3">
+              <button className="btn btn-outline-danger">Exit</button>
+            </Link>
             <a className="navbar-brand" href="#">
-            <img src={Logo} width="300" height="auto" className="d-inline-block align-left" alt=""/>
+            <img src={Logo} width="300" height="auto" className="d-inline-block align-left me-3" alt=""/>
               TaleMate
             </a>
     </nav>
