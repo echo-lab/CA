@@ -1,9 +1,85 @@
 
-.row1 {
+/* One slim bar replaces the old 75px navbar row plus the 78px page-turn row.
+   Grid, not flex: three columns with two children centres the pager optically
+   without a spacer element. */
+.storybar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: var(--storybar-h);
+  padding-top: var(--storybar-top);
+  margin-bottom: var(--storybar-gap);
+}
+
+.storybar-pager {
   display: flex;
   align-items: center;
-  justify-content: space-between;
- height: 75px;
+  gap: 8px;
+}
+
+/* No page to turn to, so the chevron goes away rather than sitting there greyed
+   out. visibility, not display: the button keeps its slot, so the page label
+   stays put instead of sliding when the first or last page is reached. It also
+   stays in the DOM and stays disabled, which is what logGeneration.js reads. */
+.storybar-pager .storybar-btn:disabled {
+  visibility: hidden;
+}
+
+/* Secondary by colour, never by size: a child's finger gets well past the 44px
+   minimum. Bootstrap's default .btn padding only yields ~38px.
+
+   Colour is decided here rather than by a btn-outline-* class in the JSX.
+   Bootstrap 5.3 drives .btn entirely from these --bs-btn-* vars, so restating
+   the full set buys every interaction state (hover, active, focus ring,
+   disabled) without hand-writing those rules. Everything derives from
+   --storybar-ink, so one hue per button is the only knob. */
+.storybar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0;
+  line-height: 1;
+
+  --bs-btn-color: var(--storybar-ink);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: var(--storybar-ink);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--storybar-ink);
+  --bs-btn-hover-border-color: var(--storybar-ink);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--storybar-ink);
+  --bs-btn-active-border-color: var(--storybar-ink);
+  --bs-btn-disabled-color: var(--storybar-ink);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: var(--storybar-ink);
+  --bs-btn-focus-shadow-rgb: var(--storybar-ink-rgb);
+}
+
+/* The glyph has to grow with the box or the button reads as mostly empty. */
+.storybar-btn .MuiSvgIcon-root {
+  font-size: 1.75rem;
+}
+
+/* Without justify-self the button stretches across the whole 1fr grid column.
+   Kept a step below the pager, and grey rather than blue, so leaving the book
+   never competes with turning a page. */
+.storybar-home {
+  justify-self: start;
+  min-width: 50px;
+  min-height: 50px;
+  --storybar-ink: var(--storybar-ink-home);
+  --storybar-ink-rgb: var(--storybar-ink-home-rgb);
+}
+
+.storybar-page {
+  min-width: 9ch;          /* fixed width stops the chevrons shifting at page 10 */
+  text-align: center;
+  font-size: 1rem;
+  color: var(--storybar-ink-page);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
 .wrapper {
@@ -21,6 +97,18 @@
 }
 
 .reader-container {
+ --storybar-h: 72px;
+ --storybar-gap: 25px;
+ --storybar-top: env(safe-area-inset-top, 0px);
+
+ /* Storybar palette — the only place header colours are set. The -rgb twins are
+    the same colour as bare channels, which is the format Bootstrap's focus-ring
+    shadow expects. Keep each pair in sync. */
+ --storybar-ink: #0d6efd;             /* pager chevrons, blue */
+ --storybar-ink-rgb: 13, 110, 253;
+ --storybar-ink-home: #6c757d;        /* home button, grey */
+ --storybar-ink-home-rgb: 108, 117, 125;
+ --storybar-ink-page: #495057;        /* "Page 1 of 12" label */
  position: relative;
  max-height: 100vh;
  max-height: 100dvh;
@@ -35,9 +123,11 @@ overflow: auto;
  align-items: center;
 }
 
+/* Subtracts the bar, then reserves clearance for .navigation-buttons, which is
+   pinned to the bottom of .reader-container and floats over this column. */
 .table-container {
-  max-height: calc(100vh - 200px);
-  max-height: calc(100dvh - 200px);
+  max-height: calc(100vh - var(--storybar-h) - var(--storybar-gap) - 72px);
+  max-height: calc(100dvh - var(--storybar-h) - var(--storybar-gap) - var(--storybar-top) - 72px);
   overflow-y: auto;
   scroll-behavior: smooth;
 }
@@ -118,12 +208,6 @@ img {
   border-image: conic-gradient(var(--c) 0 0) fill 0/
     calc(var(--p) - var(--b)/2) var(--r) calc(100% - var(--p) - var(--b)/2) 0/
     0 0 0 var(--h);
-}
-
-.row1 {
-  display: flex;
-  align-items: start; /* Align to the top */
-  justify-content: start; /* Align to the left */
 }
 
 
@@ -343,25 +427,6 @@ img {
   background: linear-gradient(45deg, rgba(0, 255, 50, 0.2), rgba(0, 200, 50, 0.3));
 }
 
-
-.navigation-buttons-container {
-  display: flex;
-  align-items: center;
-  /* ... any other styles ... */
-}
-
-
-.next-page-button, .previous-page-button {
-  /* Removed the position absolute and added some margin for spacing */
-  margin: 0 10px; /* Adjust the margin as needed */
-}
-
-
-.navigation-buttons-container {
-  display: flex;
-  justify-content: flex-end; /* Align buttons to the right */
-  padding: 20px; /* Add padding as needed */
-}
 
 .play-sound-button {
   /* Style your button as needed */

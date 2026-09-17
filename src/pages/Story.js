@@ -1,10 +1,12 @@
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
 import React, { useState, useRef, useEffect } from "react";
-import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import HomeIcon from "@mui/icons-material/Home";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import { useHotkeys } from "react-hotkeys-hook";
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ReactScrollableFeed from 'react-scrollable-feed';
 // Book Data
 import { data as data1 } from "../Book/Book1";
@@ -999,38 +1001,48 @@ function Reader() {
       <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
 
 
-      <div className="navbar navbar-light bg-light row1">
-        <div className="home btn col-1">
-          <Link to={{ pathname: "/Home", state: { id: 1 } }}>
-            <button className="btn btn-primary">
-              <i>
-                <KeyboardDoubleArrowLeftIcon />
-              </i>
-            </button>
-          </Link>
+      <header className="storybar bg-light border-bottom px-3">
+        <button
+          type="button"
+          className="storybar-btn storybar-home btn"
+          aria-label="Back to the book list"
+          onClick={() => navigate('/Home', { state: { name } })}
+        >
+          <HomeIcon />
+        </button>
+
+        <div className="storybar-pager">
+          <button
+            type="button"
+            className="storybar-btn btn previous-page-button"
+            aria-label="Previous page"
+            onClick={gotoPreviousPage}
+            disabled={state.page === 0}
+          >
+            <ChevronLeftIcon />
+          </button>
+
+          <span className="storybar-page" aria-live="polite">
+            Page {state.page + 1} of {state.pagesValues.length}
+          </span>
+
+          <button
+            type="button"
+            className="storybar-btn btn next-page-button"
+            aria-label="Next page"
+            onClick={gotoNextPage}
+            disabled={state.page >= state.pagesValues.length - 1}
+          >
+            <ChevronRightIcon />
+          </button>
         </div>
-      </div>
-
-    <div className="navigation-buttons-container">
-
-      <button
-        onClick={gotoPreviousPage}
-        className="btn btn-primary previous-page-button"
-        disabled={state.page === 0}
-      >Previous Page</button>
-
-      <button
-        onClick={gotoNextPage}
-        className="btn btn-primary next-page-button"
-        disabled={state.page >= state.pagesValues.length - 1}
-      >Next Page</button>
-    </div>
+      </header>
 
     <div className="row">
       <div className="col-md-5">
         <div
           style={{
-            position: 'relative', display: 'inline-block', width: '100%',
+            position: 'relative', display: 'inline-block', width: '105%',
             cursor: clickAnswersQuestion ? POINT_CURSOR : 'default',
           }}
           onClick={clickAnswersQuestion ? handleImageAnswerClick : undefined}
