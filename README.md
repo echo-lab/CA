@@ -97,3 +97,31 @@ Runs the React frontend and Express backend in parallel.
      --ssl-key ../../cert/key3.pem \
      -l 443
    ```
+
+### Keeping it up across reboots (pm2)
+
+`ecosystem.config.js` in `react-text-to-speech/` defines both processes
+(`talemate-api`, `talemate-web`). Do steps 1-4 above (`.env.local`, `npm run build`)
+first, then add them to the pm2 list that already runs on this VM:
+
+```
+cd react-text-to-speech
+pm2 start ecosystem.config.js
+pm2 save          # snapshot the whole list -- run it while the other apps are up
+```
+
+`pm2 save` is what survives the reboot; re-run it after any `pm2 start`/`delete`.
+`pm2 startup` is already installed on this VM, so don't re-run it.
+
+One catch: `talemate-web` binds :443, which a non-root pm2 daemon can't do. Rather
+than starting a second pm2 daemon under root (separate list, separate `pm2 save`,
+separate startup unit), grant the port to node once:
+
+```
+sudo setcap cap_net_bind_service=+ep "$(readlink -f "$(which node)")"
+```
+
+Redo that after a node upgrade -- if :443 starts failing with `EACCES`, that's why.
+
+Useful afterwards: `pm2 ls`, `pm2 logs talemate-api`,
+`pm2 restart talemate-api talemate-web` (picks up a new `npm run build` / `.env.local`).
