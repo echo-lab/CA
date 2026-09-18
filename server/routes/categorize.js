@@ -16,7 +16,8 @@ const {
 } = require('../lib/prompts');
 const { buildOpenAIDynamicPagePayload } = require('../lib/payloads');
 const {
-    resolveClickMode,
+    MODES,
+    resolveQuestionMode,
     buildQuestionMessages,
     sanitizeMessagesForDebug,
     resolveQuestion,
@@ -79,9 +80,9 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             },
         ];
 
-        const { clickMode, clickLabels, wanted: wantsClick } = resolveClickMode(clickTags);
-        if (wantsClick && !clickMode) {
-            tlog(`coin flip wanted a click question but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
+        const { mode, labels, wanted } = resolveQuestionMode(clickTags);
+        if (wanted !== mode) {
+            tlog(`roll wanted a ${wanted} question but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
         }
 
         const questionMessages = buildQuestionMessages({
@@ -95,7 +96,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             questionHistory,
             systemQuestions,
             clickTags,
-            clickMode,
+            mode,
         });
 
         // Dump the question call's messages to the debug monitor verbatim. Only the
@@ -234,23 +235,29 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
 
         // Categorization done — decide whether to use or cancel question generation
         // const hasOnTopic = items.some(i => i.category === 'ON_TOPIC');
-        let { generatedQuestion, expectedAnswer, answerLabel, answerBox } =
-            { generatedQuestion: null, expectedAnswer: null, answerLabel: null, answerBox: null };
+        let { generatedQuestion, expectedAnswer, answerLabel, answerBox, referentLabel, referentBox } = {
+            generatedQuestion: null,
+            expectedAnswer: null,
+            answerLabel: null,
+            answerBox: null,
+            referentLabel: null,
+            referentBox: null,
+        };
 
         if (hasOnTopic) {
             const qResult = await questionPromise;
             tlog('question generation complete');
             logOpenAIUsage('cat-stream/question', qResult?.usage);
-            ({ generatedQuestion, expectedAnswer, answerLabel, answerBox } = resolveQuestion(
+            ({ generatedQuestion, expectedAnswer, answerLabel, answerBox, referentLabel, referentBox } = resolveQuestion(
                 qResult?.choices[0]?.message?.content,
-                { clickMode, clickTags, clickLabels, log: tlog },
+                { mode, clickTags, labels, log: tlog },
             ));
         } else {
             questionAbortController.abort();
             tlog('question generation aborted (no ON_TOPIC)');
         }
 
-        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion, expectedAnswer, answerLabel, answerBox })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion, expectedAnswer, answerLabel, answerBox, referentLabel, referentBox })}\n\n`);
 
         await streamQuestionAudio(res, {
             text: generatedQuestion,

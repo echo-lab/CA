@@ -2,7 +2,15 @@
  * A click answers a click question by landing on the tagged region. Tolerance
  * forgives aim, not intent — the interesting cases are all about that line.
  */
-import { assessClick, distanceToBox, expandBox, isClickInsideBox, CLICK_TOLERANCE } from '../clickGeometry';
+import {
+  assessClick,
+  distanceToBox,
+  expandBox,
+  isClickInsideBox,
+  referentEllipse,
+  CLICK_TOLERANCE,
+  REFERENT_MIN_SPAN,
+} from '../clickGeometry';
 
 // TARGET spans y 10-30%, x 20-40%. NEIGHBOUR sits just to its right at x 41-60%,
 // close enough that a generous margin around TARGET would otherwise reach it.
@@ -100,5 +108,49 @@ describe('assessClick tolerance', () => {
   test('a missing box is a miss, not a crash', () => {
     expect(assessClick({ box: null, tags: TAGS, xPct: 30, yPct: 20 }))
       .toMatchObject({ correct: false, reason: 'no_box' });
+  });
+});
+
+describe('referentEllipse', () => {
+  test('grows past the box so the object is not clipped by the ring', () => {
+    const ring = referentEllipse(TARGET);
+    // TARGET spans y 10-30%, x 20-40%. An ellipse inscribed in exactly that box
+    // would cut the object's corners, so the ring must be strictly larger.
+    expect(ring.heightPct).toBeGreaterThan(20);
+    expect(ring.widthPct).toBeGreaterThan(20);
+    // ...and stay centred on the thing it is circling.
+    expect(ring.topPct + ring.heightPct / 2).toBeCloseTo(20, 5);
+    expect(ring.leftPct + ring.widthPct / 2).toBeCloseTo(30, 5);
+  });
+
+  test('follows the box aspect rather than forcing a circle', () => {
+    // A wide, short tag: a true circle containing it would swallow its neighbours.
+    const ring = referentEllipse([400, 100, 460, 900]);
+    expect(ring.widthPct).toBeGreaterThan(ring.heightPct * 3);
+  });
+
+  test('a hairline tag still gets a ring a child can see', () => {
+    const ring = referentEllipse([500, 100, 504, 900]);
+    expect(ring.heightPct).toBeGreaterThanOrEqual(REFERENT_MIN_SPAN / 10);
+  });
+
+  test('stays inside the image, since the page image does not clip overflow', () => {
+    for (const box of [[0, 0, 80, 80], [920, 920, 1000, 1000], [0, 400, 1000, 600]]) {
+      const ring = referentEllipse(box);
+      expect(ring.topPct).toBeGreaterThanOrEqual(0);
+      expect(ring.leftPct).toBeGreaterThanOrEqual(0);
+      expect(ring.topPct + ring.heightPct).toBeLessThanOrEqual(100);
+      expect(ring.leftPct + ring.widthPct).toBeLessThanOrEqual(100);
+    }
+  });
+
+  test('a degenerate or missing box draws nothing rather than a broken ring', () => {
+    // The tag list reaching the renderer is not filtered the way the server filters
+    // answers, so these have to be survivable here.
+    expect(referentEllipse(null)).toBeNull();
+    expect(referentEllipse([1, 2])).toBeNull();
+    expect(referentEllipse([400, 400, 100, 100])).toBeNull(); // corners swapped
+    expect(referentEllipse([10, 10, 10, 400])).toBeNull();    // zero height
+    expect(referentEllipse(['a', 'b', 'c', 'd'])).toBeNull();
   });
 });

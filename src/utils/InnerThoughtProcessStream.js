@@ -77,7 +77,8 @@ const categorizeOffScriptUtterancesStreaming = async (
             if (delivered || !pending) return;
             delivered = true;
             if (typeof onQuestionReady !== 'function') return;
-            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete); }
+            // referent is appended last so existing argument positions are untouched.
+            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete, pending.referent); }
             catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
         };
 
@@ -105,12 +106,19 @@ const categorizeOffScriptUtterancesStreaming = async (
                         if (generatedQuestion) {
                             // answerBox is the tag's own region — the click hit test
                             // uses it verbatim, so it must survive to the caller.
+                            // referentBox is the opposite: the region the question is
+                            // ABOUT, circled while it is asked. The server sends at
+                            // most one of the two, never both.
                             pending = {
                                 question: generatedQuestion,
                                 expectedAnswer: parsed.expectedAnswer ?? null,
                                 click: {
                                     answerLabel: parsed.answerLabel ?? null,
                                     answerBox: parsed.answerBox ?? null,
+                                },
+                                referent: {
+                                    referentLabel: parsed.referentLabel ?? null,
+                                    referentBox: parsed.referentBox ?? null,
                                 },
                             };
                         }
@@ -413,7 +421,8 @@ const generateQuestionOnDemand = async ({
             if (delivered || !pending) return;
             delivered = true;
             if (typeof onQuestionReady !== 'function') return;
-            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete); }
+            // referent is appended last so existing argument positions are untouched.
+            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete, pending.referent); }
             catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
         };
 
@@ -440,6 +449,10 @@ const generateQuestionOnDemand = async ({
                                 click: {
                                     answerLabel: parsed.answerLabel ?? null,
                                     answerBox: parsed.answerBox ?? null,
+                                },
+                                referent: {
+                                    referentLabel: parsed.referentLabel ?? null,
+                                    referentBox: parsed.referentBox ?? null,
                                 },
                             };
                         }

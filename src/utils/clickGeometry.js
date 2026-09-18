@@ -54,6 +54,47 @@ export function expandBox(box, tolerance = CLICK_TOLERANCE) {
   ];
 }
 
+// How far the referent ring is grown past the tag's box, as a fraction of each
+// span. An ellipse inscribed in the tight box is SMALLER than the box — its corners
+// fall outside — so a balloon that fills its box would have its edges poking out of
+// the ring. Growing it puts the whole object inside the circle.
+export const REFERENT_INFLATE = 0.18;
+
+// Floor on each span, in normalized units, so a thin tag (a streamer, a table edge)
+// still gets a ring a child can see rather than a hairline.
+export const REFERENT_MIN_SPAN = 60;
+
+// The ellipse drawn around the thing a pointing question is about, as percentages
+// of the rendered image so the caller can hand them straight to CSS.
+//
+// Aspect follows the box rather than forcing a true circle: a circle sized to
+// contain a 4:1 box has a radius of half its diagonal, which swallows whatever sits
+// next to it — reintroducing the ambiguity the box was chosen to avoid.
+//
+// Clamped to the image because the page image has no `overflow: hidden`: an
+// unclamped ring near an edge would bleed out of the illustration onto the layout.
+export function referentEllipse(box, { inflate = REFERENT_INFLATE, minSpan = REFERENT_MIN_SPAN } = {}) {
+  if (!Array.isArray(box) || box.length < 4) return null;
+  const [y0, x0, y1, x1] = box.map(Number);
+  if (![y0, x0, y1, x1].every(Number.isFinite)) return null;
+  if (y1 <= y0 || x1 <= x0) return null;
+
+  const grow = (lo, hi) => {
+    const mid = (lo + hi) / 2;
+    const span = Math.max((hi - lo) * (1 + inflate), minSpan);
+    return [Math.max(0, mid - span / 2), Math.min(1000, mid + span / 2)];
+  };
+
+  const [top, bottom] = grow(y0, y1);
+  const [left, right] = grow(x0, x1);
+  return {
+    topPct: top / 10,
+    leftPct: left / 10,
+    heightPct: (bottom - top) / 10,
+    widthPct: (right - left) / 10,
+  };
+}
+
 function usable(tags) {
   return (Array.isArray(tags) ? tags : []).filter((t) => {
     const b = t?.box_2d;

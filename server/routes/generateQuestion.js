@@ -9,7 +9,7 @@ const {
     bedrockOffscript,
 } = require('../lib/openai');
 const {
-    resolveClickMode,
+    resolveQuestionMode,
     buildQuestionMessages,
     sanitizeMessagesForDebug,
     resolveQuestion,
@@ -49,9 +49,9 @@ router.post('/api/generate-question-stream', async (req, res) => {
     } = req.body;
 
     try {
-        const { clickMode, clickLabels, wanted: wantsClick } = resolveClickMode(clickTags);
-        if (wantsClick && !clickMode) {
-            tlog(`coin flip wanted a click question but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
+        const { mode, labels, wanted } = resolveQuestionMode(clickTags);
+        if (wanted !== mode) {
+            tlog(`roll wanted a ${wanted} question but no usable tags (${(clickTags || []).length} received) — falling back to a spoken question`);
         }
 
         const messages = buildQuestionMessages({
@@ -65,7 +65,7 @@ router.post('/api/generate-question-stream', async (req, res) => {
             questionHistory,
             systemQuestions,
             clickTags,
-            clickMode,
+            mode,
         });
 
         res.write(`data: ${JSON.stringify({
@@ -73,7 +73,7 @@ router.post('/api/generate-question-stream', async (req, res) => {
             messages: sanitizeMessagesForDebug(messages),
         })}\n\n`);
 
-        tlog(`requesting a question on demand (clickMode=${clickMode}, utterances=${formattedUtterances ? 'yes' : 'none'})`);
+        tlog(`requesting a question on demand (mode=${mode}, utterances=${formattedUtterances ? 'yes' : 'none'})`);
         const result = await offscript.chat.completions.create({
             model: OPENAI_OFFSCRIPT_MODEL,
             max_completion_tokens: 512,
@@ -86,15 +86,15 @@ router.post('/api/generate-question-stream', async (req, res) => {
         });
         logOpenAIUsage('gen-question', result?.usage);
 
-        const { generatedQuestion, expectedAnswer, answerLabel, answerBox } = resolveQuestion(
+        const { generatedQuestion, expectedAnswer, answerLabel, answerBox, referentLabel, referentBox } = resolveQuestion(
             result?.choices?.[0]?.message?.content,
-            { clickMode, clickTags, clickLabels, log: tlog },
+            { mode, clickTags, labels, log: tlog },
         );
 
         if (!generatedQuestion) {
             tlog('no usable question produced');
         }
-        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion, expectedAnswer, answerLabel, answerBox })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', generatedQuestion, expectedAnswer, answerLabel, answerBox, referentLabel, referentBox })}\n\n`);
 
         await streamQuestionAudio(res, {
             text: generatedQuestion,

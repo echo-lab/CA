@@ -1,6 +1,6 @@
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import HomeIcon from "@mui/icons-material/Home";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -29,7 +29,7 @@ import * as studyLog from "../utils/studyLog";
 import { getRoleKind } from "../utils/roles";
 import { roles as MATE_DEFINITIONS } from "../Book/Roles";
 import { generateQuestionOnDemand } from "../utils/InnerThoughtProcessStream";
-import { assessClick } from "../utils/clickGeometry";
+import { assessClick, referentEllipse } from "../utils/clickGeometry";
 
 class Book {
   constructor(data) {
@@ -258,6 +258,11 @@ function Reader() {
   // The tag whose region answers the pending click question. Null on every other
   // book and whenever the pending question is a spoken one.
   const [clickTarget, setClickTarget] = useState(null);
+  // The tag the pending question is ABOUT, circled on the illustration while it is
+  // asked. The exact opposite of clickTarget: that one is the answer and must stay
+  // hidden, this one is the subject and must be shown. The server sends at most one
+  // of the two, and setQuestionTargets keeps that guarantee on this side.
+  const [referentTarget, setReferentTarget] = useState(null);
   const userAttentionRef = useRef(null);
   const questionHistoryRef = useRef([]);
   const lastAskedQuestionRef = useRef(null);
@@ -363,6 +368,7 @@ function Reader() {
     setAwaitingQuestionAnswer(false);
     setGeneratedQuestion(null);
     setClickTarget(null);
+    setReferentTarget(null);
     setGeneratingQuestion(false);
     resetGeneratedQuestionState();
     setIsCategorizationPending(false);
@@ -394,9 +400,30 @@ function Reader() {
     }
   };
 
+  // Every question sets both targets, so neither can survive from the question
+  // before it. A click box must never be circled — it is the answer the child was
+  // asked to find — so a click question wins and clears any referent outright,
+  // rather than trusting the server to have sent only one.
+  const setQuestionTargets = useCallback((click, referent) => {
+    const clickBox = click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null;
+    const referentBox = (!clickBox && referent?.referentBox)
+      ? { label: referent.referentLabel, box_2d: referent.referentBox }
+      : null;
+    setClickTarget(clickBox);
+    setReferentTarget(referentBox);
+  }, []);
+
   // A click question is answered by clicking the picture, not by talking. The
   // click counts only while that question is actually pending an answer.
   const clickAnswersQuestion = !!clickTarget && inAcknowledgementLoop && !answerSubmitted;
+
+  // The ring goes up the moment the question is ready — which is also when it starts
+  // being spoken — and comes down once the child has answered, so it is on screen for
+  // exactly as long as "this one" means anything.
+  const referentRing = useMemo(
+    () => (referentTarget && !answerSubmitted ? referentEllipse(referentTarget.box_2d) : null),
+    [referentTarget, answerSubmitted],
+  );
 
   // Correctness is decided purely by the tag's own box: the click is converted to
   // a percentage of the rendered image and tested against the stored coordinates.
@@ -494,7 +521,7 @@ function Reader() {
         systemQuestions: stateRef.current.pagesValues.map(p => (p?.question || '').trim()).filter(Boolean),
         clickTags: imageTags,
         ttsVoiceName: narratorRole?.VA || null,
-        onQuestionReady: (questionText, expectedAnswer, click, audioChunks, reason, audioComplete = true) => {
+        onQuestionReady: (questionText, expectedAnswer, click, audioChunks, reason, audioComplete = true, referent = null) => {
           // The reader may have moved on while the model was thinking.
           if (stateRef.current.page !== pageIndex) return;
           const questionId = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -507,7 +534,7 @@ function Reader() {
             reason: 'manual',
           });
           lastExpectedAnswerRef.current = expectedAnswer ?? null;
-          setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
+          setQuestionTargets(click, referent);
           setGeneratingQuestion(false);
           startGeneratedQuestion(questionText, { questionId, audioChunks, audioComplete });
         },
@@ -610,6 +637,7 @@ function Reader() {
     lastAskedQuestionRef.current = null;
     setImageTags([]);
     setClickTarget(null);
+    setReferentTarget(null);
     if (state.page > 0) {
       imageDescriptionRef.current = ImageAnalysis({ book: id, page: state.page, pageText });
       ImageTagging({ book: id, page: state.page, pageText }).then(tags => setImageTags(tags));
@@ -776,7 +804,7 @@ function Reader() {
         if (result?.sourcePage !== stateRef.current.page) return;
         setIsCategorizationPending(false);
       },
-      onQuestionReady: (questionText, expectedAnswer = null, click = null, audioChunks = [], reason = '', audioComplete = true) => {
+      onQuestionReady: (questionText, expectedAnswer = null, click = null, audioChunks = [], reason = '', audioComplete = true, referent = null) => {
         if (!questionGenEnabledRef.current) return;
 
         // Logged before the suppression check so the record reflects every
@@ -817,9 +845,9 @@ function Reader() {
           return;
         }
         lastExpectedAnswerRef.current = expectedAnswer;
-        // Present only for a click question, and always a real tag's box — the
-        // server drops any question whose label was not in the tag list.
-        setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
+        // Always a real tag's box, whichever kind it is — the server drops any
+        // question whose label was not in the tag list.
+        setQuestionTargets(click, referent);
         startGeneratedQuestion(questionText, { questionId, audioChunks, audioComplete });
       },
       imageDescriptionRef,
@@ -1084,6 +1112,17 @@ function Reader() {
                 />
               );
             })}
+            {/* The thing the pending question is about, circled while it is asked.
+                Never drawn for a click question: that box is the answer. */}
+            {referentRing && (
+              <div
+                className="referent-ring"
+                style={{
+                  top: `${referentRing.topPct}%`, left: `${referentRing.leftPct}%`,
+                  height: `${referentRing.heightPct}%`, width: `${referentRing.widthPct}%`,
+                }}
+              />
+            )}
         </div>
         <QuestionAvatar
           questionHistory={questionHistory}

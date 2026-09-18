@@ -64,6 +64,30 @@ The <tappable_objects> block lists every object that has a clickable region on t
 Output JSON only. No explanation, no preface:
 {"question":"<the question>","answer_label":"<the exact label copied from tappable_objects>"}`;
 
+const POINT_QUESTION_PROMPT = `Task: generate one short, engaging follow-up question for a preschooler about ONE object that will be circled on the illustration. Include the object you picked and the answer you expect.
+
+The <visible_objects> block lists every object that has a marked region on this page. Pick exactly one and copy its label character for character into "referent_label".
+- Never invent an object, and never pick something you can see in the picture but that is not in the list.
+- The child SEES the object circled while you ask, so refer to it with "this" or "that": "What colour is this balloon?", "What is that bird holding?".
+- Use only the name part of the label in your question, never the description after the dash. The label "balloon - red one held by Clara" is spoken as "this balloon".
+
+The circled object is the SUBJECT of the question, never the answer:
+- The child must not have to find or identify the object. It is already circled for them.
+- Ask about a property of it, or what it is doing: its colour, size, shape, number, position, mood, or action.
+- The answer must be a spoken word or short phrase. Never ask the child to click, tap, point, or move.
+
+- Example of a good question: "What colour is this balloon?" referent "balloon - red one held by Clara", expected answer "red"
+- Example of a good question: "What is this parrot carrying?" referent "Zoe - parrot holding a streamer", expected answer "a streamer"
+- Example of a bad question: "Which balloon is red?" (the circled object IS the answer, so the question is already solved)
+- Example of a bad question: "What is this?" (naming the circled object is not worth asking)
+- Example of a bad question: "How many balloons are there?" (about the whole page, not the one circled object)
+
+The <system_questions> block lists questions already authored for this book. Do not overlap with them.
+The <generated_question_list> block lists questions already generated. Do not generate a question that overlaps with any of them.
+
+Output JSON only. No explanation, no preface:
+{"question":"<the question>","referent_label":"<the exact label copied from visible_objects>","expected_answer":"<short spoken answer>"}`;
+
 const QUESTION_ASSESSMENT_PROMPT = `Task: assess the user's answer compare to the generated question if it is a reasonable answer or not based on current page text and image context.
 Give a confidence score from 1 to 10, where 1 is very low confidence and 10 is very high confidence that the answer is reasonable. Depending on the confidence score, give a short assessment.
 Warmly affirm what the child said. Do not ask a new question.
@@ -139,6 +163,7 @@ module.exports = {
     OFFSCRIPT_CATEGORIZATION_PROMPT,
     FOLLOWUP_QUESTION_PROMPT,
     CLICK_QUESTION_PROMPT,
+    POINT_QUESTION_PROMPT,
     ACKNOWLEDGEMENT_PROMPT,
     GEMINI_IMAGE_CHARACTER_RULES,
     GEMINI_IMAGE_ANALYSIS_PROMPT,

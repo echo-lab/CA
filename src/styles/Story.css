@@ -877,6 +877,65 @@ img {
   }
 }
 
+/* Circles the thing a pointing question is about, while it is being asked.
+   Deliberately NOT the coach-mark look (a bright target over a dimmed page): the
+   illustration is a tap-to-answer surface for click questions, and a marker that
+   reads as "press here" would have the child answering with a finger while the
+   turn waits on speech. An outline that glows says "I mean this one" instead.
+   Highlighter yellow, for the same reason a highlighter pen is: it marks without
+   claiming to be part of the picture. */
+.referent-ring {
+  position: absolute;
+  border: 4px solid rgba(255, 208, 40, 0.98);
+  border-radius: 50%;
+  /* These pages carry plenty of their own yellow — stars, party hats, the parrot's
+     feathers — and a bare yellow ring disappears against them. The thin dark rims
+     either side of the border keep its edge readable on any background. */
+  outline: 2px solid rgba(90, 60, 0, 0.55);
+  outline-offset: -6px;
+  /* Nothing here is interactive. Without this the ring sits over the tag hotspots
+     and swallows the clicks that record what the child is looking at. */
+  pointer-events: none;
+  box-sizing: border-box;
+  animation:
+    referent-ring-in 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    referent-ring-pulse 1.8s ease-in-out 0.35s infinite;
+}
+
+@keyframes referent-ring-in {
+  from { opacity: 0; transform: scale(1.25); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Glow is outward only. An inset glow fills the ellipse with a yellow wash, which on
+   a wide or large ring tints the illustration and dims the very object the child has
+   to look at to answer — the scrim effect this treatment exists to avoid. The dark
+   outer layer is what makes the ring carry across a pale background. */
+@keyframes referent-ring-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(90, 60, 0, 0.4),
+      0 0 14px 3px rgba(255, 190, 40, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(90, 60, 0, 0.45),
+      0 0 26px 8px rgba(255, 208, 60, 0.9),
+      0 0 52px 18px rgba(255, 180, 20, 0.5);
+  }
+}
+
+/* Children who are sensitive to motion still need to see which thing is meant, so
+   the ring stays — only the pulsing stops. */
+@media (prefers-reduced-motion: reduce) {
+  .referent-ring {
+    animation: none;
+    box-shadow:
+      0 0 0 1px rgba(90, 60, 0, 0.45),
+      0 0 20px 6px rgba(255, 200, 50, 0.75);
+  }
+}
+
 @keyframes question-slide-in {
   from {
     transform: translateX(-110%);

@@ -6,14 +6,18 @@ const {
     JENNIE_SHARED_PROMPT_PREFIX,
     FOLLOWUP_QUESTION_PROMPT,
     CLICK_QUESTION_PROMPT,
+    POINT_QUESTION_PROMPT,
 } = require('./prompts');
 const { buildOpenAIDynamicPagePayload } = require('./payloads');
 const { buildPageImageMessage } = require('./pageImage');
 const { parseJsonFromModelText } = require('./modelParsing');
 const {
-    resolveClickMode,
+    MODES,
+    resolveQuestionMode,
     buildTappableObjectsBlock,
+    buildVisibleObjectsBlock,
     resolveClickAnswer,
+    resolvePointReferent,
 } = require('./clickAnswer');
 const { generateGeminiTtsChunks } = require('../liveTTS');
 
@@ -21,6 +25,12 @@ const { generateGeminiTtsChunks } = require('../liveTTS');
 // rather than provoked by something said. An empty block reads as "they said
 // nothing worth using"; this says there was no conversation to draw on at all.
 const NO_UTTERANCES = '(none — no conversation to draw on yet; use the page text and illustration)';
+
+const MODE_PROMPTS = {
+    [MODES.CLICK]: CLICK_QUESTION_PROMPT,
+    [MODES.POINT]: POINT_QUESTION_PROMPT,
+    [MODES.SPOKEN]: FOLLOWUP_QUESTION_PROMPT,
+};
 
 function buildQuestionMessages({
     book,
@@ -33,18 +43,26 @@ function buildQuestionMessages({
     questionHistory,
     systemQuestions,
     clickTags,
-    clickMode,
+    mode,
 }) {
     const pageImageMessage = buildPageImageMessage(book, currentPageNumber);
+    // Both image modes need the label list; a plain spoken question has nothing to
+    // pick from and is only confused by one.
+    const labelBlock = mode === MODES.CLICK ? `\n${buildTappableObjectsBlock(clickTags)}`
+        : mode === MODES.POINT ? `\n${buildVisibleObjectsBlock(clickTags)}`
+        : '';
     return [
         { role: 'developer', content: JENNIE_SHARED_PROMPT_PREFIX },
-        { role: 'developer', content: clickMode ? CLICK_QUESTION_PROMPT : FOLLOWUP_QUESTION_PROMPT },
+        { role: 'developer', content: MODE_PROMPTS[mode] || FOLLOWUP_QUESTION_PROMPT },
         ...(pageImageMessage ? [pageImageMessage] : []),
         {
             role: 'user',
             content: buildOpenAIDynamicPagePayload({
                 currentPageQuestion,
-                bookText: clickMode && Math.random() < 0.5 ? '' : bookText,
+                // Click questions only: withholding the page text half the time stops
+                // the answer being readable rather than findable. A pointing question
+                // is about the picture either way, so its text always goes.
+                bookText: mode === MODES.CLICK && Math.random() < 0.5 ? '' : bookText,
                 currentPageNumber,
                 imageDescription,
                 userAttention,
@@ -52,7 +70,7 @@ function buildQuestionMessages({
                 formattedUtterances: String(formattedUtterances || '').trim() || NO_UTTERANCES,
                 questionHistory,
                 systemQuestions,
-            }) + (clickMode ? `\n${buildTappableObjectsBlock(clickTags)}` : ''),
+            }) + labelBlock,
         },
     ];
 }
@@ -77,12 +95,19 @@ function withClickSuffix(question) {
     return `${q} ${CLICK_SUFFIX}`;
 }
 
-function resolveQuestion(rawQuestion, { clickMode, clickTags, clickLabels, log = () => {} }) {
+function resolveQuestion(rawQuestion, { mode, clickTags, labels, log = () => {} }) {
     const raw = String(rawQuestion || '').trim();
-    const empty = { generatedQuestion: null, expectedAnswer: null, answerLabel: null, answerBox: null };
+    const empty = {
+        generatedQuestion: null,
+        expectedAnswer: null,
+        answerLabel: null,
+        answerBox: null,
+        referentLabel: null,
+        referentBox: null,
+    };
     if (!raw) return empty;
 
-    if (clickMode) {
+    if (mode === MODES.CLICK) {
         // The answer is the tag's own box, never anything the model wrote. A label
         // that is not a real tag has no clickable region, so the question is
         // dropped rather than asked unanswerably.
@@ -90,17 +115,42 @@ function resolveQuestion(rawQuestion, { clickMode, clickTags, clickLabels, log =
         if (!click) {
             console.warn('[questionGen] click question rejected — label not in tag list', {
                 raw: raw.slice(0, 200),
-                labels: clickLabels,
+                labels,
             });
             return empty;
         }
         const question = withClickSuffix(click.question);
         log(`click question -> "${question}" (answer: "${click.answerLabel}" at [${click.answerBox}])`);
         return {
+            ...empty,
             generatedQuestion: question,
             expectedAnswer: click.answerLabel,
             answerLabel: click.answerLabel,
             answerBox: click.answerBox,
+        };
+    }
+
+    if (mode === MODES.POINT) {
+        // The referent is the SUBJECT of the question, so unlike a click answer it is
+        // never what the child has to produce — they answer in words about the thing
+        // already circled for them. An unmatched label is dropped for the same reason
+        // click mode drops one: "what colour is this balloon?" with no balloon
+        // circled is worse than asking nothing.
+        const point = resolvePointReferent(raw, clickTags);
+        if (!point) {
+            console.warn('[questionGen] pointing question rejected — label not in tag list', {
+                raw: raw.slice(0, 200),
+                labels,
+            });
+            return empty;
+        }
+        log(`point question -> "${point.question}" (referent: "${point.referentLabel}" at [${point.referentBox}])`);
+        return {
+            ...empty,
+            generatedQuestion: point.question,
+            expectedAnswer: point.expectedAnswer,
+            referentLabel: point.referentLabel,
+            referentBox: point.referentBox,
         };
     }
 
@@ -147,7 +197,8 @@ async function streamQuestionAudio(res, { text, voiceName, tag = 'question', log
 
 module.exports = {
     NO_UTTERANCES,
-    resolveClickMode,
+    MODES,
+    resolveQuestionMode,
     buildQuestionMessages,
     sanitizeMessagesForDebug,
     resolveQuestion,
