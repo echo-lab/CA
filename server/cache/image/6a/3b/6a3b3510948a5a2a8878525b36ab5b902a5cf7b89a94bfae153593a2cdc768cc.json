@@ -1,52 +1,61 @@
 {
-  "createdAt": 1787350644568,
+  "createdAt": 1790087749809,
   "book": "1",
   "page": "4",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with wings spread",
+        "label": "Zoe - large red parrot with colorful wings, wearing a party hat",
         "box_2d": [
-          108,
-          178,
-          878,
-          869
+          109,
+          61,
+          943,
+          872
         ]
       },
       {
-        "label": "Clara - small green chameleon looking down sadly",
+        "label": "Clara - small green chameleon on the floor, looking down",
         "box_2d": [
-          638,
-          739,
-          836,
-          920
+          632,
+          712,
+          902,
+          944
         ]
       },
       {
-        "label": "wall streamers - purple and green strips taped to the wall",
+        "label": "party hat - black and white striped hat on Zoe's head",
         "box_2d": [
-          32,
-          141,
-          488,
-          889
+          147,
+          501,
+          270,
+          637
         ]
       },
       {
-        "label": "floor streamers - purple and green strips scattered on the floor",
+        "label": "streamers - purple and green strips taped to the wall",
         "box_2d": [
-          479,
-          0,
-          930,
-          999
+          38,
+          175,
+          509,
+          830
         ]
       },
       {
-        "label": "tape - silver strips holding the wall streamers",
+        "label": "streamers - purple and green strips tangled on the floor",
         "box_2d": [
-          21,
-          132,
-          110,
-          914
+          482,
+          28,
+          987,
+          995
+        ]
+      },
+      {
+        "label": "blackboard - green board with a wooden frame",
+        "box_2d": [
+          56,
+          380,
+          418,
+          705
         ]
       }
     ]

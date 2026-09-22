@@ -1,79 +1,97 @@
 {
-  "createdAt": 1787350781165,
+  "createdAt": 1790087749799,
   "book": "1",
   "page": "5",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, looking left",
+        "label": "Zoe - large red parrot with black and white beak",
         "box_2d": [
-          1,
-          279,
-          768,
-          721
+          75,
+          278,
+          792,
+          725
         ]
       },
       {
-        "label": "Clara - sad green chameleon, curled up on the right",
+        "label": "Clara - small green chameleon looking sad",
         "box_2d": [
-          622,
-          756,
-          817,
-          969
+          639,
+          770,
+          790,
+          939
         ]
       },
       {
-        "label": "party hat - large green and purple striped hat on the left",
+        "label": "party hat - large green and purple striped hat with pink pom-pom",
         "box_2d": [
-          696,
-          50,
-          948,
-          207
+          698,
+          55,
+          937,
+          203
         ]
       },
       {
-        "label": "party hat - green and purple striped hat in the box",
+        "label": "party hat - medium green and purple striped hat with pink pom-pom",
         "box_2d": [
-          468,
-          126,
-          619,
-          254
+          735,
+          344,
+          946,
+          489
         ]
       },
       {
-        "label": "party hat - small green and purple striped hat on the table",
+        "label": "party hat - small green and purple striped hat with pink pom-pom",
         "box_2d": [
-          809,
-          224,
-          971,
-          324
+          810,
+          227,
+          939,
+          311
         ]
       },
       {
-        "label": "cardboard box - open box with party hats",
+        "label": "party hat - medium green and purple hat under Zoe's wing",
         "box_2d": [
-          411,
-          78,
-          711,
-          309
+          701,
+          626,
+          940,
+          772
         ]
       },
       {
-        "label": "colorful feathers - Zoe's wing feathers in blue, green, and yellow",
+        "label": "party hat - small green and purple hat to the left of Zoe's wing",
         "box_2d": [
-          458,
-          314,
-          791,
-          712
+          813,
+          525,
+          938,
+          602
         ]
       },
       {
-        "label": "stacked plates - purple and green plates in a box",
+        "label": "cardboard box - open brown box with flaps",
         "box_2d": [
-          388,
-          779,
-          534,
-          962
+          447,
+          20,
+          706,
+          372
+        ]
+      },
+      {
+        "label": "party hat - green and purple hat inside the box",
+        "box_2d": [
+          454,
+          116,
+          568,
+          192
+        ]
+      },
+      {
+        "label": "party hat - second green and purple hat inside the box",
+        "box_2d": [
+          504,
+          201,
+          569,
+          241
         ]
       }
     ]

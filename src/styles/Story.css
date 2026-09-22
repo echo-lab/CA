@@ -899,7 +899,7 @@ img {
   box-sizing: border-box;
   animation:
     referent-ring-in 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-    referent-ring-pulse 1.8s ease-in-out 0.35s infinite;
+    referent-ring-pulse 4s ease-in-out 0.35s infinite;
 }
 
 @keyframes referent-ring-in {
@@ -910,18 +910,22 @@ img {
 /* Glow is outward only. An inset glow fills the ellipse with a yellow wash, which on
    a wide or large ring tints the illustration and dims the very object the child has
    to look at to answer — the scrim effect this treatment exists to avoid. The dark
-   outer layer is what makes the ring carry across a pale background. */
+   outer layer is what makes the ring carry across a pale background.
+
+   Slow and shallow on purpose. The ring sits on the page for the whole time a
+   question is open, so it has to stay findable without becoming the thing being
+   looked at — a brisk pulse pulls the eye back every couple of seconds and competes
+   with the illustration it is supposed to be pointing into. */
 @keyframes referent-ring-pulse {
   0%, 100% {
     box-shadow:
       0 0 0 1px rgba(90, 60, 0, 0.4),
-      0 0 14px 3px rgba(255, 190, 40, 0.55);
+      0 0 16px 4px rgba(255, 195, 45, 0.5);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(90, 60, 0, 0.45),
-      0 0 26px 8px rgba(255, 208, 60, 0.9),
-      0 0 52px 18px rgba(255, 180, 20, 0.5);
+      0 0 0 1px rgba(90, 60, 0, 0.42),
+      0 0 22px 6px rgba(255, 205, 55, 0.62);
   }
 }
 

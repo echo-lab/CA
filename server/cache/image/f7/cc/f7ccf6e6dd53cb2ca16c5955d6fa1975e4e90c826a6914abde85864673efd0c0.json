@@ -1,43 +1,97 @@
 {
-  "createdAt": 1787345850325,
+  "createdAt": 1790087762895,
   "book": "1",
   "page": "1",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with striped beak and colorful wings",
+        "label": "Zoe - large red parrot with wings spread",
         "box_2d": [
-          38,
-          95,
-          839,
-          847
+          25,
+          107,
+          866,
+          888
         ]
       },
       {
-        "label": "Clara - green chameleon with striped tail on the floor",
+        "label": "Clara - small green chameleon looking up",
         "box_2d": [
-          569,
-          762,
-          977,
-          988
+          635,
+          715,
+          966,
+          969
         ]
       },
       {
-        "label": "Decorations - green and purple strips taped to the wall",
+        "label": "decorations - green and purple strips on the floor",
         "box_2d": [
-          52,
-          20,
-          756,
-          304
+          580,
+          0,
+          999,
+          999
         ]
       },
       {
-        "label": "Tape - clear tape zoe used to put on decorations on the floor",
+        "label": "decoration - green strip unrolling in air",
         "box_2d": [
-          772,
-          285,
-          871,
-          355
+          261,
+          483,
+          649,
+          706
+        ]
+      },
+      {
+        "label": "decoration - purple strip unrolling in air",
+        "box_2d": [
+          246,
+          680,
+          529,
+          982
+        ]
+      },
+      {
+        "label": "decorations - strips taped vertically on wall",
+        "box_2d": [
+          86,
+          0,
+          501,
+          461
+        ]
+      },
+      {
+        "label": "Zoe - white fluffy patch around eye",
+        "box_2d": [
+          281,
+          442,
+          383,
+          563
+        ]
+      },
+      {
+        "label": "Zoe - striped black and white beak",
+        "box_2d": [
+          249,
+          489,
+          442,
+          608
+        ]
+      },
+      {
+        "label": "Zoe - colourful feathers on wings",
+        "box_2d": [
+          106,
+          126,
+          532,
+          856
+        ]
+      },
+      {
+        "label": "tape dispenser - silver object on floor",
+        "box_2d": [
+          790,
+          423,
+          859,
+          498
         ]
       }
     ]

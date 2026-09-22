@@ -1,52 +1,97 @@
 {
-  "createdAt": 1787350597663,
+  "createdAt": 1790088264105,
   "book": "1",
   "page": "3",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, turning to the left",
+        "label": "Zoe - large red parrot, looking at streamers",
         "box_2d": [
-          122,
-          252,
-          902,
-          814
+          78,
+          287,
+          943,
+          761
         ]
       },
       {
-        "label": "Clara - small green chameleon on the floor, looking up, hugging her tail",
+        "label": "Clara - small green chameleon, hugging her tail",
         "box_2d": [
-          592,
+          381,
+          800,
           791,
-          722,
-          938
+          987
         ]
       },
       {
-        "label": "streamers - purple and green, hanging on the wall",
+        "label": "streamers - purple and green strips hanging on the wall",
         "box_2d": [
-          7,
-          40,
-          689,
-          329
+          31,
+          77,
+          804,
+          712
         ]
       },
       {
-        "label": "streamers - purple and green, scattered on the floor",
+        "label": "streamers - purple and green strips messy on the floor",
         "box_2d": [
-          771,
+          588,
           0,
           1000,
           1000
         ]
       },
       {
-        "label": "Clara's tail - green and striped, being hugged by Clara",
+        "label": "Clara - her coiled tail",
         "box_2d": [
-          710,
-          807,
-          755,
-          943
+          677,
+          833,
+          794,
+          986
+        ]
+      },
+      {
+        "label": "Zoe - black and white striped beak",
+        "box_2d": [
+          202,
+          392,
+          495,
+          527
+        ]
+      },
+      {
+        "label": "Zoe - colorful feathers on her wings",
+        "box_2d": [
+          399,
+          274,
+          722,
+          705
+        ]
+      },
+      {
+        "label": "Zoe - right hand pointing at streamers",
+        "box_2d": [
+          207,
+          274,
+          415,
+          442
+        ]
+      },
+      {
+        "label": "tape - white strips holding streamers to the wall",
+        "box_2d": [
+          37,
+          229,
+          108,
+          708
+        ]
+      },
+      {
+        "label": "window - dark opening with a wooden frame",
+        "box_2d": [
+          49,
+          561,
+          593,
+          841
         ]
       }
     ]

@@ -1,70 +1,97 @@
 {
-  "createdAt": 1787443591460,
+  "createdAt": 1790087752427,
   "book": "1",
   "page": "2",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot looking at a tablet",
+        "label": "Zoe - large red parrot looking at the tablet",
         "box_2d": [
-          203,
+          104,
           0,
-          985,
-          542
+          997,
+          608
         ]
       },
       {
         "label": "Clara - green chameleon on Zoe's head",
         "box_2d": [
-          87,
-          138,
-          296,
-          436
+          0,
+          314,
+          451,
+          620
         ]
       },
       {
-        "label": "tablet - black screen displaying cakes",
+        "label": "tablet - black device displaying three cakes",
         "box_2d": [
-          217,
-          465,
-          717,
-          923
+          201,
+          401,
+          750,
+          940
         ]
       },
       {
-        "label": "cake - tall purple and green striped cake on the tablet screen",
+        "label": "cake - large purple and green striped cake on tablet",
         "box_2d": [
-          252,
-          457,
-          635,
-          645
+          259,
+          508,
+          680,
+          725
         ]
       },
       {
-        "label": "cake - orange and blue striped cake with candles on the tablet screen",
+        "label": "cake - orange and blue striped cake on tablet",
         "box_2d": [
-          293,
+          291,
+          718,
+          514,
+          915
+        ]
+      },
+      {
+        "label": "cake - purple, green, and yellow striped cake on tablet",
+        "box_2d": [
+          533,
           721,
-          490,
-          851
+          702,
+          911
         ]
       },
       {
-        "label": "cake - purple, green, and yellow striped cake with candles on the tablet screen",
+        "label": "Zoe's feathers - colorful feathers on red wing",
         "box_2d": [
-          502,
-          672,
-          687,
-          796
+          597,
+          0,
+          912,
+          606
         ]
       },
       {
-        "label": "Zoe's feathers - blue, green, and yellow feathers on her wing",
+        "label": "table - brown wooden surface holding the tablet",
         "box_2d": [
-          621,
-          59,
-          946,
-          548
+          560,
+          477,
+          999,
+          1000
+        ]
+      },
+      {
+        "label": "candle - purple and green striped candles on large cake",
+        "box_2d": [
+          270,
+          563,
+          458,
+          693
+        ]
+      },
+      {
+        "label": "Zoe's eye - large black eye with white area",
+        "box_2d": [
+          243,
+          290,
+          396,
+          386
         ]
       }
     ]
