@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { say } from "../utils/ttsClient";
+import { say, stopTts } from "../utils/ttsClient";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
@@ -56,6 +56,11 @@ export function useAudioPlayback({
   const suppressGeneratedAudioStreamRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
   const generatedQuestionAudioUrlRef = useRef(null);
+  // The one in-flight speak() call: its lock source, and the detach for its
+  // ended/error pair. Lets an interrupt hand-execute what the listener that will
+  // never fire owed the lock — the same shape as resetGeneratedQuestionState
+  // pairing teardownStreamingPlayer with an explicit endAudio.
+  const activeSpeechRef = useRef(null);
 
   const [isGeneratedQuestionPlaying, setIsGeneratedQuestionPlaying] = useState(false);
   const [isPageQuestionPlaying, setIsPageQuestionPlaying] = useState(false);
@@ -398,6 +403,14 @@ export function useAudioPlayback({
       return false;
     }
 
+    // One shared <audio>, one lock, one live utterance: anything still attached
+    // from an earlier call is stale by definition.
+    activeSpeechRef.current?.detach();
+    // Claimed BEFORE the await: say() calls play() itself, so an interrupt that
+    // lands while the TTS request is still in flight has to be able to cancel it.
+    const claim = { source, cancelled: false, detach: () => {} };
+    activeSpeechRef.current = claim;
+
     try {
       options.onBegin?.();
       setIsAudioPlaying(true);
@@ -409,16 +422,35 @@ export function useAudioPlayback({
         role,
       });
 
+      if (claim.cancelled) {
+        // Interrupted mid-fetch. say() has already started playback, and
+        // stopSpeaking already released the lock, so silence it and owe nothing.
+        stopTts();
+        return false;
+      }
+
       const handleEnded = () => {
+        detach();
         endAudio(source);
         options.onEnded?.();
         audioEnded();
       };
       const handleError = () => {
+        detach();
         endAudio(source);
         options.onError?.();
         audioEnded();
       };
+      // Closes over the exact bindings passed to addEventListener — identity is
+      // the only thing removeEventListener matches on. `once` removes whichever
+      // handler fired; this removes its twin, and is what an interrupt calls
+      // when neither will ever fire.
+      const detach = () => {
+        audioEl.removeEventListener("ended", handleEnded);
+        audioEl.removeEventListener("error", handleError);
+        if (activeSpeechRef.current === claim) activeSpeechRef.current = null;
+      };
+      claim.detach = detach;
 
       setAudio(audioEl);
       audioEl.addEventListener("ended", handleEnded, { once: true });
@@ -426,7 +458,11 @@ export function useAudioPlayback({
       if (audioEl.ended) handleEnded();
       return true;
     } catch (err) {
+      // A request that rejects after the user already left and came back must not
+      // release the lock the new mount legitimately holds.
+      if (claim.cancelled) return false;
       console.error("TTS error:", err);
+      if (activeSpeechRef.current === claim) activeSpeechRef.current = null;
       endAudio(source);
       options.onError?.();
       setIsAudioPlaying(false);
@@ -438,10 +474,6 @@ export function useAudioPlayback({
   }
 
   const audioEnded = useCallback(() => {
-
-    if (audio) {
-        audio.removeEventListener("ended", audioEnded);
-    }
 
     if (isPageQuestionPlayingRef.current && questionGenEnabledRef.current) {
       setAwaitingQuestionAnswer(true);
@@ -561,6 +593,30 @@ export function useAudioPlayback({
     }
   }, [teardownStreamingPlayer, endAudio]);
 
+  // Cuts off the shared <audio> mid-utterance. pause() fires neither ended nor
+  // error, and those are the only path to endAudio — and the lock lives on a
+  // provider mounted above <Router>, so it outlives this component. Leaving it
+  // held pins isAnyAudioPlaying true forever and deadlocks the Next button.
+  const stopSpeaking = useCallback(() => {
+    const claim = activeSpeechRef.current;
+    activeSpeechRef.current = null;
+    if (claim) {
+      claim.cancelled = true;  // an in-flight say() will neither attach nor play
+      claim.detach();          // the pair pause() will never consume
+      endAudio(claim.source);
+    }
+    stopTts();
+
+    if (isPageQuestionPlayingRef.current) {
+      isPageQuestionPlayingRef.current = false;
+      setIsPageQuestionPlaying(false);
+    }
+    setIsAudioPlaying(false);
+    setIsButtonDisabled(false);
+    // Deliberately NOT setAudioHasEnded(true): that is the auto-advance trigger
+    // in useStoryNavigation, and an interrupt must not turn the page.
+  }, [endAudio, setIsPageQuestionPlaying, setIsAudioPlaying, setIsButtonDisabled]);
+
   return {
     // playback state
     isGeneratedQuestionPlaying,
@@ -573,6 +629,7 @@ export function useAudioPlayback({
     generatedQuestionAudioEndedRef,
     // functions
     speak,
+    stopSpeaking,
     continueReading,
     playSound,
     speakGenerated,

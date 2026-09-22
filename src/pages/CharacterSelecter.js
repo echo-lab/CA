@@ -28,7 +28,7 @@ import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 
-import { say, unlockTtsAudio } from "../utils/ttsClient";
+import { say, stopTts, unlockTtsAudio } from "../utils/ttsClient";
 import { prefetchImageAnalysis } from "../utils/imageAnalysis";
 
 const ROLE_PRIORITY = { Parent: 0, Child: 1 };
@@ -194,6 +194,11 @@ export default function CharaterSelecter() {
   const userName = location.state?.name || location.state?.userName || "";
   const training = location.state?.training === true;
   const navigate = useNavigate();
+
+  // The role-preview clips play through ttsClient's module-level <audio>, which
+  // nothing in the React tree owns, so leaving mid-clip would otherwise keep it
+  // talking over the next page. One page-level stop covers every role tile.
+  useEffect(() => () => { stopTts(); }, []);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");

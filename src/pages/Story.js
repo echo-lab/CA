@@ -285,6 +285,7 @@ function Reader() {
     suppressGeneratedAudioStreamRef,
     generatedQuestionAudioEndedRef,
     speak,
+    stopSpeaking,
     continueReading,
     playSound,
     speakGenerated,
@@ -701,6 +702,24 @@ function Reader() {
   useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
   useEffect(() => { stateRef.current = state; });
+
+  // Leaving mid-narration. The <audio> in ttsClient is a module singleton outside
+  // the React tree, and the audio lock lives on a provider above <Router>, so
+  // unmounting stops neither: without this the lock stays held at
+  // 'story-narration' forever and the Next button is dead on return.
+  useEffect(() => () => {
+    stopSpeaking();
+    // Covers the streaming-PCM player, the acknowledgement audio, and the
+    // module-level awaiting-answer flag — all already handled by this one call.
+    clearQuestionUIRef.current();
+    // pagesValues is a live reference into ../Book/BookN (Book assigns
+    // this.pages = data.Book.Pages, and Object.values is shallow), so a Reading
+    // flag left set outlives the unmount and makes the next visit look like a
+    // read already in progress.
+    const page = stateRef.current?.pagesValues?.[stateRef.current.page];
+    for (let i = 0; i < (page?.text?.length || 0); i++) page.text[i].Reading = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     studyLog.startSession({

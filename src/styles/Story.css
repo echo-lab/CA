@@ -109,6 +109,20 @@
  --storybar-ink-home: #6c757d;        /* home button, grey */
  --storybar-ink-home-rgb: 108, 117, 125;
  --storybar-ink-page: #495057;        /* "Page 1 of 12" label */
+
+ /* Reading-line palette — the only place active-row colours are set. Each role
+    keeps its original hue (green = Parent, amber = Child) so the association is
+    unchanged; only the saturation drops. The accent draws the left bar, the
+    tint fills the row. */
+ --line-parent-accent: #2f8f4e;
+ --line-parent-tint: #eef7f0;
+ --line-child-accent: #d98e04;
+ --line-child-tint: #fff6e3;
+ /* How far the highlight is held back from the row's left edge, to clear the
+    page illustration bleeding in from .col-md-5. Calibration knob: raise it if
+    the tint still touches the illustration, lower it if the bar has drifted too
+    far from the character portrait. */
+ --line-highlight-inset: 24px;
  position: relative;
  max-height: 100vh;
  max-height: 100dvh;
@@ -157,21 +171,54 @@ img {
   font-style: italic;
 }
 
-.active-parent {
-  background-color: #98ff98;
+/* The highlight is painted by a pseudo-element inset from the row's left edge,
+   not on the row itself: the page illustration is 105% wide (Story.js) and
+   bleeds rightward out of .col-md-5, and because .col-md-7 comes later in the
+   DOM a full-width row background paints over that bleed. z-index -1 keeps the
+   pseudo-element behind the row's own content. It is drawn on every row and
+   only coloured when active, so the colour can transition and the text never
+   shifts. The bar is an inset shadow rather than a border-left because
+   Bootstrap gives .row a negative horizontal margin (gx-3 → -0.5rem), which a
+   real border would sit outside of. */
+.table-column .row {
+  position: relative;
 }
 
-.active-child {
-  background-color: #ffbf00;
+.table-column .row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--line-highlight-inset);
+  z-index: -1;
+  border-radius: 10px;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.active-parent::before {
+  background-color: var(--line-parent-tint);
+  box-shadow: inset 6px 0 0 var(--line-parent-accent);
+}
+
+.active-child::before {
+  background-color: var(--line-child-tint);
+  box-shadow: inset 6px 0 0 var(--line-child-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-column .row::before { transition: none; }
 }
 
 .active-character {
   font-weight: bold;
 }
 
+/* The bar and tint locate the line; the text only needs a slight lift over
+   Bootstrap's default 400, not bold. */
 .active-dialogue{
-  color: #0000cc;
-  font-weight: bold;
+  color: #212529;
+  font-weight: 500;
 }
 
 
