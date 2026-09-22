@@ -12,6 +12,73 @@
    padding on the avatar pages). Inert until bootstrap.css is removed. */
 @import "./styles/buttons.css";
 
+/* Replaces the parts of Bootstrap's reboot the app was authored against.
+   Tailwind's preflight is off (see tailwind.config.js), so nothing else
+   supplies these. box-sizing is the load-bearing one: the 750px Signup card,
+   the 56px storybar buttons and the 18rem book cards all size against it. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+h1 { font-size: calc(1.375rem + 1.5vw); }
+h2 { font-size: calc(1.325rem + 0.9vw); }
+h3 { font-size: calc(1.3rem + 0.6vw); }
+h4 { font-size: calc(1.275rem + 0.3vw); }
+h5 { font-size: 1.25rem; }
+h6 { font-size: 1rem; }
+
+@media (min-width: 1200px) {
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+  h4 { font-size: 1.5rem; }
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+ol, ul {
+  padding-left: 2rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+/* Keeps the NavigationBar logo sitting inline beside the JENNIE wordmark. */
+img, svg {
+  vertical-align: middle;
+}
+
+label {
+  display: inline-block;
+}
+
+a {
+  color: #0d6efd;
+  text-decoration: underline;
+}
+
+a:not([href]):not([class]) {
+  color: inherit;
+  text-decoration: none;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

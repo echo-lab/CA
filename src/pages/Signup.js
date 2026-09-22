@@ -77,11 +77,11 @@ function Signup() {
   return (
     <div className="signup">
       <div className="signupcard">
-        <div className='row row-signup'>
-          <div className="col-md-6 left-column">
-            <img src={image2} className="card-img" alt="" />
+        <div className='row-signup'>
+          <div className="left-column">
+            <img src={image2} className="tw-rounded-[0.3125rem]" alt="" />
           </div>
-          <div className="col-md-6 right-column">
+          <div className="right-column">
             <div className="welcome-header">
               <span className="icon"><SentimentVerySatisfiedIcon fontSize="large"/></span>
               <h3 className="welcome-text">Welcome!</h3>

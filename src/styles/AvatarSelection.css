@@ -4,27 +4,12 @@
   align-items: center;
 }
 
-.w-80 {
-  width: 80%;
-}
-
-.d-flex {
-  display: flex;
-}
-
-.flex-wrap {
-  flex-wrap: wrap;
-}
-
-.justify-content-center {
-  justify-content: center;
-}
-
-.mt-5 {
-  margin-top: 3rem;
-}
-
+/* draggable={false} in the JSX stops the drag from starting; these two stop the
+   browser showing a drag ghost or a text selection on a long press, which is the
+   usual way a tap goes wrong on a tablet. */
 .avatar-img-thumbnail {
+  -webkit-user-drag: none;
+  user-select: none;
   flex-basis: 15%; /* Ensures 5 images per row */
   max-width: 15%; /* Ensures the images do not exceed 20% width of the container */
   cursor: pointer;

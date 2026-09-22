@@ -7,10 +7,10 @@ import Logo from '../Pictures/Mates-07.png'
 function NavigationBar({ participantId, onEndSession, showGoHome }) {
 
   return (
-        <nav className="navbar navbar-light bg-light d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center gap-2 ps-3">
+        <nav className="tw-relative tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-py-2 tw-bg-[#f8f9fa]">
+            <div className="tw-flex tw-items-center tw-gap-2 tw-pl-4">
               {participantId && (
-                <span className="badge bg-secondary" style={{ fontSize: "0.9rem" }}>
+                <span className="tw-inline-block tw-px-[0.65em] tw-py-[0.35em] tw-font-bold tw-leading-none tw-text-white tw-text-center tw-whitespace-nowrap tw-align-baseline tw-rounded-md tw-bg-[#6c757d]" style={{ fontSize: "0.9rem" }}>
                   Participant: {participantId}
                 </span>
               )}
@@ -27,8 +27,8 @@ function NavigationBar({ participantId, onEndSession, showGoHome }) {
               )}
             </div>
 
-            <a className="navbar-brand pe-3" href="#">
-            <img src={Logo} width="300" height="auto" className="d-inline-block align-left" alt=""/>
+            <a className="tw-py-[0.3125rem] tw-mr-4 tw-pr-4 tw-text-[1.25rem] tw-text-black tw-no-underline tw-whitespace-nowrap" href="#">
+            <img src={Logo} width="300" height="auto" className="tw-inline-block" alt=""/>
               JENNIE
             </a>
     </nav>

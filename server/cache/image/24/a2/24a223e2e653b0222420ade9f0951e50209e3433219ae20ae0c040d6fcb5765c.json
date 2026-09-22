@@ -1,97 +1,97 @@
 {
-  "createdAt": 1787352417348,
+  "createdAt": 1790094366276,
   "book": "3",
   "page": "4",
   "data": {
     "tags": [
       {
-        "label": "Zoe - red parrot hanging upside down, looking at a book",
+        "label": "Zoe - large red parrot, upside down with books",
         "box_2d": [
-          180,
-          436,
-          855,
-          685
+          190,
+          395,
+          830,
+          715
         ]
       },
       {
-        "label": "Clara - green chameleon with purple eyes, looking up",
+        "label": "Clara - small green chameleon sitting on floor",
         "box_2d": [
-          633,
-          73,
-          912,
-          196
+          573,
+          0,
+          955,
+          332
         ]
       },
       {
-        "label": "bookshelf - tilted green one",
+        "label": "bookshelf - green one tipping over behind Zoe",
         "box_2d": [
-          87,
-          486,
-          604,
-          753
+          64,
+          459,
+          584,
+          735
         ]
       },
       {
-        "label": "book - open with hearts, held by Zoe",
+        "label": "book - open one with hearts held by Zoe",
         "box_2d": [
-          636,
-          372,
-          795,
-          497
+          576,
+          287,
+          725,
+          477
         ]
       },
       {
-        "label": "book - red one flying above Zoe's back",
+        "label": "book - open one with apples falling above Zoe",
         "box_2d": [
-          112,
-          714,
-          252,
-          804
+          156,
+          477,
+          340,
+          609
         ]
       },
       {
-        "label": "book - orange one flying near Zoe's tail",
+        "label": "book - open one with buttons falling to the right",
         "box_2d": [
-          237,
-          587,
-          341,
-          699
+          320,
+          712,
+          532,
+          853
         ]
       },
       {
-        "label": "book - open with buttons, flying to the right",
+        "label": "book - orange closed one falling near Zoe's head",
         "box_2d": [
-          376,
-          711,
-          507,
-          844
+          174,
+          580,
+          318,
+          696
         ]
       },
       {
-        "label": "book - yellow one on the floor near Clara",
+        "label": "book - yellow closed one on floor near Clara",
         "box_2d": [
-          557,
-          237,
-          675,
-          341
+          568,
+          248,
+          696,
+          350
         ]
       },
       {
-        "label": "book - dark blue one on the floor near Clara",
+        "label": "book - blue closed one on floor near Clara",
         "box_2d": [
-          703,
-          291,
-          800,
-          375
+          680,
+          269,
+          810,
+          370
         ]
       },
       {
-        "label": "book - green one on the floor, in front",
+        "label": "bookshelf - row of green shelves in background",
         "box_2d": [
-          802,
-          745,
-          927,
-          855
+          89,
+          44,
+          582,
+          458
         ]
       }
     ]

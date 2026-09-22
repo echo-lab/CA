@@ -1,5 +1,4 @@
 import "../styles/Story.css";
-import "bootstrap/dist/css/bootstrap.css";
 import React, { useState, useRef, useEffect } from "react";
 import HomeIcon from "@mui/icons-material/Home";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -927,7 +926,7 @@ function Reader() {
           return (
             <div
               ref={(el) => dialogueRefs.current[key] = el}
-              className={`row gx-3${isActiveRowParent && isActiveRow ? " active active-parent" : ""}${isActiveRowChild && isActiveRow ? " active active-child" : ""}`}
+              className={`dialogue-row${isActiveRowParent && isActiveRow ? " active active-parent" : ""}${isActiveRowChild && isActiveRow ? " active active-child" : ""}`}
               key={key}
               onClick={() => {
                 const selectedText = window.getSelection().toString().trim();
@@ -952,15 +951,15 @@ function Reader() {
                 />
               )}
 
-              <div className="col-3">
-              <div className="role-image-container-text d-flex justify-content-around">
+              <div className="tw-flex-none tw-w-1/4">
+              <div className="role-image-container-text tw-flex tw-justify-around">
               {currentRole && roleImage && <img src={roleImage} alt={roleName} style={{width: "25%"}}  className="overlay-image"/>}
 
                 {characterImage && <img src={characterImage} alt={val.Character} style={{width: "55%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}
               </div>
               </div>
-              <div className="col-8">
-                <div className={`p-3 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
+              <div className="tw-flex-none tw-w-2/3">
+                <div className={`tw-p-4 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
                   {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) :
                   <>
                     {parseText(str)}
@@ -999,8 +998,7 @@ function Reader() {
       }
     }
     return (
-      <div className="navigation-buttons p-3 d-md-flex justify-content-md-end">
-        <div className="btn-group" role="group">
+      <div className="navigation-buttons tw-p-4 md:tw-flex md:tw-justify-end">
           <button
             type="button"
             className={`btn btn-secondary ${shouldDisableButton ? 'disabled' : ''} ${buttonClass}`}
@@ -1009,18 +1007,17 @@ function Reader() {
           >
             {buttonText}
           </button>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="story container-fluid reader-container">
+    <div className="story tw-w-full tw-px-3 tw-mx-auto reader-container">
       {/* Hidden audio element for remote audio stream */}
       <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
 
 
-      <header className="storybar bg-light border-bottom px-3">
+      <header className="storybar tw-bg-[#f8f9fa] tw-border-b tw-border-solid tw-border-[#dee2e6] tw-px-4">
         <button
           type="button"
           className="storybar-btn storybar-home btn"
@@ -1057,8 +1054,8 @@ function Reader() {
         </div>
       </header>
 
-    <div className="row">
-      <div className="col-md-5">
+    <div className="reader-row">
+      <div className="tw-flex-none tw-w-full md:tw-w-5/12">
         <div
           style={{
             position: 'relative', display: 'inline-block', width: '105%',
@@ -1113,10 +1110,10 @@ function Reader() {
           generatingQuestion={generatingQuestion}
         />
         </div>
-      <div className="col-md-7 table-container">
+      <div className="tw-flex-none tw-w-full md:tw-w-7/12 table-container">
 
 
-        <div className="container-fluid">{renderPageRows()}</div>
+        <div className="tw-w-full tw-px-3 tw-mx-auto">{renderPageRows()}</div>
         {renderNavigationButtons()}
       </div>
     </div>

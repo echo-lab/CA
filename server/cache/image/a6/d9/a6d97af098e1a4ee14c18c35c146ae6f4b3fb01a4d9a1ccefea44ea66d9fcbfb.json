@@ -1,79 +1,88 @@
 {
-  "createdAt": 1787352490032,
+  "createdAt": 1790094767155,
   "book": "3",
   "page": "5",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot holding several books",
+        "label": "Zoe - large red parrot, holding books in a library",
         "box_2d": [
-          235,
-          570,
-          893,
-          950
+          237,
+          439,
+          903,
+          936
         ]
       },
       {
-        "label": "Clara - green chameleon reaching for a red book",
+        "label": "Clara - green chameleon, holding a red book on a shelf",
         "box_2d": [
-          458,
-          104,
-          724,
-          287
+          394,
+          184,
+          826,
+          396
         ]
       },
       {
-        "label": "books - multicolor, held by Zoe",
+        "label": "book - red one held by Clara",
         "box_2d": [
-          388,
-          706,
-          508,
-          804
+          492,
+          303,
+          560,
+          362
         ]
       },
       {
-        "label": "book - red, held by Clara",
+        "label": "books - small stack held by Zoe",
         "box_2d": [
-          474,
-          258,
-          573,
-          338
+          397,
+          725,
+          483,
+          803
         ]
       },
       {
-        "label": "bookshelf - tall, on the left side",
+        "label": "bookshelf - large green one on the left",
         "box_2d": [
-          39,
+          56,
           0,
-          717,
-          574
+          805,
+          680
         ]
       },
       {
-        "label": "book - blue, on the floor",
+        "label": "book - single purple one on the top shelf",
         "box_2d": [
-          749,
-          216,
-          842,
-          353
+          105,
+          290,
+          219,
+          360
         ]
       },
       {
-        "label": "book - green, on the floor",
+        "label": "books - two on the second shelf from top",
         "box_2d": [
-          854,
-          126,
-          952,
-          266
+          265,
+          290,
+          376,
+          403
         ]
       },
       {
-        "label": "books - two red, on the floor",
+        "label": "books - three on the third shelf from top",
         "box_2d": [
-          830,
-          375,
-          948,
-          577
+          426,
+          290,
+          536,
+          426
+        ]
+      },
+      {
+        "label": "books - scattered on the floor",
+        "box_2d": [
+          759,
+          127,
+          918,
+          477
         ]
       }
     ]

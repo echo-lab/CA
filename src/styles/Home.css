@@ -18,20 +18,23 @@
   }
   
 
-.navbar{
-    top: 0;
-  }
-  
 .title{
   text-align: center;
   color: black;
   font-style: italic;
-  font-weight: bold;
+  /* No font-weight here: the title renders at 300, set by the size utility
+     on the element. Bootstrap's .display-3 used to win this cascade. */
 }
 
-.shadow:hover{
+/* Was Bootstrap's .shadow utility. The base shadow is reproduced here; the
+   hover only scales, because the hover box-shadow this rule used to declare was
+   never visible — Bootstrap's .shadow carried !important and outranked it. */
+.book-card {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.book-card:hover {
   transform: scale(1.05);
-  box-shadow: 0 10px 20px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
 }
 
   

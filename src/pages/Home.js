@@ -17,12 +17,12 @@ function Home() {
     const linkTo = "/Character";
     const linkState = { id: card.id, name: participantName };
     return (
-        <div className="m-3" key={index}>
-          <div className="shadow p-3 mb-5 bg-white rounded">
-          <div className="card" style={{width: "18rem"}}>
-            <img className="card-img-top h-50" src={card.img} alt="Card" />
-            <div className="card-body">
-              <h5 className="card-title">{card.title}</h5>
+        <div className="tw-m-4" key={index}>
+          <div className="book-card tw-p-4 tw-mb-12 tw-bg-white tw-rounded-md">
+          <div className="tw-relative tw-flex tw-flex-col tw-min-w-0 tw-text-[#212529] tw-break-words tw-bg-white tw-bg-clip-border tw-border tw-border-solid tw-border-[rgba(0,0,0,0.175)] tw-rounded-md" style={{width: "18rem"}}>
+            <img className="tw-w-full tw-h-1/2 tw-rounded-t-[0.3125rem]" src={card.img} alt="Card" />
+            <div className="tw-flex-auto tw-p-4">
+              <h5 className="tw-mb-2">{card.title}</h5>
               <Link to={linkTo} state={linkState}><button className="btn btn-primary">Start Reading</button></Link>
             </div>
           </div>
@@ -61,8 +61,8 @@ function Home() {
     {/* Logs are pulled directly off the VM, not downloaded through the app. */}
 
     <div className='home'>
-      <p className='title display-3'>JENNIE</p>
-      <div className= "d-flex justify-content-center">
+      <p className='title tw-text-[calc(1.525rem+3.3vw)] tw-font-light tw-leading-[1.2] [@media(min-width:1200px)]:tw-text-[4rem]'>JENNIE</p>
+      <div className= "tw-flex tw-justify-center">
             {bookInfo.map(renderCard)}
       </div>
     </div>

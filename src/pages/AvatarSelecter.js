@@ -53,23 +53,24 @@ function AvatarSelecter() {
   
     return (
       <div className="avatar-container">
-        <div className="d-flex flex-column min-vh-100">
-          <div className="d-flex justify-content-between p-3 bg-light">
-            <div className="align-self-start">
-              <div className="sectionTitle display-3">Parent Avatar Selection</div>
+        <div className="tw-flex tw-flex-col tw-min-h-screen">
+          <div className="tw-flex tw-justify-between tw-p-4 tw-bg-[#f8f9fa]">
+            <div className="tw-self-start">
+              <div className={`sectionTitle tw-text-[calc(1.525rem+3.3vw)] tw-font-light tw-leading-[1.2] [@media(min-width:1200px)]:tw-text-[4rem]`}>Parent Avatar Selection</div>
               <p>Please select an avatar to represent the parent</p>
             </div>
             <button className="btn btn-primary next-btn" onClick={handleNextButtonClick}>
               <KeyboardDoubleArrowRightIcon style={{ fontSize: "2rem" }}/>
             </button>
           </div>
-          <div className="w-80 p-3 d-flex flex-wrap justify-content-center align-items-center mt-5">
+          <div className="tw-w-4/5 tw-mx-auto tw-p-4 tw-flex tw-flex-wrap tw-justify-center tw-items-center tw-mt-12">
             {images.map((image, index) => (
               <img
                 key={index}
                 src={image}
                 alt={`Image ${index}`}
                 className={`avatar-img-thumbnail ${selected === index ? 'selected' : ''}`}
+                draggable={false}
                 onClick={() => toggleImage(index)}
               />
             ))}

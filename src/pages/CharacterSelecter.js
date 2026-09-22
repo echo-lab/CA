@@ -149,17 +149,17 @@ function CharacterCard({ character, role, userName, difficulty }) {
 
   return (
     <div className="character-card">
-      <div className="card">
+      <div className="character-card-inner tw-relative tw-flex tw-flex-col tw-min-w-0 tw-text-[#212529] tw-break-words tw-bg-white tw-bg-clip-border tw-border tw-border-solid tw-border-[rgba(0,0,0,0.175)]">
         <div className="card-content">
           <div className="left-column">
-            <h5 className="card-title">
+            <h5 className="character-card-title tw-mb-2">
               {character.Name}
               {hasBadge && <span className={badgeClass}>{difficulty}</span>}
             </h5>
             <div className="card-img-container">
               <img
                 src={character.img}
-                className="card-img-top"
+                className="character-card-img tw-w-full tw-rounded-t-[0.3125rem]"
                 alt={character.Name}
               />
             </div>
@@ -363,12 +363,12 @@ export default function CharaterSelecter() {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveRole(null)}
       >
-        <div className="d-flex flex-column page-shell">
-          <div className="d-flex justify-content-between p-3 bg-light">
+        <div className="tw-flex tw-flex-col page-shell">
+          <div className="tw-flex tw-justify-between tw-p-4 tw-bg-[#f8f9fa]">
             <button className="btn btn-primary" onClick={() => navigate("/Home")}>
               <KeyboardDoubleArrowLeftIcon fontSize="large" />
             </button>
-            <div className="text-center">
+            <div className="tw-text-center">
               <h1>Select a Role</h1>
               <p>Drag any role onto each character.</p>
             </div>

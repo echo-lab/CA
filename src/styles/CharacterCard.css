@@ -4,7 +4,7 @@
   display: none;
 }
 
-.card:hover {
+.character-card:hover {
   cursor: pointer;
 }
 
@@ -37,13 +37,13 @@
   margin-bottom: 10px;
 }
 
-.character-card .card-img-top {
+.character-card .character-card-img {
   width: 350px;
   height: auto;
   object-fit: cover;
 }
 
-.character-card .card-title {
+.character-card .character-card-title {
   align-self: center; /* aligns title to the top */
   margin-left :20px;
 }

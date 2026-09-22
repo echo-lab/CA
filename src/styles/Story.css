@@ -34,13 +34,8 @@
    hand-writing those rules. Everything derives from --storybar-ink, so one hue
    per button is the only knob.
 
-   TRANSITIONAL: both families are set on purpose. These three buttons carry a
-   bare `btn` with no variant class, so their whole appearance comes from these
-   overrides. bootstrap.css is still imported and still wins, and it reads only
-   --bs-btn-*; styles/buttons.css takes over at teardown and reads only --btn-*.
-   Setting one family alone would leave the buttons unstyled on one side of that
-   switch. Delete the --bs-btn-* half in the same commit that removes the
-   bootstrap import from Story.js. */
+   These three buttons carry a bare `btn` with no variant class, so their whole
+   appearance comes from these overrides. */
 .storybar-btn {
   display: flex;
   align-items: center;
@@ -50,7 +45,6 @@
   padding: 0;
   line-height: 1;
 
-  /* Owned — styles/buttons.css reads these. */
   --btn-color: var(--storybar-ink);
   --btn-bg: transparent;
   --btn-border-color: var(--storybar-ink);
@@ -65,20 +59,6 @@
   --btn-disabled-border-color: var(--storybar-ink);
   --btn-focus-shadow-rgb: var(--storybar-ink-rgb);
 
-  /* Delete this block with the bootstrap import — see the note above. */
-  --bs-btn-color: var(--storybar-ink);
-  --bs-btn-bg: transparent;
-  --bs-btn-border-color: var(--storybar-ink);
-  --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: var(--storybar-ink);
-  --bs-btn-hover-border-color: var(--storybar-ink);
-  --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: var(--storybar-ink);
-  --bs-btn-active-border-color: var(--storybar-ink);
-  --bs-btn-disabled-color: var(--storybar-ink);
-  --bs-btn-disabled-bg: transparent;
-  --bs-btn-disabled-border-color: var(--storybar-ink);
-  --bs-btn-focus-shadow-rgb: var(--storybar-ink-rgb);
 }
 
 /* The glyph has to grow with the box or the button reads as mostly empty. */
@@ -126,8 +106,8 @@
  --storybar-top: env(safe-area-inset-top, 0px);
 
  /* Storybar palette — the only place header colours are set. The -rgb twins are
-    the same colour as bare channels, which is the format Bootstrap's focus-ring
-    shadow expects. Keep each pair in sync. */
+    the same colour as bare channels, which is the format the focus-ring shadow
+    in styles/buttons.css expects. Keep each pair in sync. */
  --storybar-ink: #0d6efd;             /* pager chevrons, blue */
  --storybar-ink-rgb: 13, 110, 253;
  --storybar-ink-home: #6c757d;        /* home button, grey */
@@ -161,6 +141,17 @@
     ceiling stops it eating the illustration column on a wide desktop. At
     landscape-tablet width this lands near the 160px it used to be fixed at. */
  --avatar-size: clamp(120px, 13vw, 190px);
+
+ /* Vertical space held free at the bottom of the dialogue column for the
+    floating Next button. See the note on .table-container. */
+ --reader-cta-clearance: 96px;
+
+ /* Dialogue text. The middle value reproduces the old fixed 28px at the
+    landscape-tablet width this is read on (28/1180 ≈ 2.37vw), so the normal case
+    is unchanged. The floor keeps it legible for an early reader on a narrow
+    window; the ceiling lets it grow on a large display without the line getting
+    so long it is hard to track back to. Tune the three numbers. */
+ --dialogue-font-size: clamp(22px, 1.9vw, 40px);
  position: relative;
  max-height: 100vh;
  max-height: 100dvh;
@@ -176,10 +167,14 @@ overflow: auto;
 }
 
 /* Subtracts the bar, then reserves clearance for .navigation-buttons, which is
-   pinned to the bottom of .reader-container and floats over this column. */
+   pinned to the bottom of .reader-container and floats over this column.
+   --reader-cta-clearance must cover the Next button's full height: the wrapper's
+   1rem padding top and bottom, plus the button's own padding, 1.375rem text at
+   line-height 1.5, and its 3px border. Raise it if the last dialogue line ends
+   up hidden underneath. */
 .table-container {
-  max-height: calc(100vh - var(--storybar-h) - var(--storybar-gap) - 72px);
-  max-height: calc(100dvh - var(--storybar-h) - var(--storybar-gap) - var(--storybar-top) - 72px);
+  max-height: calc(100vh - var(--storybar-h) - var(--storybar-gap) - var(--reader-cta-clearance));
+  max-height: calc(100dvh - var(--storybar-h) - var(--storybar-gap) - var(--storybar-top) - var(--reader-cta-clearance));
   overflow-y: auto;
   scroll-behavior: smooth;
 }
@@ -216,13 +211,28 @@ img {
    pseudo-element behind the row's own content. It is drawn on every row and
    only coloured when active, so the colour can transition and the text never
    shifts. The bar is an inset shadow rather than a border-left because
-   Bootstrap gives .row a negative horizontal margin (gx-3 → -0.5rem), which a
-   real border would sit outside of. */
-.table-column .row {
+   .dialogue-row carries a -0.5rem horizontal margin (inherited from the
+   Bootstrap `row gx-3` this replaces), which a real border would sit outside of.
+
+   The -0.5rem is not decorative: --line-highlight-inset is measured from where
+   that negative margin puts the row's left edge. Change one and recalibrate the
+   other. */
+.dialogue-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.5rem;
   position: relative;
 }
 
-.table-column .row::before {
+/* No width here: Tailwind's utilities live earlier in the bundle, so a width on
+   this selector would outrank them at equal specificity and pin every column to
+   100%. The columns carry their own width utilities instead. */
+.dialogue-row > * {
+  flex-shrink: 0;
+  padding: 0 0.5rem;
+}
+
+.dialogue-row::before {
   content: "";
   position: absolute;
   /* Shifted up, not resized: top and bottom move by the same amount so the
@@ -249,7 +259,7 @@ img {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .table-column .row::before { transition: none; }
+  .dialogue-row::before { transition: none; }
 }
 
 .active-character {
@@ -263,14 +273,21 @@ img {
   font-weight: 500;
 }
 
-
-
 .text-size {
-  font-size: 28px; /* adjust as needed */
+  font-size: var(--dialogue-font-size, 28px);
 }
 
-.row.d-flex {
+/* Was Bootstrap's .row (default gutter, not the gx-3 one the dialogue rows use). */
+.reader-row {
   display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.75rem;
+}
+
+/* Width deliberately omitted — see the note on .dialogue-row > *. */
+.reader-row > * {
+  flex-shrink: 0;
+  padding: 0 0.75rem;
 }
 
 .question-dialogue {
@@ -443,8 +460,10 @@ img {
 
 .role-image-container-text {
   display: flex;
-  flex-direction: row; 
-  justify-content: flex-start; /* Start from the top */
+  flex-direction: row;
+  /* No justify-content here: the element carries tw-justify-around, and a value
+     on this selector would outrank it (utilities sit earlier in the bundle).
+     flex-start pinned the portrait to the left edge, outside the highlight. */
   align-items: center; /* Center horizontally */
   margin-right: 20px; /* Adjust as needed for spacing between image column and dialogue */
   flex-shrink: 0; /* Prevent the container from shrinking */
@@ -462,26 +481,34 @@ img {
 
 @keyframes pulse {
   0% {
-    box-shadow: 0px 0px 15px 5px rgba(0, 255, 50, 0.7);
+    box-shadow: 0px 0px 16px 6px rgba(22, 163, 74, 0.55);
   }
   50% {
-    box-shadow: 0px 0px 20px 10px rgba(0, 255, 50, 0.9);
+    box-shadow: 0px 0px 24px 11px rgba(22, 163, 74, 0.85);
   }
   100% {
-    box-shadow: 0px 0px 15px 5px rgba(0, 255, 50, 0.7);
+    box-shadow: 0px 0px 16px 6px rgba(22, 163, 74, 0.55);
   }
 }
 
+/* Bigger than a default .btn: this is the control the child taps to read on, so
+   it is sized as the primary action rather than matching the pager chevrons. */
+.navigation-buttons .btn {
+  padding: 0.75rem 2.25rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+}
+
 .highlight-button {
-  background: linear-gradient(45deg, rgba(0, 255, 50, 0.1), rgba(0, 200, 50, 0.2));
-  border-width: 4px; /* Even thicker border */
-  border-color: rgb(0, 255, 50);
+  background: #16a34a;
+  border-width: 3px;
+  border-color: #15803d;
   border-style: solid;
-  box-shadow: 0px 0px 15px 5px rgba(0, 255, 50, 0.7);
-  transition: all 0.5s ease-in-out;
-  color: rgb(0, 150, 50); /* Assuming the text color is some shade of green */
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for readability */
-  animation: pulse 1.5s infinite; /* Pulsing animation */
+  box-shadow: 0px 0px 16px 6px rgba(22, 163, 74, 0.55);
+  transition: all 0.3s ease-in-out;
+  color: #fff;
+  animation: pulse 1.5s infinite;
 }
 
 .navigationButton {
@@ -511,9 +538,9 @@ img {
 }
 
 .highlight-button:hover {
-  box-shadow: 0px 0px 20px 10px rgba(0, 255, 50, 0.9);
-  border-color: rgb(0, 255, 0);
-  background: linear-gradient(45deg, rgba(0, 255, 50, 0.2), rgba(0, 200, 50, 0.3));
+  background: #15803d;
+  border-color: #166534;
+  box-shadow: 0px 0px 22px 10px rgba(22, 163, 74, 0.75);
 }
 
 
