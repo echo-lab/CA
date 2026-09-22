@@ -1,52 +1,70 @@
 {
-  "createdAt": 1787350644568,
+  "createdAt": 1790087135317,
   "book": "1",
   "page": "4",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with wings spread",
+        "label": "Zoe - large red parrot with colorful wings spread",
         "box_2d": [
-          108,
-          178,
-          878,
-          869
+          117,
+          107,
+          915,
+          876
         ]
       },
       {
-        "label": "Clara - small green chameleon looking down sadly",
+        "label": "Clara - small green chameleon on the floor, looking down",
         "box_2d": [
-          638,
-          739,
-          836,
-          920
+          623,
+          706,
+          965,
+          893
         ]
       },
       {
-        "label": "wall streamers - purple and green strips taped to the wall",
+        "label": "Blackboard - green board with a light wooden frame",
         "box_2d": [
-          32,
-          141,
-          488,
-          889
-        ]
-      },
-      {
-        "label": "floor streamers - purple and green strips scattered on the floor",
-        "box_2d": [
-          479,
           0,
-          930,
-          999
+          319,
+          396,
+          680
         ]
       },
       {
-        "label": "tape - silver strips holding the wall streamers",
+        "label": "Paper pattern - green and purple strips taped to the wall",
         "box_2d": [
-          21,
-          132,
-          110,
-          914
+          0,
+          107,
+          349,
+          893
+        ]
+      },
+      {
+        "label": "Paper strips - green and purple mess on the floor",
+        "box_2d": [
+          463,
+          0,
+          1000,
+          1000
+        ]
+      },
+      {
+        "label": "Zoe's beak - black and white striped beak",
+        "box_2d": [
+          179,
+          501,
+          332,
+          630
+        ]
+      },
+      {
+        "label": "Zoe's eye - large black eye with a white patch",
+        "box_2d": [
+          221,
+          411,
+          329,
+          499
         ]
       }
     ]

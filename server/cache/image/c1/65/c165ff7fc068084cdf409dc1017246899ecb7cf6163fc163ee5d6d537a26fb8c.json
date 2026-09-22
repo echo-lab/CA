@@ -1,97 +1,97 @@
 {
-  "createdAt": 1787351562612,
+  "createdAt": 1790087932317,
   "book": "2",
   "page": "3",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with colorful feathers, partially visible",
+        "label": "Zoe - large red parrot in the foreground",
         "box_2d": [
-          379,
-          115,
-          980,
-          481
+          380,
+          0,
+          1000,
+          680
         ]
       },
       {
-        "label": "Clara - small green chameleon crawling on the floor",
+        "label": "Clara - green chameleon crawling on the floor",
         "box_2d": [
-          452,
-          679,
-          664,
-          925
+          490,
+          700,
+          715,
+          930
         ]
       },
       {
-        "label": "basket - brown basket filled with colorful blocks",
+        "label": "Basket - woven basket full of colorful blocks",
         "box_2d": [
-          248,
-          131,
-          396,
-          316
+          170,
+          190,
+          480,
+          440
         ]
       },
       {
-        "label": "books - stack of colorful books near the basket",
+        "label": "Books - stack of yellow and blue books on the floor",
         "box_2d": [
-          361,
-          1,
-          472,
-          186
+          380,
+          130,
+          500,
+          300
         ]
       },
       {
-        "label": "sleeping mat - orange and blue striped mat on the floor",
+        "label": "Drawing - child's drawing of Zoe and Clara",
         "box_2d": [
-          327,
-          329,
-          654,
-          487
+          50,
+          40,
+          310,
+          270
         ]
       },
       {
-        "label": "sleeping mat - purple and green striped mat on the floor",
+        "label": "Armchair - green armchair with a plaid cushion",
         "box_2d": [
-          341,
-          509,
-          647,
-          703
+          160,
+          600,
+          580,
+          910
         ]
       },
       {
-        "label": "Zoe's bag - colorful bag with a brown teddy bear",
+        "label": "Blanket - colorful knitted blanket on the armchair",
         "box_2d": [
-          628,
-          617,
-          916,
-          818
+          300,
+          800,
+          550,
+          980
         ]
       },
       {
-        "label": "armchair - green upholstered armchair with a plaid pillow",
+        "label": "Stuffed bunny - pink bunny toy on the armchair",
         "box_2d": [
-          136,
-          641,
-          510,
-          1000
+          270,
+          800,
+          370,
+          860
         ]
       },
       {
-        "label": "bunny toy - small pink rabbit on the armchair",
+        "label": "Sleeping mat - purple and green striped mat on the floor",
         "box_2d": [
-          239,
-          796,
-          344,
-          851
+          330,
+          470,
+          590,
+          640
         ]
       },
       {
-        "label": "drawing - child's drawing of Zoe and Clara taped to the wall",
+        "label": "Teddy bear - brown teddy bear in a colorful sleeping bag",
         "box_2d": [
-          81,
-          35,
-          291,
-          191
+          800,
+          700,
+          950,
+          900
         ]
       }
     ]

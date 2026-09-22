@@ -1,0 +1,155 @@
+/* Owned replacement for Bootstrap's button component.
+ *
+ * Deliberately reuses Bootstrap's class names (.btn, .btn-primary, .btn-sm …)
+ * rather than renaming to Tailwind utilities. That choice buys three things:
+ *   - zero JSX edits across the 21 .btn call sites in 8 files (all of Admin.js
+ *     needs no change at all);
+ *   - index.css's `button, .btn, a { touch-action: manipulation }` keeps
+ *     working untouched — that rule kills the 300ms iPad tap delay;
+ *   - Story.js's `${disabled ? 'disabled' : ''}` keeps working via .btn.disabled.
+ *
+ * While bootstrap.css is still imported it sits LATER in the bundle and wins
+ * every declaration here, so this file is visually inert until the import is
+ * removed, at which point it silently takes over. That also means a bug in it
+ * stays hidden until teardown — rehearse by commenting out the bootstrap import
+ * in Story.js and reloading /Admin.
+ *
+ * Every variant is expressed as custom properties rather than literal rulesets,
+ * because that is the mechanism .storybar-btn in Story.css themes itself with:
+ * it sets --btn-* from one hue and inherits the rest.
+ *
+ * Values reproduced from bootstrap 5.3.0. */
+
+.btn {
+  --btn-color: #212529;
+  --btn-bg: transparent;
+  --btn-border-color: transparent;
+  --btn-hover-color: var(--btn-color);
+  --btn-hover-bg: var(--btn-bg);
+  --btn-hover-border-color: var(--btn-border-color);
+  --btn-active-color: var(--btn-hover-color);
+  --btn-active-bg: var(--btn-hover-bg);
+  --btn-active-border-color: var(--btn-hover-border-color);
+  --btn-disabled-color: var(--btn-color);
+  --btn-disabled-bg: var(--btn-bg);
+  --btn-disabled-border-color: var(--btn-border-color);
+  --btn-focus-shadow-rgb: 13, 110, 253;
+
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--btn-border-color);
+  border-radius: 0.375rem;
+  color: var(--btn-color);
+  background-color: var(--btn-bg);
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.btn:hover {
+  color: var(--btn-hover-color);
+  background-color: var(--btn-hover-bg);
+  border-color: var(--btn-hover-border-color);
+}
+
+/* focus-visible, not focus: a mouse press must not leave a ring behind. */
+.btn:focus-visible {
+  color: var(--btn-hover-color);
+  background-color: var(--btn-hover-bg);
+  border-color: var(--btn-hover-border-color);
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(var(--btn-focus-shadow-rgb), 0.5);
+}
+
+.btn:active {
+  color: var(--btn-active-color);
+  background-color: var(--btn-active-bg);
+  border-color: var(--btn-active-border-color);
+}
+
+/* .disabled as well as :disabled — Story.js toggles the class on a button that
+   also carries the real attribute, and Admin.js relies on the attribute alone. */
+.btn:disabled,
+.btn.disabled {
+  color: var(--btn-disabled-color);
+  background-color: var(--btn-disabled-bg);
+  border-color: var(--btn-disabled-border-color);
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.btn-primary {
+  --btn-color: #fff;
+  --btn-bg: #0d6efd;
+  --btn-border-color: #0d6efd;
+  --btn-hover-color: #fff;
+  --btn-hover-bg: #0b5ed7;
+  --btn-hover-border-color: #0a58ca;
+  --btn-active-bg: #0a58ca;
+  --btn-active-border-color: #0a53be;
+  --btn-disabled-color: #fff;
+  --btn-disabled-bg: #0d6efd;
+  --btn-disabled-border-color: #0d6efd;
+  --btn-focus-shadow-rgb: 49, 132, 253;
+}
+
+.btn-secondary {
+  --btn-color: #fff;
+  --btn-bg: #6c757d;
+  --btn-border-color: #6c757d;
+  --btn-hover-color: #fff;
+  --btn-hover-bg: #5c636a;
+  --btn-hover-border-color: #565e64;
+  --btn-active-bg: #565e64;
+  --btn-active-border-color: #51585e;
+  --btn-disabled-color: #fff;
+  --btn-disabled-bg: #6c757d;
+  --btn-disabled-border-color: #6c757d;
+  --btn-focus-shadow-rgb: 130, 138, 145;
+}
+
+.btn-outline-secondary {
+  --btn-color: #6c757d;
+  --btn-border-color: #6c757d;
+  --btn-hover-color: #fff;
+  --btn-hover-bg: #6c757d;
+  --btn-hover-border-color: #6c757d;
+  --btn-active-color: #fff;
+  --btn-disabled-color: #6c757d;
+  --btn-disabled-bg: transparent;
+  --btn-focus-shadow-rgb: 108, 117, 125;
+}
+
+.btn-outline-danger {
+  --btn-color: #dc3545;
+  --btn-border-color: #dc3545;
+  --btn-hover-color: #fff;
+  --btn-hover-bg: #dc3545;
+  --btn-hover-border-color: #dc3545;
+  --btn-active-color: #fff;
+  --btn-disabled-color: #dc3545;
+  --btn-disabled-bg: transparent;
+  --btn-focus-shadow-rgb: 220, 53, 69;
+}
+
+.btn-link {
+  --btn-color: #0d6efd;
+  --btn-hover-color: #0a58ca;
+  --btn-active-color: #0a58ca;
+  --btn-disabled-color: #6c757d;
+  --btn-focus-shadow-rgb: 49, 132, 253;
+  text-decoration: underline;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+}

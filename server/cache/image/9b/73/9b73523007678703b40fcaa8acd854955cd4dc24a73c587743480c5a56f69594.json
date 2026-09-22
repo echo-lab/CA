@@ -1,52 +1,79 @@
 {
-  "createdAt": 1787350597663,
+  "createdAt": 1790087099925,
   "book": "1",
   "page": "3",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, turning to the left",
+        "label": "Zoe - large red parrot looking at streamers",
         "box_2d": [
-          122,
-          252,
-          902,
-          814
+          97,
+          72,
+          946,
+          856
         ]
       },
       {
-        "label": "Clara - small green chameleon on the floor, looking up, hugging her tail",
+        "label": "Clara - small green chameleon hugging her tail",
         "box_2d": [
-          592,
-          791,
-          722,
-          938
+          539,
+          810,
+          781,
+          959
         ]
       },
       {
-        "label": "streamers - purple and green, hanging on the wall",
+        "label": "streamers - purple and green hanging on the wall",
         "box_2d": [
-          7,
-          40,
-          689,
-          329
+          73,
+          102,
+          608,
+          706
         ]
       },
       {
-        "label": "streamers - purple and green, scattered on the floor",
+        "label": "streamers - purple and green messy on the floor",
         "box_2d": [
-          771,
+          650,
           0,
-          1000,
+          999,
           1000
         ]
       },
       {
-        "label": "Clara's tail - green and striped, being hugged by Clara",
+        "label": "Zoe's wing - yellow-feathered, pointing at streamers",
         "box_2d": [
-          710,
-          807,
-          755,
-          943
+          227,
+          240,
+          483,
+          442
+        ]
+      },
+      {
+        "label": "Clara's tail - striped green, being hugged",
+        "box_2d": [
+          642,
+          853,
+          762,
+          963
+        ]
+      },
+      {
+        "label": "frame - light brown wooden around opening",
+        "box_2d": [
+          102,
+          396,
+          618,
+          929
+        ]
+      },
+      {
+        "label": "tape - white, roll and scraps on the floor",
+        "box_2d": [
+          790,
+          215,
+          930,
+          530
         ]
       }
     ]

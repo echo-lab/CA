@@ -1,43 +1,52 @@
 {
-  "createdAt": 1787351900639,
+  "createdAt": 1790088374554,
   "book": "2",
   "page": "11",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot on the left",
+        "label": "Zoe - red parrot looking right",
         "box_2d": [
-          26,
-          79,
-          996,
-          466
+          44,
+          115,
+          966,
+          529
         ]
       },
       {
-        "label": "Clara - small green chameleon on the right",
+        "label": "Clara - green chameleon smiling",
         "box_2d": [
-          254,
-          605,
-          451,
-          849
+          283,
+          706,
+          689,
+          908
         ]
       },
       {
-        "label": "Zoe's blanket - colorful blanket with blue, yellow, and red scalloped stripes",
+        "label": "blanket - Zoe's red, orange, and blue scalloped pattern",
         "box_2d": [
-          372,
-          180,
-          989,
-          636
+          328,
+          308,
+          976,
+          563
         ]
       },
       {
-        "label": "Clara's blanket - colorful blanket with purple, pink, and green scalloped stripes",
+        "label": "blanket - Clara's purple, pink, and green scalloped pattern",
         "box_2d": [
-          356,
-          564,
-          738,
-          959
+          336,
+          597,
+          835,
+          843
+        ]
+      },
+      {
+        "label": "chair - green armchair",
+        "box_2d": [
+          1,
+          574,
+          999,
+          1000
         ]
       }
     ]

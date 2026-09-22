@@ -1,79 +1,79 @@
 {
-  "createdAt": 1787351946437,
+  "createdAt": 1790088399685,
   "book": "2",
   "page": "13",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with a striped beak",
+        "label": "Zoe - large red parrot looking left, with a striped beak and colorful tail feathers",
         "box_2d": [
-          127,
-          613,
-          815,
-          1000
+          100,
+          560,
+          830,
+          995
         ]
       },
       {
-        "label": "Clara - green chameleon smiling",
+        "label": "Clara - green striped chameleon smiling with open arms, standing on the left",
         "box_2d": [
-          425,
-          42,
+          370,
+          0,
+          770,
+          320
+        ]
+      },
+      {
+        "label": "Zoe's thought bubble - fluffy white cloud containing yellow flowers of varying heights",
+        "box_2d": [
+          40,
+          100,
+          440,
+          690
+        ]
+      },
+      {
+        "label": "Yellow flowers - four pots of yellow flowers in Zoe's thought bubble, depicting a tall and short pattern",
+        "box_2d": [
+          90,
+          140,
+          420,
+          660
+        ]
+      },
+      {
+        "label": "Clara's potted flowers - four blue and orange flowers in pots on the ground",
+        "box_2d": [
+          560,
+          190,
+          690,
+          620
+        ]
+      },
+      {
+        "label": "Zoe's slippers - pink bunny slippers on Zoe's feet",
+        "box_2d": [
           700,
-          243
+          790,
+          830,
+          930
         ]
       },
       {
-        "label": "Zoe's flowers - yellow daisies in red pots in thought bubble",
+        "label": "Striped rug - colorful woven rug with red, blue, and yellow stripes",
         "box_2d": [
-          38,
-          153,
-          437,
-          637
+          630,
+          590,
+          840,
+          940
         ]
       },
       {
-        "label": "Clara's flowers - blue and orange flowers in pots",
+        "label": "Wall art - drawing of a pink parrot and a green creature with hearts, taped to the wall",
         "box_2d": [
-          589,
-          141,
-          729,
-          662
-        ]
-      },
-      {
-        "label": "bunny slippers - pink slippers on Zoe's feet",
-        "box_2d": [
-          748,
-          715,
-          826,
-          905
-        ]
-      },
-      {
-        "label": "blanket - striped colorful blanket",
-        "box_2d": [
-          678,
-          509,
-          920,
-          911
-        ]
-      },
-      {
-        "label": "drawing - picture of red and green characters",
-        "box_2d": [
-          126,
-          893,
-          401,
-          993
-        ]
-      },
-      {
-        "label": "thought bubble - white cloud containing flowers",
-        "box_2d": [
-          18,
-          137,
-          452,
-          658
+          70,
+          850,
+          450,
+          980
         ]
       }
     ]

@@ -1,43 +1,88 @@
 {
-  "createdAt": 1787351660920,
+  "createdAt": 1790088349609,
   "book": "2",
   "page": "6",
   "data": {
     "tags": [
       {
-        "label": "Zoe - red parrot looking back behind the curtains",
+        "label": "Zoe - red parrot looking at the green curtains",
         "box_2d": [
-          229,
-          342,
-          996,
-          918
+          185,
+          335,
+          960,
+          920
         ]
       },
       {
-        "label": "Clara - green chameleon peeking from under the curtain",
+        "label": "Clara - green chameleon peeking from behind the curtain",
         "box_2d": [
-          776,
-          109,
-          828,
-          274
+          690,
+          20,
+          805,
+          340
         ]
       },
       {
-        "label": "curtains - green fabric with grey flowers and hearts",
+        "label": "curtains - green patterned fabric covering the wall",
         "box_2d": [
+          25,
           0,
-          1,
-          786,
+          700,
           1000
         ]
       },
       {
-        "label": "slipper - pink bunny slipper on Zoe's foot",
+        "label": "bunny slipper - pink slipper on Zoe's right foot",
         "box_2d": [
-          791,
-          513,
-          917,
-          638
+          800,
+          560,
+          940,
+          640
+        ]
+      },
+      {
+        "label": "Zoe's feathers - bright yellow wing feathers",
+        "box_2d": [
+          380,
+          340,
+          710,
+          680
+        ]
+      },
+      {
+        "label": "Zoe's feathers - deep blue wing feathers",
+        "box_2d": [
+          410,
+          480,
+          790,
+          750
+        ]
+      },
+      {
+        "label": "Zoe's feathers - dark green wing feathers",
+        "box_2d": [
+          400,
+          400,
+          780,
+          730
+        ]
+      },
+      {
+        "label": "Zoe's eye - white and grey round eye",
+        "box_2d": [
+          325,
+          500,
+          390,
+          545
+        ]
+      },
+      {
+        "label": "Zoe's beak - black and white striped beak",
+        "box_2d": [
+          310,
+          460,
+          450,
+          510
         ]
       }
     ]

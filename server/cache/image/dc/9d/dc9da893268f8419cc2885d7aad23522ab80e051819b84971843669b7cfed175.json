@@ -1,97 +1,79 @@
 {
-  "createdAt": 1787350917365,
+  "createdAt": 1790087376667,
   "book": "1",
   "page": "7",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with colorful feathers, looking sad",
+        "label": "Zoe - large red parrot with colorful feathers, looking upset",
         "box_2d": [
-          0,
-          80,
-          524,
-          707
+          45,
+          237,
+          563,
+          672
         ]
       },
       {
-        "label": "Clara - small green chameleon on the table, raising a hand",
+        "label": "Clara - small green chameleon waving, sitting on the table",
         "box_2d": [
-          349,
-          793,
-          581,
+          361,
+          804,
+          608,
+          977
+        ]
+      },
+      {
+        "label": "Table - light gray surface holding party hats and plates",
+        "box_2d": [
+          448,
+          0,
+          1000,
           1000
         ]
       },
       {
-        "label": "Table - light grey surface with party decorations",
+        "label": "Large party hat - green and purple striped hat with pink fringe",
         "box_2d": [
-          181,
-          0,
-          238,
-          24
+          462,
+          59,
+          703,
+          221
         ]
       },
       {
-        "label": "Party hat - large green and purple striped hat, front-left on the table",
+        "label": "Small party hat - green and purple striped hat with pink fringe",
         "box_2d": [
-          476,
-          37,
-          676,
-          162
+          752,
+          224,
+          911,
+          329
         ]
       },
       {
-        "label": "Party hat - small green and purple striped hat, in the back row",
+        "label": "Purple plate - oval plate under a large party hat",
         "box_2d": [
-          727,
-          208,
-          867,
-          298
+          681,
+          62,
+          735,
+          221
         ]
       },
       {
-        "label": "Purple plate - oval plate on the left side of the table",
+        "label": "Green plate - oval plate under a small party hat",
         "box_2d": [
-          868,
-          29,
-          940,
-          174
+          898,
+          228,
+          955,
+          331
         ]
       },
       {
-        "label": "Green plate - oval plate on the right side of the table",
+        "label": "Cardboard box - brown box with colorful triangles on a shelf",
         "box_2d": [
-          874,
-          176,
-          943,
-          328
-        ]
-      },
-      {
-        "label": "Cardboard box - open box with a party hat graphic in the background",
-        "box_2d": [
-          227,
-          798,
-          325,
-          956
-        ]
-      },
-      {
-        "label": "Cardboard box - smaller box with folded cloth in the background",
-        "box_2d": [
-          301,
-          764,
-          414,
-          881
-        ]
-      },
-      {
-        "label": "Wall - light teal wall with vertical stripes and swirly patterns",
-        "box_2d": [
-          0,
-          0,
-          198,
-          25
+          273,
+          738,
+          429,
+          888
         ]
       }
     ]

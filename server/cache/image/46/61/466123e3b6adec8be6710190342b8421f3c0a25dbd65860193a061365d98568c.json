@@ -1,97 +1,97 @@
 {
-  "createdAt": 1787351794842,
+  "createdAt": 1790088357869,
   "book": "2",
   "page": "9",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, looking pensive",
+        "label": "Zoe - large red parrot with colorful feathers",
         "box_2d": [
-          100,
-          506,
-          928,
-          1000
+          117,
+          497,
+          982,
+          831
         ]
       },
       {
-        "label": "Clara - green chameleon, smiling and reaching out",
+        "label": "Clara - green chameleon with stripes and open mouth",
         "box_2d": [
-          365,
+          477,
           199,
           810,
           484
         ]
       },
       {
-        "label": "feathers - colorful feathers on Zoe's wing",
+        "label": "feathers - colorful feathers held by Zoe",
         "box_2d": [
-          372,
-          498,
-          718,
-          762
+          376,
+          482,
+          706,
+          755
         ]
       },
       {
-        "label": "bunny toy - pink stuffed rabbit on the striped bed",
+        "label": "slippers - red bunny-shaped worn by Zoe",
         "box_2d": [
-          178,
-          65,
-          362,
-          166
+          796,
+          513,
+          917,
+          650
         ]
       },
       {
-        "label": "bunny slippers - pair of red slippers shaped like rabbits",
+        "label": "bunny doll - pink plush toy on blanket",
         "box_2d": [
-          771,
-          391,
-          934,
-          581
+          198,
+          203,
+          444,
+          347
         ]
       },
       {
-        "label": "bed - striped green and purple bed",
+        "label": "blanket - green and purple striped bed covering",
         "box_2d": [
-          136,
-          8,
-          818,
-          228
+          152,
+          1,
+          999,
+          441
         ]
       },
       {
-        "label": "curtain - green curtain with grey hearts above the sleeping bag",
+        "label": "pillow - pink under the green blanket",
+        "box_2d": [
+          114,
+          0,
+          240,
+          269
+        ]
+      },
+      {
+        "label": "curtains - green with gray heart shapes",
         "box_2d": [
           0,
           0,
           107,
-          399
+          360
         ]
       },
       {
-        "label": "blanket - colorful striped blanket on the chair",
+        "label": "plumage - fan of colorful feathers on Zoe's back",
         "box_2d": [
-          350,
-          805,
-          685,
-          1000
+          263,
+          629,
+          608,
+          999
         ]
       },
       {
-        "label": "cushion - blue plaid cushion on the floor",
+        "label": "pillow - blue plaid under Clara's feet",
         "box_2d": [
-          729,
-          153,
-          892,
-          510
-        ]
-      },
-      {
-        "label": "chair - grey upholstered chair behind Zoe",
-        "box_2d": [
-          0,
-          525,
-          517,
-          1000
+          793,
+          209,
+          936,
+          628
         ]
       }
     ]

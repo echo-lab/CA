@@ -1,79 +1,70 @@
 {
-  "createdAt": 1787352196519,
+  "createdAt": 1790088441236,
   "book": "2",
   "page": "14",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, smiling, wearing a sleep mask in bed",
+        "label": "Zoe - red parrot, wrapped in a blanket",
         "box_2d": [
-          20,
-          169,
-          659,
-          559
-        ]
-      },
-      {
-        "label": "Clara - green chameleon, smiling and talking in bed",
-        "box_2d": [
-          397,
-          780,
-          571,
-          951
-        ]
-      },
-      {
-        "label": "Zoe's sleep mask - blue with red hearts, on her head",
-        "box_2d": [
-          55,
-          298,
-          167,
-          493
-        ]
-      },
-      {
-        "label": "Zoe's teddy bear - small brown, held in her wing",
-        "box_2d": [
-          374,
-          343,
-          488,
-          430
-        ]
-      },
-      {
-        "label": "Clara's pillow - pink, under her head",
-        "box_2d": [
-          406,
-          693,
-          520,
-          835
-        ]
-      },
-      {
-        "label": "Clara's bunny plushie - pink, next to her in bed",
-        "box_2d": [
-          430,
-          730,
-          511,
-          782
-        ]
-      },
-      {
-        "label": "Zoe's blanket - multi-colored striped, covering her body",
-        "box_2d": [
-          405,
-          122,
-          626,
-          435
-        ]
-      },
-      {
-        "label": "Clara's blanket - green and purple striped, covering her lower body",
-        "box_2d": [
-          484,
-          628,
+          90,
+          118,
           715,
-          844
+          715
+        ]
+      },
+      {
+        "label": "Clara - green chameleon, in bed, raising a hand",
+        "box_2d": [
+          379,
+          686,
+          735,
+          960
+        ]
+      },
+      {
+        "label": "Sleep mask - teal with red hearts, on Zoe's head",
+        "box_2d": [
+          4,
+          383,
+          102,
+          608
+        ]
+      },
+      {
+        "label": "Teddy bear - small brown, held in Zoe's wing",
+        "box_2d": [
+          457,
+          331,
+          551,
+          400
+        ]
+      },
+      {
+        "label": "Zoe's blanket - large striped multi-colored, wrapped around Zoe",
+        "box_2d": [
+          295,
+          0,
+          1000,
+          521
+        ]
+      },
+      {
+        "label": "Clara's pillow - pink with a white ruffle, behind Clara's head",
+        "box_2d": [
+          396,
+          786,
+          574,
+          911
+        ]
+      },
+      {
+        "label": "Clara's blanket - green and purple striped, covering Clara",
+        "box_2d": [
+          521,
+          668,
+          999,
+          999
         ]
       }
     ]

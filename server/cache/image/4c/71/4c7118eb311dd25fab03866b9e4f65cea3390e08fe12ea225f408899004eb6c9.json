@@ -1,97 +1,79 @@
 {
-  "createdAt": 1787352278586,
+  "createdAt": 1790088893024,
   "book": "2",
   "page": "15",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot wearing a sleep mask, holding a patterned blanket",
+        "label": "Zoe - red parrot wearing a sleep mask",
         "box_2d": [
-          68,
-          217,
-          621,
-          429
+          79,
+          0,
+          892,
+          714
         ]
       },
       {
-        "label": "Clara - smiling green chameleon sitting on a blanket, extending a hand",
+        "label": "Clara - green chameleon smiling",
         "box_2d": [
-          347,
-          727,
-          771,
-          928
+          299,
+          619,
+          769,
+          953
         ]
       },
       {
-        "label": "Blanket - orange, yellow, and red patterned one, held by Zoe and Clara",
+        "label": "quilt - colorful one with sweets held by Zoe",
         "box_2d": [
-          374,
-          442,
-          677,
-          749
+          382,
+          356,
+          734,
+          821
         ]
       },
       {
-        "label": "Sleep mask - blue with red hearts, on Zoe's head",
+        "label": "sleep mask - blue and red on Zoe's head",
         "box_2d": [
-          39,
-          295,
-          154,
-          490
+          147,
+          344,
+          307,
+          501
         ]
       },
       {
-        "label": "Bunny - small pink toy, next to Clara on a blanket",
+        "label": "pillows - stack of feather-shaped ones near Zoe",
         "box_2d": [
-          820,
-          712,
-          909,
-          814
+          273,
+          472,
+          458,
+          704
         ]
       },
       {
-        "label": "Pillow - pink one behind Clara",
+        "label": "quilt - striped one under Zoe",
         "box_2d": [
-          354,
-          651,
-          615,
-          960
+          561,
+          0,
+          1000,
+          498
         ]
       },
       {
-        "label": "Blanket - rainbow striped one under Zoe",
+        "label": "quilt - patterned one under Clara",
         "box_2d": [
-          624,
-          77,
-          944,
-          571
-        ]
-      },
-      {
-        "label": "Pillow - yellow one in Zoe's pile",
-        "box_2d": [
-          81,
-          763,
-          188,
-          885
-        ]
-      },
-      {
-        "label": "Pillow - green one in Zoe's pile",
-        "box_2d": [
-          103,
-          597,
-          210,
-          715
-        ]
-      },
-      {
-        "label": "Blanket - green, purple, and pink striped one under Clara",
-        "box_2d": [
-          652,
-          705,
-          891,
+          672,
+          499,
+          1000,
           1000
+        ]
+      },
+      {
+        "label": "bunny - pink toy under Clara's quilt",
+        "box_2d": [
+          789,
+          802,
+          962,
+          892
         ]
       }
     ]

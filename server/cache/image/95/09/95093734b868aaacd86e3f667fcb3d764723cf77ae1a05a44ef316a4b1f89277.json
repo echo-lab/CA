@@ -1,70 +1,105 @@
 {
-  "createdAt": 1787346548729,
+  "createdAt": 1790088357346,
   "book": "2",
   "page": "10",
   "data": {
     "tags": [
       {
-        "label": "Zoe - red parrot with colorful feathers",
+        "label": "Zoe - large red parrot in the foreground, holding colorful feathers",
         "box_2d": [
-          378,
-          483,
-          903,
-          761
+          386,
+          477,
+          931,
+          522,
+          900
         ]
       },
       {
-        "label": "Clara - green chameleon on a striped blanket",
+        "label": "Clara - small green chameleon on a striped blanket, pointing to the curtains",
         "box_2d": [
-          498,
-          230,
-          804,
-          429
+          465,
+          226,
+          739,
+          431,
+          697
         ]
       },
       {
-        "label": "Curtains - green with flowers and hearts pattern",
+        "label": "curtains - light green with flower and heart patterns, in the background",
         "box_2d": [
-          3,
           0,
-          706,
-          425
+          102,
+          740,
+          477
         ]
       },
       {
-        "label": "Curtains - red with stars and hearts pattern in thought bubble",
+        "label": "thought bubble - white, containing Zoe's imagined pattern",
         "box_2d": [
-          47,
-          499,
-          442,
-          737
+          18,
+          412,
+          504,
+          500,
+          503
         ]
       },
       {
-        "label": "Feathers - colorful feathers held by Zoe",
+        "label": "pattern - red and blue with stars and hearts, inside the thought bubble",
         "box_2d": [
-          594,
-          396,
-          829,
-          584
+          89,
+          508,
+          419,
+          252,
+          420
         ]
       },
       {
-        "label": "Blanket - striped green and purple blanket",
+        "label": "colorful feathers - various colors, held by Zoe",
         "box_2d": [
-          665,
-          114,
-          959,
-          403
+          633,
+          483,
+          995,
+          302,
+          999
         ]
       },
       {
-        "label": "Toy rabbit - small pink toy next to Clara",
+        "label": "blanket - green and purple striped, under Clara",
         "box_2d": [
-          687,
-          276,
-          764,
-          344
+          631,
+          0,
+          996,
+          441
+        ]
+      },
+      {
+        "label": "stuffed bunny - small pink toy, lying on the striped blanket",
+        "box_2d": [
+          790,
+          203,
+          911,
+          304,
+          891
+        ]
+      },
+      {
+        "label": "armchair - large grey, behind Zoe",
+        "box_2d": [
+          203,
+          563,
+          892,
+          1000,
+          1000
+        ]
+      },
+      {
+        "label": "knitted blanket - colorful and fluffy, next to Zoe",
+        "box_2d": [
+          784,
+          626,
+          997,
+          1000,
+          1000
         ]
       }
     ]

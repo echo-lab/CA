@@ -954,9 +954,9 @@ function Reader() {
 
               <div className="col-3">
               <div className="role-image-container-text d-flex justify-content-around">
-              {currentRole && roleImage && <img src={roleImage} alt={roleName} style={{width: "20%"}}  className="overlay-image"/>}
+              {currentRole && roleImage && <img src={roleImage} alt={roleName} style={{width: "25%"}}  className="overlay-image"/>}
 
-                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "45%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}
+                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "55%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}
               </div>
               </div>
               <div className="col-8">

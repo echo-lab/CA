@@ -1,43 +1,88 @@
 {
-  "createdAt": 1787345850325,
+  "createdAt": 1790087088315,
   "book": "1",
   "page": "1",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with striped beak and colorful wings",
+        "label": "Zoe - large red parrot with wings spread",
         "box_2d": [
-          38,
-          95,
-          839,
-          847
+          27,
+          191,
+          955,
+          820
         ]
       },
       {
-        "label": "Clara - green chameleon with striped tail on the floor",
+        "label": "Clara - small green chameleon looking up at Zoe",
         "box_2d": [
-          569,
-          762,
-          977,
-          988
+          712,
+          686,
+          955,
+          947
         ]
       },
       {
-        "label": "Decorations - green and purple strips taped to the wall",
+        "label": "Zoe's wing - red wing with colorful taped feathers",
+        "box_2d": [
+          63,
+          104,
+          686,
+          420
+        ]
+      },
+      {
+        "label": "Decorations - purple and green streamers scattered on the floor",
+        "box_2d": [
+          747,
+          236,
+          994,
+          651
+        ]
+      },
+      {
+        "label": "Decorations - green streamer unrolling from Zoe's wing",
+        "box_2d": [
+          440,
+          412,
+          818,
+          560
+        ]
+      },
+      {
+        "label": "Decorations - purple streamer unrolling from Zoe's wing",
+        "box_2d": [
+          260,
+          624,
+          716,
+          978
+        ]
+      },
+      {
+        "label": "Decorations - green and purple streamers taped to the wall",
+        "box_2d": [
+          2,
+          0,
+          425,
+          300
+        ]
+      },
+      {
+        "label": "Zoe's face - parrot with white fluffy cheeks and closed eyes",
+        "box_2d": [
+          29,
+          432,
+          202,
+          602
+        ]
+      },
+      {
+        "label": "Zoe's beak - black and white striped beak",
         "box_2d": [
           52,
-          20,
-          756,
-          304
-        ]
-      },
-      {
-        "label": "Tape - clear tape zoe used to put on decorations on the floor",
-        "box_2d": [
-          772,
-          285,
-          871,
-          355
+          479,
+          226,
+          604
         ]
       }
     ]

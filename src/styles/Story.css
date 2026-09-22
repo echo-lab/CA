@@ -26,13 +26,21 @@
 }
 
 /* Secondary by colour, never by size: a child's finger gets well past the 44px
-   minimum. Bootstrap's default .btn padding only yields ~38px.
+   minimum. The .btn default padding only yields ~38px.
 
-   Colour is decided here rather than by a btn-outline-* class in the JSX.
-   Bootstrap 5.3 drives .btn entirely from these --bs-btn-* vars, so restating
-   the full set buys every interaction state (hover, active, focus ring,
-   disabled) without hand-writing those rules. Everything derives from
-   --storybar-ink, so one hue per button is the only knob. */
+   Colour is decided here rather than by a btn-outline-* class in the JSX. The
+   .btn component is driven entirely by custom properties, so restating the set
+   buys every interaction state (hover, active, focus ring, disabled) without
+   hand-writing those rules. Everything derives from --storybar-ink, so one hue
+   per button is the only knob.
+
+   TRANSITIONAL: both families are set on purpose. These three buttons carry a
+   bare `btn` with no variant class, so their whole appearance comes from these
+   overrides. bootstrap.css is still imported and still wins, and it reads only
+   --bs-btn-*; styles/buttons.css takes over at teardown and reads only --btn-*.
+   Setting one family alone would leave the buttons unstyled on one side of that
+   switch. Delete the --bs-btn-* half in the same commit that removes the
+   bootstrap import from Story.js. */
 .storybar-btn {
   display: flex;
   align-items: center;
@@ -42,6 +50,22 @@
   padding: 0;
   line-height: 1;
 
+  /* Owned — styles/buttons.css reads these. */
+  --btn-color: var(--storybar-ink);
+  --btn-bg: transparent;
+  --btn-border-color: var(--storybar-ink);
+  --btn-hover-color: #fff;
+  --btn-hover-bg: var(--storybar-ink);
+  --btn-hover-border-color: var(--storybar-ink);
+  --btn-active-color: #fff;
+  --btn-active-bg: var(--storybar-ink);
+  --btn-active-border-color: var(--storybar-ink);
+  --btn-disabled-color: var(--storybar-ink);
+  --btn-disabled-bg: transparent;
+  --btn-disabled-border-color: var(--storybar-ink);
+  --btn-focus-shadow-rgb: var(--storybar-ink-rgb);
+
+  /* Delete this block with the bootstrap import — see the note above. */
   --bs-btn-color: var(--storybar-ink);
   --bs-btn-bg: transparent;
   --bs-btn-border-color: var(--storybar-ink);
@@ -115,14 +139,28 @@
     unchanged; only the saturation drops. The accent draws the left bar, the
     tint fills the row. */
  --line-parent-accent: #2f8f4e;
- --line-parent-tint: #eef7f0;
+ --line-parent-tint: #c4fcd1;
  --line-child-accent: #d98e04;
- --line-child-tint: #fff6e3;
+ --line-child-tint: #fde6b4;
  /* How far the highlight is held back from the row's left edge, to clear the
     page illustration bleeding in from .col-md-5. Calibration knob: raise it if
     the tint still touches the illustration, lower it if the bar has drifted too
     far from the character portrait. */
  --line-highlight-inset: 24px;
+ /* How far the highlight is lifted to sit centred on the portrait. Half the
+    10px the global `img` rule adds below every image, which is what pushes the
+    row box lower than the portrait. Calibration knob: raise it if the highlight
+    still reads low, lower it if it now rides above the line. */
+ --line-highlight-rise: 5px;
+
+ /* The question mate's size. One variable because the number is also baked into
+    the avatar-expand/avatar-collapse keyframes, which animate the container's
+    width to match the image — they have to move together or the avatar pops at
+    the end of the animation. vw so it tracks the window; the floor keeps it a
+    comfortable tap target (it doubles as the ask-a-question button), the
+    ceiling stops it eating the illustration column on a wide desktop. At
+    landscape-tablet width this lands near the 160px it used to be fixed at. */
+ --avatar-size: clamp(120px, 13vw, 190px);
  position: relative;
  max-height: 100vh;
  max-height: 100dvh;
@@ -187,9 +225,13 @@ img {
 .table-column .row::before {
   content: "";
   position: absolute;
-  top: 0;
+  /* Shifted up, not resized: top and bottom move by the same amount so the
+     height is unchanged. The row box extends below the portrait (the global
+     `img` rule adds 10px under it), which left the highlight sitting low
+     against the image. */
+  top: calc(-1 * var(--line-highlight-rise));
   right: 0;
-  bottom: 0;
+  bottom: var(--line-highlight-rise);
   left: var(--line-highlight-inset);
   z-index: -1;
   border-radius: 10px;
@@ -283,8 +325,8 @@ img {
  .role-image-container img {
   display: flex;
   align-items: center; /* Center children horizontally */
-  height: 160px;
-  width: 160px;
+  height: var(--avatar-size, 160px);
+  width: var(--avatar-size, 160px);
   object-fit: contain;
 }
 
@@ -764,13 +806,13 @@ img {
 
 @keyframes avatar-expand {
   from { flex-basis: 0; width: 0; }
-  to   { flex-basis: 160px; width: 160px; }
+  to   { flex-basis: var(--avatar-size, 160px); width: var(--avatar-size, 160px); }
 }
 
 @keyframes avatar-collapse {
   0%, 72% {
-    flex-basis: 160px;
-    width: 160px;
+    flex-basis: var(--avatar-size, 160px);
+    width: var(--avatar-size, 160px);
   }
   100% {
     flex-basis: 0;

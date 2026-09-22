@@ -1,3 +1,17 @@
+/* Tailwind. Placed in index.css because index.js imports it before App.css and
+   every page stylesheet, so app CSS still wins on equal specificity. `base` is
+   nearly empty here since preflight is off in tailwind.config.js; it is kept so
+   turning preflight back on later needs no edit. All utilities are prefixed
+   `tw-` while Bootstrap is still loaded — see the config for why. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Owned button component, replacing Bootstrap's. Imported here so it precedes
+   every page stylesheet, and so pages keep overriding it (e.g. .next-btn's
+   padding on the avatar pages). Inert until bootstrap.css is removed. */
+@import "./styles/buttons.css";
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

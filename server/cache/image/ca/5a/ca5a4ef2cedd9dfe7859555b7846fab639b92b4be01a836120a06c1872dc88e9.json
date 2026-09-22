@@ -1,79 +1,70 @@
 {
-  "createdAt": 1787351633240,
+  "createdAt": 1790087950329,
   "book": "2",
   "page": "5",
   "data": {
     "tags": [
       {
-        "label": "Zoe - red parrot peeking from under a blanket",
+        "label": "Zoe - red parrot checking under the blanket",
         "box_2d": [
-          94,
-          79,
-          497,
-          262
+          100,
+          61,
+          508,
+          273
         ]
       },
       {
-        "label": "blanket - colorful scallop-patterned blanket",
+        "label": "Blanket - colorful striped blanket",
         "box_2d": [
-          202,
-          63,
-          499,
-          242
+          106,
+          130,
+          515,
+          314
         ]
       },
       {
-        "label": "armchair - green upholstered armchair",
+        "label": "Closet - green closet door and shelves",
         "box_2d": [
-          75,
-          229,
-          411,
-          396
+          78,
+          484,
+          404,
+          761
         ]
       },
       {
-        "label": "Zoe - red parrot with widespread wings near a closet",
+        "label": "Zoe - red parrot opening the closet",
         "box_2d": [
-          144,
-          533,
-          452,
-          895
+          147,
+          561,
+          472,
+          721
         ]
       },
       {
-        "label": "closet - grey and green open cabinet",
+        "label": "Flowers - four pots of colorful flowers",
         "box_2d": [
-          101,
-          562,
-          396,
-          945
+          593,
+          176,
+          832,
+          561
         ]
       },
       {
-        "label": "Zoe - red parrot walking past potted flowers",
+        "label": "Zoe - red parrot looking at the flowers",
         "box_2d": [
-          500,
-          545,
-          819,
-          842
+          485,
+          534,
+          805,
+          791
         ]
       },
       {
-        "label": "flowers - row of potted blue and orange flowers",
+        "label": "Slippers - pink bunny slippers",
         "box_2d": [
-          702,
-          157,
-          897,
-          589
-        ]
-      },
-      {
-        "label": "bunny slippers - red bunny-shaped slippers on Zoe's feet",
-        "box_2d": [
-          787,
-          616,
-          872,
-          736
+          441,
+          165,
+          517,
+          236
         ]
       }
     ]

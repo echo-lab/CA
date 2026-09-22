@@ -1,51 +1,69 @@
 {
-  "createdAt": 1787351721507,
+  "createdAt": 1790088364340,
   "book": "2",
   "page": "8",
   "data": {
     "tags": [
       {
-        "label": "Clara - green chameleon, sitting on the left, speaking and raising a hand",
+        "label": "Zoe - red parrot looking at Clara",
         "box_2d": [
-          566,
-          167,
-          937,
-          416
+          2,
+          477,
+          1000,
+          1000
         ]
       },
       {
-        "label": "Zoe - red parrot, on the right, looking worried, holding colorful feathers",
+        "label": "Clara - green chameleon sitting on the floor",
         "box_2d": [
-          170,
-          450,
-          990,
-          990
+          475,
+          4,
+          950,
+          440
         ]
       },
       {
-        "label": "Feathers - colorful, held by Zoe",
+        "label": "feathers - colorful feathers held by Zoe",
         "box_2d": [
-          490,
-          455,
-          810,
-          700
+          500,
+          310,
+          850,
+          800
         ]
       },
       {
-        "label": "Curtain - left green patterned with hearts and flowers",
+        "label": "Zoe - worried face with white ruff",
         "box_2d": [
-          0,
-          0,
-          710,
+          150,
+          560,
+          430,
+          790
+        ]
+      },
+      {
+        "label": "Clara - outstretched left arm",
+        "box_2d": [
+          630,
+          250,
+          760,
           390
         ]
       },
       {
-        "label": "Curtain - right green patterned with hearts and flowers",
+        "label": "patterned wallpaper - green with hearts and flowers on the left",
         "box_2d": [
           0,
-          610,
-          710,
+          0,
+          750,
+          460
+        ]
+      },
+      {
+        "label": "patterned wallpaper - green with hearts and flowers on the right",
+        "box_2d": [
+          0,
+          530,
+          750,
           1000
         ]
       }

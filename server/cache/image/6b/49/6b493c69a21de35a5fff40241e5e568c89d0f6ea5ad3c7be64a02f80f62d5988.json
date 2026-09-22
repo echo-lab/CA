@@ -1,97 +1,88 @@
 {
-  "createdAt": 1787451856948,
+  "createdAt": 1790088382365,
   "book": "2",
   "page": "12",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with colorful feathers",
+        "label": "Zoe - large red parrot, facing left",
         "box_2d": [
-          206,
-          548,
-          915,
-          938
+          195,
+          395,
+          980,
+          980
         ]
       },
       {
-        "label": "Clara - green chameleon smiling and pointing",
+        "label": "Clara - green chameleon, facing right",
         "box_2d": [
-          436,
-          128,
-          718,
-          281
+          440,
+          0,
+          760,
+          300
         ]
       },
       {
-        "label": "Zoe's bunny slippers - pink footwear with bunny faces",
+        "label": "Zoe's thought bubble - white cloud above Zoe's head",
         "box_2d": [
-          785,
-          614,
-          917,
-          804
+          10,
+          25,
+          400,
+          600
         ]
       },
       {
-        "label": "Clara's blue flowers - in a green pot, first from left",
+        "label": "Clara's blue flowers - in first green pot",
         "box_2d": [
           660,
-          14,
-          825,
-          143
+          0,
+          820,
+          130
         ]
       },
       {
-        "label": "Clara's orange flowers - in a purple pot, second from left",
+        "label": "Clara's orange flowers - in first purple pot",
         "box_2d": [
-          669,
-          151,
-          810,
-          264
+          660,
+          140,
+          820,
+          270
         ]
       },
       {
-        "label": "Clara's blue flowers - in a green pot, third from left",
+        "label": "Clara's blue flowers - in second green pot",
         "box_2d": [
-          670,
-          287,
-          818,
-          398
+          660,
+          280,
+          820,
+          410
         ]
       },
       {
-        "label": "Clara's orange flowers - in a purple pot, fourth from left",
+        "label": "Clara's orange flowers - in second purple pot",
         "box_2d": [
-          658,
+          660,
           420,
-          814,
-          533
+          820,
+          550
         ]
       },
       {
-        "label": "Zoe's thought bubble - cloud containing red pots with yellow flowers",
+        "label": "Zoe - red bunny slippers",
         "box_2d": [
-          24,
-          62,
-          369,
-          619
+          820,
+          620,
+          990,
+          820
         ]
       },
       {
-        "label": "child's drawing - green chameleon and pink parrot with hearts",
+        "label": "drawing - on the wall, showing a parrot and chameleon",
         "box_2d": [
-          165,
-          800,
-          426,
-          966
-        ]
-      },
-      {
-        "label": "Zoe's rainbow blanket - red, yellow, and blue striped blanket around her neck",
-        "box_2d": [
-          322,
-          761,
-          547,
-          884
+          155,
+          755,
+          480,
+          990
         ]
       }
     ]

@@ -1,79 +1,88 @@
 {
-  "createdAt": 1787352354711,
+  "createdAt": 1790090760518,
   "book": "3",
   "page": "3",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with colorful feathers",
+        "label": "Zoe - large red parrot looking at Clara",
         "box_2d": [
-          257,
-          564,
-          835,
-          862
+          236,
+          520,
+          955,
+          760
         ]
       },
       {
-        "label": "Clara - green chameleon on a stack of books",
+        "label": "Clara - green chameleon smiling on two stacked books",
         "box_2d": [
           602,
-          121,
-          759,
-          306
+          200,
+          825,
+          377
         ]
       },
       {
-        "label": "book - single orange book on the floor",
+        "label": "book - single yellow one on the floor",
         "box_2d": [
-          733,
-          44,
-          812,
-          206
+          710,
+          30,
+          855,
+          208
         ]
       },
       {
-        "label": "books - stack of two books Clara is sitting on",
+        "label": "book - single red one on the floor",
+        "box_2d": [
+          810,
+          70,
+          975,
+          305
+        ]
+      },
+      {
+        "label": "books - stack of two orange and blue ones",
         "box_2d": [
           720,
-          205,
-          806,
-          345
+          240,
+          855,
+          420
         ]
       },
       {
-        "label": "books - stack of three books near Zoe",
+        "label": "books - stack of three green, pink, and purple ones",
         "box_2d": [
-          757,
-          521,
-          887,
-          678
-        ]
-      },
-      {
-        "label": "book - single red book on the floor",
-        "box_2d": [
-          835,
-          105,
-          924,
-          301
-        ]
-      },
-      {
-        "label": "books - stack of green and purple books on the floor",
-        "box_2d": [
-          672,
-          367,
-          789,
+          677,
+          345,
+          830,
           515
         ]
       },
       {
-        "label": "books - stack of teal and orange books on the floor",
+        "label": "books - stack of two blue and orange ones",
         "box_2d": [
-          811,
-          348,
-          924,
-          498
+          800,
+          300,
+          915,
+          480
+        ]
+      },
+      {
+        "label": "books - stack of three purple, orange, and green ones",
+        "box_2d": [
+          800,
+          520,
+          930,
+          700
+        ]
+      },
+      {
+        "label": "bookshelves - green shelves lining the library",
+        "box_2d": [
+          90,
+          0,
+          605,
+          998
         ]
       }
     ]

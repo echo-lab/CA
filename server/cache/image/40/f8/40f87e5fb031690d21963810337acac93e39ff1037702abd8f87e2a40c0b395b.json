@@ -1,88 +1,70 @@
 {
-  "createdAt": 1787351451755,
+  "createdAt": 1790087922505,
   "book": "2",
   "page": "1",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, holding items for sleepover",
+        "label": "Zoe - large red parrot, holding many items",
         "box_2d": [
-          118,
-          14,
-          961,
-          400
+          25,
+          65,
+          960,
+          610
         ]
       },
       {
-        "label": "Clara - small green chameleon, welcoming with open arms",
+        "label": "Clara - small green chameleon, dancing happily",
         "box_2d": [
-          536,
-          699,
-          980,
-          932
+          300,
+          700,
+          960,
+          970
         ]
       },
       {
-        "label": "blanket - rolled blue and orange, carried by Zoe",
+        "label": "rolled blanket - blue and yellow, held by Zoe",
         "box_2d": [
-          379,
-          239,
-          508,
-          359
+          370,
+          390,
+          520,
+          500
         ]
       },
       {
-        "label": "teddy bear - brown, peeking from Zoe's outfit",
+        "label": "teddy bear - small brown, carried by Zoe",
         "box_2d": [
-          471,
-          172,
-          559,
-          240
+          460,
+          260,
+          560,
+          330
         ]
       },
       {
-        "label": "slippers - pink bunny, worn by Zoe",
+        "label": "bunny slippers - pink, worn on Zoe's feet",
         "box_2d": [
-          820,
-          145,
-          940,
-          368
+          790,
+          265,
+          960,
+          520
         ]
       },
       {
-        "label": "door - light green, with arched top",
+        "label": "green door - with a purple frame, in the background",
         "box_2d": [
-          89,
-          339,
-          777,
-          604
+          30,
+          330,
+          800,
+          660
         ]
       },
       {
-        "label": "framed picture - purple, hanging on the wall",
+        "label": "framed picture - showing two chameleons on the wall",
         "box_2d": [
-          142,
-          755,
-          451,
-          943
-        ]
-      },
-      {
-        "label": "chameleon - larger green, in framed picture",
-        "box_2d": [
-          174,
-          818,
-          419,
-          941
-        ]
-      },
-      {
-        "label": "chameleon - smaller green, in framed picture",
-        "box_2d": [
-          239,
-          763,
-          431,
-          864
+          130,
+          710,
+          370,
+          910
         ]
       }
     ]

@@ -1,61 +1,61 @@
 {
-  "createdAt": 1787352338057,
+  "createdAt": 1790090735845,
   "book": "3",
   "page": "2",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot in the foreground, facing left with colorful wings",
+        "label": "Zoe - large red parrot in the foreground, with colorful wings spread, looking at Clara",
         "box_2d": [
-          399,
-          502,
-          948,
-          870
+          378,
+          383,
+          974,
+          977
         ]
       },
       {
-        "label": "Clara - small green chameleon on the floor, pointing at books",
+        "label": "Clara - small green chameleon on the floor, smiling, pointing at books",
         "box_2d": [
-          626,
-          251,
-          776,
+          589,
+          172,
+          920,
+          411
+        ]
+      },
+      {
+        "label": "Books - single orange book on the floor",
+        "box_2d": [
+          761,
+          39,
+          853,
+          290
+        ]
+      },
+      {
+        "label": "Books - stack of two on the floor, orange and blue",
+        "box_2d": [
+          698,
+          281,
+          852,
           400
         ]
       },
       {
-        "label": "bookshelves - long green shelves filled with many colorful books in the background",
+        "label": "Books - stack of three on the floor, green, red, and purple",
         "box_2d": [
-          10,
+          665,
+          411,
+          843,
+          563
+        ]
+      },
+      {
+        "label": "Bookshelves - green shelves filled with many colorful books in the background",
+        "box_2d": [
           0,
-          520,
+          0,
+          689,
           1000
-        ]
-      },
-      {
-        "label": "Clara's book stack - first stack of one orange book on the floor",
-        "box_2d": [
-          807,
-          116,
-          908,
-          224
-        ]
-      },
-      {
-        "label": "Clara's book stack - second stack of two orange and blue books",
-        "box_2d": [
-          780,
-          237,
-          909,
-          364
-        ]
-      },
-      {
-        "label": "Clara's book stack - third stack of three green, red, and purple books",
-        "box_2d": [
-          765,
-          390,
-          895,
-          560
         ]
       }
     ]
