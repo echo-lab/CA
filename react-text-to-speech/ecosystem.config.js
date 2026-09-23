@@ -9,13 +9,13 @@ if (!process.env.KEYPATH || !process.env.CERTPATH) {
 module.exports = {
   apps: [
     {
-      name: 'talemate-api',
+      name: 'TM3-backend',
       script: './server/server.js',
       cwd: __dirname,
       time: true,
     },
     {
-      name: 'talemate-web',
+      name: 'TM3-frontend',
       // serve@11.3.0 — a newer serve puts its entry at build/main.js instead
       script: './node_modules/serve/bin/serve.js',
       cwd: __dirname,
