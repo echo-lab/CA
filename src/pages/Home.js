@@ -17,17 +17,16 @@ function Home() {
     const linkTo = "/Character";
     const linkState = { id: card.id, name: participantName };
     return (
-        <div className="tw-m-4" key={index}>
+        <Link to={linkTo} state={linkState} className="tw-block tw-m-4 tw-no-underline" key={index}>
           <div className="book-card tw-p-4 tw-mb-12 tw-bg-white tw-rounded-md">
           <div className="tw-relative tw-flex tw-flex-col tw-min-w-0 tw-text-[#212529] tw-break-words tw-bg-white tw-bg-clip-border tw-border tw-border-solid tw-border-[rgba(0,0,0,0.175)] tw-rounded-md" style={{width: "18rem"}}>
             <img className="tw-w-full tw-h-1/2 tw-rounded-t-[0.3125rem]" src={card.img} alt="Card" />
             <div className="tw-flex-auto tw-p-4">
               <h5 className="tw-mb-2">{card.title}</h5>
-              <Link to={linkTo} state={linkState}><button className="btn btn-primary">Start Reading</button></Link>
             </div>
           </div>
           </div>
-        </div>
+        </Link>
     );
   }
   // Without a verified ID every event would log a blank user_id, so send the
@@ -46,7 +45,7 @@ function Home() {
 
   return (
 
-    <>
+    <div onDragStart={(e) => e.preventDefault()}>
     <div className=''>
       <NavigationBar
         participantId={participantId}
@@ -66,7 +65,7 @@ function Home() {
             {bookInfo.map(renderCard)}
       </div>
     </div>
-    </>
+    </div>
   )
 }
 

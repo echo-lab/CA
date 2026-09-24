@@ -10,16 +10,16 @@
 .avatar-img-thumbnail {
   -webkit-user-drag: none;
   user-select: none;
-  flex-basis: 15%; /* Ensures 5 images per row */
-  max-width: 15%; /* Ensures the images do not exceed 20% width of the container */
+  width: 100%;
+  height: auto;
   cursor: pointer;
   padding: 5px;
   box-sizing: border-box;
-  max-height: 150px;
 }
 
 .avatar-img-thumbnail.selected {
-  border: 3px solid #007bff;
+  border: 5px solid #007bff;
+  border-radius: 50%;
 }
 
 .next-btn {

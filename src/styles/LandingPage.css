@@ -21,16 +21,18 @@
  
   
   .lab-logo {
-    max-width: 200px;   /* adjust as needed */
+    max-width: 220px;   /* adjust as needed */
     width: 100%;
+    min-width: 0;
     height: auto;
   }
   
   .logo-container {
     display: flex;
+    justify-content: center;
+    align-items: center;
     max-width: 800px;      /* same width as your .hero-content */
     margin: 0 auto 20px;   /* center it + bottom spacing */
-    justify-content: flex-start;  /* line up logos to the left edge */
     gap: 20px;             /* space between logos */
   }
   

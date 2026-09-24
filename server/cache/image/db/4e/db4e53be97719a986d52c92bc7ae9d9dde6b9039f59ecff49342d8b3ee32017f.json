@@ -1,97 +1,97 @@
 {
-  "createdAt": 1787351275405,
+  "createdAt": 1790281816101,
   "book": "1",
   "page": "15",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, wearing a party hat, eating cake",
+        "label": "Zoe - red parrot, wearing a party hat, eating cake",
         "box_2d": [
-          121,
-          110,
-          612,
-          978
+          30,
+          360,
+          900,
+          990
         ]
       },
       {
-        "label": "Clara - small green chameleon, wearing a party hat, looking at the cake",
+        "label": "Clara - green chameleon, wearing a party hat, next to the cake",
         "box_2d": [
-          621,
-          224,
-          867,
-          454
+          600,
+          240,
+          870,
+          450
         ]
       },
       {
-        "label": "Cake - striped orange and blue cake, with a bite taken out",
+        "label": "Cake - striped blue and orange, a bite taken out, on the table",
         "box_2d": [
-          484,
-          468,
-          864,
-          761
+          440,
+          420,
+          870,
+          780
         ]
       },
       {
-        "label": "Zoe's party hat - striped purple and green, with a pink pom-pom, on her head",
+        "label": "Zoe's party hat - green and purple striped, on Zoe's head",
         "box_2d": [
-          28,
-          662,
-          255,
-          808
+          30,
+          680,
+          270,
+          800
         ]
       },
       {
-        "label": "Clara's party hat - striped purple and green, with a pink pom-pom, on her head",
+        "label": "Clara's party hat - green and purple striped, on Clara's head",
         "box_2d": [
-          602,
-          338,
-          741,
-          436
+          570,
+          320,
+          710,
+          420
         ]
       },
       {
-        "label": "Party hat - striped purple and green, on the left side of the table",
+        "label": "Streamers - green and purple, hanging in the background",
         "box_2d": [
-          687,
-          123,
-          859,
-          225
+          0,
+          0,
+          200,
+          500
         ]
       },
       {
-        "label": "Party hat - striped purple and green, on the right side of the table",
+        "label": "Party hat - on the table, green and purple striped, left side",
         "box_2d": [
-          781,
-          627,
-          979,
-          754
+          710,
+          150,
+          920,
+          250
         ]
       },
       {
-        "label": "Plate - green oval plate, on the left side of the table",
+        "label": "Party hat - on the table, green and purple striped, right side",
         "box_2d": [
-          833,
-          32,
-          896,
-          220
+          790,
+          610,
+          990,
+          750
         ]
       },
       {
-        "label": "Plate - purple oval plate, below Zoe's right wing",
+        "label": "Plate - green plate on the table, left side",
         "box_2d": [
-          889,
-          747,
-          966,
-          882
+          780,
+          270,
+          840,
+          440
         ]
       },
       {
-        "label": "Streamers - green and purple lines, on the background wall and floor",
+        "label": "Plate - purple plate on the table, right side",
         "box_2d": [
-          7,
-          12,
-          241,
-          556
+          790,
+          820,
+          860,
+          970
         ]
       }
     ]

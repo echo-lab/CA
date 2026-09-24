@@ -1,88 +1,97 @@
 {
-  "createdAt": 1787346050304,
+  "createdAt": 1790281794950,
   "book": "1",
   "page": "12",
   "data": {
     "tags": [
       {
-        "label": "Zoe - red parrot playing two drums and wearing a party hat",
+        "label": "Zoe - large red parrot",
         "box_2d": [
-          91,
-          411,
-          988,
-          936
+          165,
+          360,
+          990,
+          990
         ]
       },
       {
-        "label": "Clara - small green chameleon looking up at Zoe",
+        "label": "Clara - green chameleon",
         "box_2d": [
-          666,
-          177,
-          987,
-          359
+          600,
+          40,
+          990,
+          640
         ]
       },
       {
-        "label": "drum - purple and white instrument being played by Zoe",
+        "label": "drum - purple and gold instrument",
         "box_2d": [
-          549,
-          429,
-          747,
-          680
+          560,
+          450,
+          780,
+          760
         ]
       },
       {
-        "label": "drumstick - brown one in Zoe's upper right hand",
+        "label": "party hat - colorful, on Zoe's head",
         "box_2d": [
-          159,
-          442,
-          238,
-          511
+          70,
+          690,
+          260,
+          840
         ]
       },
       {
-        "label": "drumstick - brown one in Zoe's lower left hand",
+        "label": "cymbal - small gold disc above drum",
         "box_2d": [
-          544,
-          551,
-          640,
-          629
+          430,
+          540,
+          530,
+          660
         ]
       },
       {
-        "label": "party hat - colorful striped cone hat on Zoe's head",
+        "label": "drumstick - held by Zoe",
         "box_2d": [
-          45,
-          722,
-          277,
-          862
+          180,
+          430,
+          350,
+          500
         ]
       },
       {
-        "label": "present - red box with yellow dots and purple ribbon",
+        "label": "gift - red box with purple bow",
         "box_2d": [
-          601,
+          600,
           0,
-          831,
-          237
+          870,
+          330
         ]
       },
       {
-        "label": "present - green box with purple dots and blue ribbon",
+        "label": "gift - green box with purple bow",
         "box_2d": [
-          397,
-          804,
-          617,
-          1000
+          390,
+          770,
+          670,
+          990
         ]
       },
       {
-        "label": "gift bag - pink, with frilly tissue paper",
+        "label": "star balloon - yellow, on left",
         "box_2d": [
-          537,
-          145,
-          738,
-          303
+          0,
+          0,
+          340,
+          280
+        ]
+      },
+      {
+        "label": "red balloon - floating on right",
+        "box_2d": [
+          0,
+          850,
+          340,
+          990
         ]
       }
     ]

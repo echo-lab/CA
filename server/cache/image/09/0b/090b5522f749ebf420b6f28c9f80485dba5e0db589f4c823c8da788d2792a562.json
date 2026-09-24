@@ -1,70 +1,88 @@
 {
-  "createdAt": 1787444838887,
+  "createdAt": 1790281789215,
   "book": "1",
   "page": "13",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with closed eyes, hugging Clara",
+        "label": "Zoe - large red parrot hugging Clara",
         "box_2d": [
-          75,
-          401,
+          126,
+          303,
           1000,
-          921
+          953
         ]
       },
       {
-        "label": "Clara - small green chameleon with closed eyes, hugged by Zoe",
+        "label": "Clara - small green chameleon smiling in a hug",
         "box_2d": [
-          581,
-          701,
-          801,
-          891
+          561,
+          709,
+          802,
+          860
         ]
       },
       {
-        "label": "Party hats - green and purple striped party hat with a pink pompom",
+        "label": "Music notes - white burst with black musical symbols",
         "box_2d": [
-          258,
-          3,
-          566,
+          38,
+          644,
+          259,
+          804
+        ]
+      },
+      {
+        "label": "Door - yellow with colorful flowers on the right",
+        "box_2d": [
+          17,
+          790,
+          632,
+          999
+        ]
+      },
+      {
+        "label": "Party hat - green and purple striped on the table",
+        "box_2d": [
+          266,
+          23,
+          501,
+          127
+        ]
+      },
+      {
+        "label": "Table - light grey with party hats",
+        "box_2d": [
+          389,
+          0,
+          602,
           512
         ]
       },
       {
-        "label": "Chair - light orange wooden chair with an oval back",
+        "label": "Plate - round orange on the table",
         "box_2d": [
-          534,
-          152,
-          994,
-          322
+          188,
+          131,
+          331,
+          262
         ]
       },
       {
-        "label": "Door - orange door with a white arch and colorful flower decals",
+        "label": "Chair - orange wooden at the party table",
         "box_2d": [
-          70,
-          780,
-          469,
-          945
+          545,
+          142,
+          966,
+          299
         ]
       },
       {
-        "label": "Music notes - white burst with black musical notes",
+        "label": "Zoe - colorful feathers below Clara",
         "box_2d": [
-          13,
-          654,
-          199,
-          808
-        ]
-      },
-      {
-        "label": "Feathers - colorful yellow, green, and blue feathers under Zoe's wing",
-        "box_2d": [
-          689,
-          521,
-          989,
-          771
+          701,
+          631,
+          943,
+          730
         ]
       }
     ]

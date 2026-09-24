@@ -1,43 +1,70 @@
 {
-  "createdAt": 1787351183034,
+  "createdAt": 1790281805448,
   "book": "1",
   "page": "14",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with colorful feathers, looking at the cake",
+        "label": "Zoe - large red parrot looking at the cake",
         "box_2d": [
-          13,
+          68,
           161,
-          813,
-          521
+          704,
+          620
         ]
       },
       {
-        "label": "Clara - small green striped chameleon, looking up at the cake",
+        "label": "Clara - small green chameleon looking at the cake",
         "box_2d": [
-          701,
-          162,
-          981,
-          461
+          602,
+          254,
+          955,
+          622
         ]
       },
       {
-        "label": "Cake - tall round cake with orange and blue stripes",
+        "label": "Cake - round cake with orange and blue stripes",
         "box_2d": [
-          408,
-          464,
-          929,
-          844
+          429,
+          494,
+          852,
+          934
         ]
       },
       {
-        "label": "Flowers - small blue and yellow smiling flower shape cake decorations on top of the cake",
+        "label": "Cake decorations - happy blue and yellow flowers on top of the cake",
         "box_2d": [
-          448,
-          514,
-          568,
-          814
+          430,
+          520,
+          603,
+          907
+        ]
+      },
+      {
+        "label": "Cake box - white open box holding the cake",
+        "box_2d": [
+          522,
+          0,
+          1000,
+          1000
+        ]
+      },
+      {
+        "label": "Plate - round orange plate in the upper right",
+        "box_2d": [
+          279,
+          765,
+          421,
+          919
+        ]
+      },
+      {
+        "label": "Plate - round orange plate in the mid-left",
+        "box_2d": [
+          593,
+          0,
+          712,
+          116
         ]
       }
     ]

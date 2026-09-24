@@ -1,79 +1,79 @@
 {
-  "createdAt": 1787345990476,
+  "createdAt": 1790281778699,
   "book": "1",
   "page": "9",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with striped beak, facing right",
+        "label": "Zoe - large red parrot, gesturing with a wing",
         "box_2d": [
-          175,
-          12,
-          990,
-          680
+          198,
+          153,
+          955,
+          752
         ]
       },
       {
-        "label": "Clara - small green striped chameleon on the right, looking up",
+        "label": "Clara - small green chameleon, looking up",
         "box_2d": [
-          515,
-          705,
-          895,
-          985
+          504,
+          712,
+          852,
+          978
         ]
       },
       {
-        "label": "Balloon - red circle balloon between two yellow star balloons",
+        "label": "balloon - yellow star, leftmost",
         "box_2d": [
-          30,
-          165,
+          15,
+          53,
           180,
-          330
+          182
         ]
       },
       {
-        "label": "Balloon - red circle balloon on the far right",
+        "label": "balloon - red circle, left of center",
         "box_2d": [
-          25,
-          815,
-          175,
-          975
+          24,
+          198,
+          177,
+          326
         ]
       },
       {
-        "label": "Star balloon - yellow star balloon on the far left",
-        "box_2d": [
-          15,
-          25,
-          175,
-          170
-        ]
-      },
-      {
-        "label": "Star balloon - yellow star balloon to the right of the first red balloon",
+        "label": "balloon - yellow star, middle left",
         "box_2d": [
           15,
-          340,
-          175,
-          485
+          334,
+          180,
+          462
         ]
       },
       {
-        "label": "Star balloon - yellow star balloon in the middle, near Zoe's wing",
+        "label": "balloon - yellow star, middle right",
         "box_2d": [
           15,
-          500,
-          175,
-          645
+          480,
+          180,
+          610
         ]
       },
       {
-        "label": "Star balloon - yellow star balloon to the left of the far right red balloon",
+        "label": "balloon - yellow star, rightmost",
         "box_2d": [
           15,
-          655,
-          175,
-          800
+          650,
+          180,
+          779
+        ]
+      },
+      {
+        "label": "balloon - red circle, right of center",
+        "box_2d": [
+          24,
+          840,
+          177,
+          969
         ]
       }
     ]

@@ -1,79 +1,88 @@
 {
-  "createdAt": 1787351078227,
+  "createdAt": 1790281785563,
   "book": "1",
   "page": "11",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot in the center",
+        "label": "Zoe - large red parrot, looking towards Clara",
         "box_2d": [
-          37,
-          339,
-          767,
-          805
+          30,
+          270,
+          880,
+          880
         ]
       },
       {
-        "label": "Clara - small green chameleon on the left",
+        "label": "Clara - small green chameleon, looking at Zoe",
         "box_2d": [
-          550,
-          164,
-          893,
-          410
+          460,
+          140,
+          740,
+          550
         ]
       },
       {
-        "label": "party hat - green and purple striped hat in front of Clara",
+        "label": "party hat - green and purple striped, near Clara's hand",
         "box_2d": [
-          770,
-          332,
-          954,
-          447
+          670,
+          350,
+          870,
+          560
         ]
       },
       {
-        "label": "party hat - green and purple striped hat on the far left",
+        "label": "party hat - striped green and purple, far left",
         "box_2d": [
-          646,
-          12,
-          760,
-          200
+          610,
+          170,
+          850,
+          300
         ]
       },
       {
-        "label": "party hat - green and purple striped hat on the right",
+        "label": "party hat - striped green and purple, right of Clara",
         "box_2d": [
-          758,
-          803,
-          911,
-          950
+          670,
+          530,
+          870,
+          710
         ]
       },
       {
-        "label": "party hat - green and purple striped hat behind Zoe's feathers",
+        "label": "party hat - partially visible striped, far right",
         "box_2d": [
-          562,
-          820,
-          735,
-          983
+          680,
+          780,
+          870,
+          920
         ]
       },
       {
-        "label": "Zoe's feathers - colorful feathers fanned out below Zoe's body",
+        "label": "orange plate - large, behind Zoe's head",
         "box_2d": [
-          558,
-          154,
-          904,
-          925
-        ]
-      },
-      {
-        "label": "party streamers - green and purple ribbons hanging in the background",
-        "box_2d": [
-          95,
+          330,
           0,
-          269,
-          875
+          520,
+          300
+        ]
+      },
+      {
+        "label": "orange plate - large, to the right of Zoe's body",
+        "box_2d": [
+          390,
+          570,
+          540,
+          740
+        ]
+      },
+      {
+        "label": "streamers - green and purple, on the back wall",
+        "box_2d": [
+          170,
+          300,
+          300,
+          800
         ]
       }
     ]

@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
@@ -104,7 +105,7 @@ function RoleDraggable({ role, name, needsAssignment }) {
       ref={setNodeRef}
       className={`RoleDraggable${needsAssignment ? " needs-assignment" : ""}`}
       style={{
-        touchAction: "none",
+        touchAction: "manipulation",
         cursor: "grab",
         opacity: isDragging ? 0.4 : 1,
       }}
@@ -115,7 +116,8 @@ function RoleDraggable({ role, name, needsAssignment }) {
       {isVoiceRole(role.Role) && (
         <button
           onClick={playSound}
-          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           disabled={playDisabled}
         >
           <PlayArrowIcon />
@@ -208,7 +210,9 @@ export default function CharaterSelecter() {
   const [activeRole, setActiveRole] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    // Long press to drag on touch, so a normal swipe over the tiles scrolls the rail.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor)
   );
 

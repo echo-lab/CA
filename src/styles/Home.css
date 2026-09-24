@@ -37,4 +37,9 @@
   transform: scale(1.05);
 }
 
+.book-card:active {
+  transform: scale(0.97);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+}
+
   

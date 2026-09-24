@@ -13,6 +13,7 @@
     align-items: center;
     justify-content: space-between;
     user-select: none;
+    -webkit-touch-callout: none; /* no iOS long-press menu stealing the drag */
   }
 
   .RoleDraggable img {

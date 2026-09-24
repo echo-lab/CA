@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import "../styles/LandingPage.css";
 import labLogo1 from "../Pictures/CoDeS.png"; 
+import echoLabLogo from "../Pictures/EchoLab.png";
 import labLogo2 from "../Pictures/L&D.png"; 
 import vtLogo from "../Pictures/vt.png";
 
@@ -12,6 +13,7 @@ const LandingPage = () => {
         {/* Logo Container */}
         <div className="logo-container">
          <img src={labLogo1} alt="Echolab logo" className="lab-logo" />
+         <img src={echoLabLogo} alt="EchoLab logo" className="lab-logo" />
          <img src={labLogo2} alt="Cobélab logo" className="lab-logo" />
   <img src={vtLogo} alt="Virginia Tech logo" className="lab-logo" />
        </div>
