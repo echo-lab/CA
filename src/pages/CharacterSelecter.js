@@ -368,8 +368,8 @@ export default function CharaterSelecter() {
         onDragCancel={() => setActiveRole(null)}
       >
         <div className="tw-flex tw-flex-col page-shell">
-          <div className="tw-flex tw-justify-between tw-p-4 tw-bg-[#f8f9fa]">
-            <button className="btn btn-primary" onClick={() => navigate("/Home")}>
+          <div className="tw-grid tw-grid-cols-[auto_1fr_auto] tw-p-4 tw-bg-[#f8f9fa]">
+            <button className="btn btn-primary tw-self-center tw-h-[calc((100%_+_2rem)*0.6)] tw-flex tw-items-center tw-justify-center" onClick={() => navigate("/Home")}>
               <KeyboardDoubleArrowLeftIcon fontSize="large" />
             </button>
             <div className="tw-text-center">
@@ -377,7 +377,7 @@ export default function CharaterSelecter() {
               <p>Drag any role onto each character.</p>
             </div>
             <button
-              className="btn btn-primary"
+              className="btn btn-primary tw-self-center tw-h-[calc((100%_+_2rem)*0.6)] tw-flex tw-items-center tw-justify-center"
               onClick={() => {
                 navigateToStory();
               }}

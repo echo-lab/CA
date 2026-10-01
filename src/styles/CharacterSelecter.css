@@ -317,3 +317,27 @@
   background: #e8f5e9;   /* light green */
   color: #1b5e20;
 }
+
+/* Portrait: the roles rail becomes a horizontal strip above the cards, so the
+   cards get the full width. A plain swipe scrolls the strip; dragging a role
+   still needs the long press set on the TouchSensor. */
+@media (orientation: portrait) {
+  .characterSelecter .flex-body {
+    flex-direction: column;
+  }
+
+  .left-rail {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .DraggableContainer {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: var(--mate-size);
+    justify-content: start;
+  }
+}

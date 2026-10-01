@@ -1017,7 +1017,7 @@ function Reader() {
       <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
 
 
-      <header className="storybar tw-bg-[#f8f9fa] tw-border-b tw-border-solid tw-border-[#dee2e6] tw-px-4">
+      <header className="storybar -tw-mx-3 tw-bg-[#f8f9fa] tw-border-b tw-border-solid tw-border-[#dee2e6] tw-px-4">
         <button
           type="button"
           className="storybar-btn storybar-home btn"
@@ -1055,15 +1055,16 @@ function Reader() {
       </header>
 
     <div className="reader-row">
-      <div className="tw-flex-none tw-w-full md:tw-w-5/12">
+      <div className="tw-flex-none tw-w-full landscape:tw-w-5/12 reader-picture-column">
         <div
+          className="page-illustration"
           style={{
-            position: 'relative', display: 'inline-block', width: '105%',
+            position: 'relative', display: 'inline-block',
             cursor: clickAnswersQuestion ? POINT_CURSOR : 'default',
           }}
           onClick={clickAnswersQuestion ? handleImageAnswerClick : undefined}
         >
-          <img src={state.pagesValues[state.page].img} alt="current page" style={{ width: '100%', display: 'block' }} />
+          <img src={state.pagesValues[state.page].img} alt="current page" />
             {(imageTags || []).map((tag, i) => {
               if (!Array.isArray(tag?.box_2d) || tag.box_2d.length < 4) return null;
               const [y0, x0, y1, x1] = tag.box_2d;
@@ -1110,7 +1111,7 @@ function Reader() {
           generatingQuestion={generatingQuestion}
         />
         </div>
-      <div className="tw-flex-none tw-w-full md:tw-w-7/12 table-container">
+      <div className="tw-flex-none tw-w-full landscape:tw-w-7/12 table-container">
 
 
         <div className="tw-w-full tw-px-3 tw-mx-auto">{renderPageRows()}</div>

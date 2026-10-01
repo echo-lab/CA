@@ -19,7 +19,7 @@ function Home() {
     return (
         <Link to={linkTo} state={linkState} className="tw-block tw-m-4 tw-no-underline" key={index}>
           <div className="book-card tw-p-4 tw-mb-12 tw-bg-white tw-rounded-md">
-          <div className="tw-relative tw-flex tw-flex-col tw-min-w-0 tw-text-[#212529] tw-break-words tw-bg-white tw-bg-clip-border tw-border tw-border-solid tw-border-[rgba(0,0,0,0.175)] tw-rounded-md" style={{width: "18rem"}}>
+          <div className="tw-relative tw-flex tw-flex-col tw-min-w-0 tw-text-[#212529] tw-break-words tw-bg-white tw-bg-clip-border tw-border tw-border-solid tw-border-[rgba(0,0,0,0.175)] tw-rounded-md" style={{width: "18rem", maxWidth: "100%"}}>
             <img className="tw-w-full tw-h-1/2 tw-rounded-t-[0.3125rem]" src={card.img} alt="Card" />
             <div className="tw-flex-auto tw-p-4">
               <h5 className="tw-mb-2">{card.title}</h5>
@@ -46,7 +46,7 @@ function Home() {
   return (
 
     <div onDragStart={(e) => e.preventDefault()}>
-    <div className=''>
+    <div className='tw-sticky tw-top-0 tw-z-20'>
       <NavigationBar
         participantId={participantId}
         onEndSession={() => {
@@ -61,7 +61,7 @@ function Home() {
 
     <div className='home'>
       <p className='title tw-text-[calc(1.525rem+3.3vw)] tw-font-light tw-leading-[1.2] [@media(min-width:1200px)]:tw-text-[4rem]'>JENNIE</p>
-      <div className= "tw-flex tw-justify-center">
+      <div className= "tw-flex tw-flex-wrap tw-justify-center">
             {bookInfo.map(renderCard)}
       </div>
     </div>

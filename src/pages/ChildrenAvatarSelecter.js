@@ -54,16 +54,16 @@ function ChildrenAvatarSelecter() {
     return (
       <div className="avatar-container">
         <div className="tw-flex tw-flex-col tw-min-h-screen tw-w-full">
-          <div className="tw-flex tw-justify-between tw-p-4 tw-bg-[#f8f9fa]">
+          <div className="tw-sticky tw-top-0 tw-z-20 tw-grid tw-grid-cols-[1fr_auto] tw-gap-x-4 tw-p-4 tw-bg-[#f8f9fa]">
             <div className="tw-self-start">
-              <div className={`sectionTitle tw-text-[calc(1.525rem+3.3vw)] tw-font-light tw-leading-[1.2] [@media(min-width:1200px)]:tw-text-[4rem]`}>Children Avatar Selection</div>
+              <div className={`sectionTitle tw-text-[calc(1.525rem+3.3vw)] tw-font-light tw-leading-[1.2] [@media(min-width:1200px)]:tw-text-[4rem] portrait:tw-text-[calc(1rem+3vw)]`}>Children Avatar Selection</div>
               <p>Please select an avatar to represent the child</p>
             </div>
-            <button className="btn btn-primary next-btn" onClick={handleNextButtonClick}>
+            <button className="btn btn-primary next-btn tw-self-center tw-h-[calc((100%_+_2rem)*0.6)] tw-flex tw-items-center tw-justify-center" onClick={handleNextButtonClick}>
               <KeyboardDoubleArrowRightIcon style={{ fontSize: "2rem" }}/>
             </button>
           </div>
-          <div className="tw-w-full tw-p-4 tw-grid tw-grid-cols-[repeat(auto-fill,minmax(140px,1fr))] tw-gap-2 tw-mt-12">
+          <div className="tw-w-full tw-max-w-[1059px] tw-mx-auto tw-p-4 tw-grid tw-grid-cols-[repeat(auto-fill,minmax(140px,1fr))] tw-gap-2 tw-mt-12">
             {images.map((image, index) => (
               <img
                 key={index}

@@ -137,3 +137,28 @@
     background: linear-gradient(to right, rgb(225, 22, 22) 0%, rgb(225, 14, 70) 50%, rgb(225, 10, 96) 100%);
   }
   
+
+/* Portrait: the fixed 750px two-column card doesn't fit, so drop the mascot
+   and let the form take the width. */
+@media (orientation: portrait) {
+  .signup {
+    padding: 16px;
+  }
+
+  .signup .signupcard,
+  .signup .row-signup {
+    width: 100%;
+    max-width: 750px;
+    height: auto;
+  }
+
+  .signup .left-column {
+    display: none;
+  }
+
+  .signup .right-column {
+    width: 100%;
+    height: auto;
+    padding: 24px 16px;
+  }
+}

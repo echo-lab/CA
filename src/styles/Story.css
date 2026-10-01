@@ -1118,3 +1118,68 @@ img {
 .answer-button-frames img.is-visible {
   opacity: 1;
 }
+
+/* The page picture. 105% lets it bleed into the dialogue column in the
+   side-by-side layout; portrait resets it below. The img fills the wrapper
+   exactly, so the tag overlays and handleImageAnswerClick, which both work in
+   percentages of the wrapper, line up with the picture. */
+.page-illustration {
+  width: 105%;
+}
+
+.page-illustration img {
+  width: 100%;
+  display: block;
+}
+
+/* Portrait (phone, upright tablet): one screen, top to bottom — bar, picture,
+   question mate, dialogue list, Next. Only the dialogue list scrolls. Last in
+   the file so it wins over the rules above at equal specificity. */
+@media (orientation: portrait) {
+  .reader-container {
+    --storybar-gap: 8px;
+    /* No picture bleeding in from the side any more. */
+    --line-highlight-inset: 0px;
+    /* Calibration knob: the mate shares the height with picture and text. */
+    --avatar-size: clamp(72px, 18vw, 140px);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .reader-row {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .reader-picture-column {
+    flex: none;
+    text-align: center;
+  }
+
+  /* Shrink-wraps the picture so click percentages stay picture-relative. */
+  .page-illustration {
+    width: auto;
+    max-width: 100%;
+  }
+
+  /* Calibration knob: 38dvh leaves roughly half the screen for the text. */
+  .page-illustration img {
+    width: auto;
+    max-width: 100%;
+    max-height: 38vh;
+    max-height: 38dvh;
+  }
+
+  .table-container {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    padding-bottom: var(--reader-cta-clearance);
+  }
+}
