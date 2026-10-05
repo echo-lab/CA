@@ -117,10 +117,10 @@
   height: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  z-index: 1; /* Lower than left rail but dragged items will be higher */
+  z-index: 1; /* Lower than left rail */
 }
 
-.DraggableContainer {
+.role-grid {
   display: grid;
   grid-template-columns: repeat(2, var(--mate-size));
   grid-auto-flow: row dense;
@@ -133,12 +133,12 @@
   padding: 8px;
 }
 
-.DraggableContainer::-webkit-scrollbar { width: 8px; }
-.DraggableContainer::-webkit-scrollbar-track { background: transparent; }
-.DraggableContainer::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 8px; }
-.DraggableContainer::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
+.role-grid::-webkit-scrollbar { width: 8px; }
+.role-grid::-webkit-scrollbar-track { background: transparent; }
+.role-grid::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 8px; }
+.role-grid::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
 
-.characterSelecter .RoleDraggable {
+.characterSelecter .RoleTile {
   display: grid !important;
   grid-template-rows: var(--mate-size) auto auto;
   justify-items: center;
@@ -152,7 +152,7 @@
   min-height: calc(var(--mate-size) + 2 * var(--tile-gap) + 40px);
 }
 
-.characterSelecter .RoleDraggable img {
+.characterSelecter .RoleTile img {
   max-width: 100% !important;
   max-height: 100% !important;
   width: auto !important;
@@ -162,14 +162,14 @@
   -webkit-user-drag: none;
 }
 
-.characterSelecter .RoleDraggable span {
+.characterSelecter .RoleTile span {
   margin: 0 !important;
   font-size: 0.95rem;
   text-align: center;
   line-height: 1.1;
 }
 
-.characterSelecter .RoleDraggable button {
+.characterSelecter .RoleTile button {
   margin: 0 !important;
   border-radius: 10px;
   padding: 2px 6px;
@@ -232,7 +232,7 @@
   display: block;
 }
 
-.droppable-area {
+.role-slot {
   min-height: calc(var(--mate-size) + 34px);
   border: 2px dashed #cfd8dc;
   border-radius: 14px;
@@ -244,14 +244,24 @@
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
-/* Highlight whichever drop target the dragged role is currently over. */
-.droppable-area.is-over {
+/* While a role is selected, every place it can go lights up. */
+.role-slot.is-target {
   border-color: #4caf50;
   background-color: rgba(76, 175, 80, 0.12);
+  cursor: pointer;
 }
 
-.left-rail.is-over {
+.left-rail.is-target {
   background-color: rgba(76, 175, 80, 0.08);
+  cursor: pointer;
+}
+
+/* The role picked by the first tap. */
+.characterSelecter .RoleTile.is-selected {
+  outline: 3px solid #0d6efd;
+  outline-offset: 2px;
+  border-radius: 8px;
+  background-color: rgba(13, 110, 253, 0.08);
 }
 
 .default-message {
@@ -260,28 +270,23 @@
   font-size: 0.95rem;
 }
 
-.droppable-area .RoleDraggable {
+.role-slot .RoleTile {
   background: transparent;
   box-shadow: none;
   padding: 0;
 }
 
-/* Ensure roles inside character cards appear on top when dragged */
-.droppable-area .RoleDraggable[style*="position: fixed"],
-.droppable-area .RoleDraggable[data-rbd-draggable-id] {
-  z-index: 9999 !important;
-}
 
 .navigation-buttons { padding-top: 20px; padding-bottom: 20px; }
 .title-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 1; }
 .next-btn { padding: 15px 30px; }
 
 @media (pointer: coarse) {
-  .RoleDraggable { padding: 8px; }
+  .RoleTile { padding: 8px; }
 }
 
 @media (max-width: 768px) {
-  .DraggableContainer { grid-template-columns: repeat(2, var(--mate-size)); }
+  .role-grid { grid-template-columns: repeat(2, var(--mate-size)); }
   .character-cards-container { grid-template-columns: 1fr; width: 94%; gap: 12px; }
 }
 
@@ -319,8 +324,7 @@
 }
 
 /* Portrait: the roles rail becomes a horizontal strip above the cards, so the
-   cards get the full width. A plain swipe scrolls the strip; dragging a role
-   still needs the long press set on the TouchSensor. */
+   cards get the full width. A swipe scrolls the strip. */
 @media (orientation: portrait) {
   .characterSelecter .flex-body {
     flex-direction: column;
@@ -334,7 +338,7 @@
     overflow-y: hidden;
   }
 
-  .DraggableContainer {
+  .role-grid {
     grid-auto-flow: column;
     grid-template-columns: none;
     grid-auto-columns: var(--mate-size);

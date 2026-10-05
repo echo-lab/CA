@@ -19,7 +19,6 @@ export function useAcknowledgement({
   stateRef,
   lastAskedQuestionRef,
   lastExpectedAnswerRef,
-  acknowledgementFromPageQuestionRef,
   generatedQuestionPendingRef,
   imageDescriptionRef,
   userAttentionRef,

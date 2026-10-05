@@ -48,7 +48,7 @@
   margin-left :20px;
 }
 
-.character-card .droppable-area {
+.character-card .role-slot {
   flex-grow: 0;
   width: 90%; /* the width of the square */
   height: 80%; /* the height of the square */
@@ -60,15 +60,6 @@
   margin: 10px;
 }
 
-.droppable-area .placeholder {
-  height: 60px; /* Adjust based on the typical height of RoleDraggable */
-  width: 100%; /* Adjust if necessary to match the width of RoleDraggable */
-  background-color: #ffffff; /* A light color or transparent */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px; /* Optional, depending on your layout */
-}
 
 
 .character-card .default-message {

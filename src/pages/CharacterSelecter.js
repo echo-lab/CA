@@ -1,26 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  DndContext,
-  DragOverlay,
-  MouseSensor,
-  TouchSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  useDraggable,
-  useDroppable,
-  pointerWithin,
-  rectIntersection,
-} from "@dnd-kit/core";
-import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import Modal from "react-modal";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 import "../styles/CharacterSelecter.css";
-import "../styles/RoleDraggable.css";
+import "../styles/RoleTile.css";
 import "../styles/CharacterCard.css";
 
 import { roles } from "../Book/Roles.js";
@@ -33,7 +19,7 @@ import { say, stopTts, unlockTtsAudio } from "../utils/ttsClient";
 import { prefetchImageAnalysis } from "../utils/imageAnalysis";
 
 const ROLE_PRIORITY = { Parent: 0, Child: 1 };
-const ROLES_DROPPABLE_ID = "roles";
+const RAIL_ID = "roles";
 
 Modal.setAppElement("#root");
 
@@ -59,26 +45,28 @@ function getDifficultyLabel(bookId, characterName) {
   return DIFFICULTY_MAP[bookId]?.[characterName] ?? "";
 }
 
-function collisionDetection(args) {
-  const pointerHits = pointerWithin(args);
-  return pointerHits.length ? pointerHits : rectIntersection(args);
+// Click/keyboard props for a div that acts as a button. A real <button> can't be
+// used: role tiles contain the play <button>, and buttons can't nest. The
+// target check keeps Enter on that inner button from also firing this one.
+function pressable(onPress) {
+  return {
+    role: "button",
+    tabIndex: 0,
+    onClick: onPress,
+    onKeyDown: (e) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onPress(e);
+      }
+    },
+  };
 }
 
-function RoleTileVisual({ role }) {
-  return (
-    <>
-      <img src={role.img} alt={role.Role} />
-      <span>{role.Role}</span>
-    </>
-  );
-}
-
-// — Draggable role icon (dnd-kit) —
-function RoleDraggable({ role, name, needsAssignment }) {
+// — Role tile. Tapping it in the rail selects it; inside a card the tap goes to
+// the card's box instead (see CharacterCard). —
+function RoleTile({ role, name, needsAssignment, selected, onSelect }) {
   const [playDisabled, setPlayDisabled] = useState(false);
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: role.Role,
-  });
 
   const playSound = () => {
     setPlayDisabled(true);
@@ -102,22 +90,23 @@ function RoleDraggable({ role, name, needsAssignment }) {
 
   return (
     <div
-      ref={setNodeRef}
-      className={`RoleDraggable${needsAssignment ? " needs-assignment" : ""}`}
-      style={{
-        touchAction: "manipulation",
-        cursor: "grab",
-        opacity: isDragging ? 0.4 : 1,
-      }}
-      {...attributes}
-      {...listeners}
+      className={`RoleTile${needsAssignment ? " needs-assignment" : ""}${selected ? " is-selected" : ""}`}
+      style={{ touchAction: "manipulation", cursor: "pointer" }}
+      aria-pressed={onSelect ? selected : undefined}
+      {...(onSelect &&
+        pressable((e) => {
+          e.stopPropagation(); // don't let the rail treat this as "unassign"
+          onSelect(role.Role);
+        }))}
     >
-      <RoleTileVisual role={role} />
+      <img src={role.img} alt={role.Role} />
+      <span>{role.Role}</span>
       {isVoiceRole(role.Role) && (
         <button
-          onClick={playSound}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation(); // previewing a voice must not select or assign
+            playSound();
+          }}
           disabled={playDisabled}
         >
           <PlayArrowIcon />
@@ -127,27 +116,26 @@ function RoleDraggable({ role, name, needsAssignment }) {
   );
 }
 
-function RolesRail({ children }) {
-  const { setNodeRef, isOver } = useDroppable({ id: ROLES_DROPPABLE_ID });
+// Tapping the rail's empty space with an assigned role selected unassigns it.
+function RolesRail({ children, isTarget, onPress }) {
   return (
     <aside
-      ref={setNodeRef}
-      className={`left-rail${isOver ? " is-over" : ""}`}
+      className={`left-rail${isTarget ? " is-target" : ""}`}
+      onClick={onPress}
     >
-      <div className="DraggableContainer">{children}</div>
+      <div className="role-grid">{children}</div>
     </aside>
   );
 }
 
-// — Droppable character card —
-function CharacterCard({ character, role, userName, difficulty }) {
-  const defaultMsg =
-    "Select a role from the left, then drag it here to assign the voice.";
+// — Character card. Its box is the tap target: with a role selected, a tap
+// assigns it here; with nothing selected, a tap picks up the role already here. —
+function CharacterCard({ character, role, userName, difficulty, isTarget, isSelected, onPress }) {
+  const defaultMsg = "Tap a role, then tap here to assign the voice.";
   const hasBadge = Boolean(difficulty);
   const badgeClass = hasBadge
     ? `difficulty-badge difficulty-${difficulty.toLowerCase()}`
     : "";
-  const { setNodeRef, isOver } = useDroppable({ id: character.Name });
 
   return (
     <div className="character-card">
@@ -168,11 +156,12 @@ function CharacterCard({ character, role, userName, difficulty }) {
           </div>
 
           <div
-            ref={setNodeRef}
-            className={`droppable-area${isOver ? " is-over" : ""}`}
+            className={`role-slot${isTarget ? " is-target" : ""}`}
+            aria-label={`${character.Name}: ${role ? role.Role : "no role"}`}
+            {...pressable(() => onPress(character.Name))}
           >
             {role ? (
-              <RoleDraggable key={role.Role} role={role} name={userName} />
+              <RoleTile key={role.Role} role={role} name={userName} selected={isSelected} />
             ) : (
               <p className="default-message">{defaultMsg}</p>
             )}
@@ -207,14 +196,8 @@ export default function CharaterSelecter() {
   const [needsParent, setNeedsParent] = useState(false);
 
   const [characterValues, setCharacterValues] = useState({});
-  const [activeRole, setActiveRole] = useState(null);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    // Long press to drag on touch, so a normal swipe over the tiles scrolls the rail.
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
-    useSensor(KeyboardSensor)
-  );
+  // Name of the role picked by the first tap; the second tap says where it goes.
+  const [selectedRole, setSelectedRole] = useState(null);
 
   // select book JSON
   const bookData = id === 1 ? data1 : id === 2 ? data2 : data3;
@@ -267,39 +250,50 @@ export default function CharaterSelecter() {
       });
   }, [assignedRoleNames, initialOrder]);
 
-  const handleDragStart = ({ active }) => {
-    setActiveRole(roles.find((r) => r.Role === active.id) || null);
-  };
-
-  const handleDragEnd = ({ active, over }) => {
-    setActiveRole(null);
-    if (!over) return;
-
-    const draggableId = active.id; // role name
-    const destId = over.id; // "roles" or a character name
+  // Moves a role to destId ("roles" or a character name). Whatever role the
+  // destination held is dropped from it and so reappears in the rail.
+  const assignRole = (roleName, destId) => {
 
     setCharacterValues((prevChars) => {
       const sourceId =
         Object.keys(prevChars).find(
-          (c) => prevChars[c] && prevChars[c].Role === draggableId
-        ) || ROLES_DROPPABLE_ID;
+          (c) => prevChars[c] && prevChars[c].Role === roleName
+        ) || RAIL_ID;
 
       if (sourceId === destId) return prevChars; // dropped where it started
 
-      const draggedRole =
-        (sourceId !== ROLES_DROPPABLE_ID ? prevChars[sourceId] : null) ||
-        roles.find((r) => r.Role === draggableId);
+      const movedRole =
+        (sourceId !== RAIL_ID ? prevChars[sourceId] : null) ||
+        roles.find((r) => r.Role === roleName);
 
       const next = { ...prevChars };
 
-      if (sourceId !== ROLES_DROPPABLE_ID) next[sourceId] = "";
+      if (sourceId !== RAIL_ID) next[sourceId] = "";
 
-      if (destId !== ROLES_DROPPABLE_ID) {
-        next[destId] = draggedRole ? { ...draggedRole } : "";
+      if (destId !== RAIL_ID) {
+        next[destId] = movedRole ? { ...movedRole } : "";
       }
 
       return next;
     });
+  };
+
+  const toggleSelected = (roleName) =>
+    setSelectedRole((cur) => (cur === roleName ? null : roleName));
+
+  const pressCharacter = (charName) => {
+    if (selectedRole) {
+      assignRole(selectedRole, charName);
+      setSelectedRole(null);
+    } else if (characterValues[charName]?.Role) {
+      setSelectedRole(characterValues[charName].Role);
+    }
+  };
+
+  const pressRail = () => {
+    if (!selectedRole) return;
+    assignRole(selectedRole, RAIL_ID);
+    setSelectedRole(null);
   };
 
   // Closing the missing-Parent error
@@ -308,7 +302,7 @@ export default function CharaterSelecter() {
     if (!needsParent) return;
     requestAnimationFrame(() => {
       document
-        .querySelector(".RoleDraggable.needs-assignment")
+        .querySelector(".RoleTile.needs-assignment")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   };
@@ -324,7 +318,7 @@ export default function CharaterSelecter() {
     const hasParent = Object.values(characterValues).some((v) => v?.Role === "Parent");
     if (!hasParent) {
       setNeedsParent(true);
-      setModalMessage("One character must be read by the Parent. Drag the Parent role onto a character before continuing.");
+      setModalMessage("One character must be read by the Parent. Tap the Parent role, then tap a character, before continuing.");
       return setModalOpen(true);
     }
     unlockTtsAudio();
@@ -360,13 +354,6 @@ export default function CharaterSelecter() {
         </button>
       </Modal>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={collisionDetection}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveRole(null)}
-      >
         <div className="tw-flex tw-flex-col page-shell">
           <div className="tw-grid tw-grid-cols-[auto_1fr_auto] tw-p-4 tw-bg-[#f8f9fa]">
             <button className="btn btn-primary tw-self-center tw-h-[calc((100%_+_2rem)*0.6)] tw-flex tw-items-center tw-justify-center" onClick={() => navigate("/Home")}>
@@ -374,7 +361,7 @@ export default function CharaterSelecter() {
             </button>
             <div className="tw-text-center">
               <h1>Select a Role</h1>
-              <p>Drag any role onto each character.</p>
+              <p>Tap a role, then tap a character to assign it.</p>
             </div>
             <button
               className="btn btn-primary tw-self-center tw-h-[calc((100%_+_2rem)*0.6)] tw-flex tw-items-center tw-justify-center"
@@ -387,13 +374,18 @@ export default function CharaterSelecter() {
           </div>
 
           <div className="flex-body">
-            <RolesRail>
+            <RolesRail
+              isTarget={Boolean(selectedRole) && assignedRoleNames.has(selectedRole)}
+              onPress={pressRail}
+            >
               {deckRoles.map((r) => (
-                <RoleDraggable
+                <RoleTile
                   key={r.Role}
                   role={r}
                   name={userName}
                   needsAssignment={needsParent && r.Role === "Parent"}
+                  selected={selectedRole === r.Role}
+                  onSelect={toggleSelected}
                 />
               ))}
             </RolesRail>
@@ -407,23 +399,15 @@ export default function CharaterSelecter() {
                     role={characterValues[char.Name]}
                     userName={userName}
                     difficulty={getDifficultyLabel(id, char.Name)}
+                    isTarget={Boolean(selectedRole)}
+                    isSelected={selectedRole != null && characterValues[char.Name]?.Role === selectedRole}
+                    onPress={pressCharacter}
                   />
                 ))}
               </div>
             </main>
           </div>
         </div>
-
-        {/* Floating copy that follows the pointer — renders at the top layer,
-            so it can't be clipped by scroll containers (no portal hack needed). */}
-        <DragOverlay modifiers={[restrictToWindowEdges]}>
-          {activeRole ? (
-            <div className="RoleDraggable" style={{ cursor: "grabbing" }}>
-              <RoleTileVisual role={activeRole} />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
     </div>
   );
 }

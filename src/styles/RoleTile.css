@@ -1,34 +1,34 @@
-/* RoleDraggable.css */
+/* RoleTile.css */
 
-.DraggableContainer,
+.role-grid,
 .parent-child-row,
 .character-cards-container,
-.droppable-area {
+.role-slot {
   overflow: visible !important;
 }
 
-.RoleDraggable {
+.RoleTile {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
     user-select: none;
-    -webkit-touch-callout: none; /* no iOS long-press menu stealing the drag */
+    -webkit-touch-callout: none; /* no iOS long-press menu on a tile */
   }
 
-  .RoleDraggable img {
+  .RoleTile img {
     width: 90%;
     height: 90%;
     object-fit: contain;
 
   }
 
-  .RoleDraggable span {
+  .RoleTile span {
     font-size: 14px;
     font-weight: bold;
   }
 
-  .RoleDraggable button {
+  .RoleTile button {
     background-color: transparent;
     border: none;
     outline: none;
@@ -36,18 +36,14 @@
   }
 
 
-  .RoleDraggable.disabled {
+  .RoleTile.disabled {
     opacity: 0.5; /* Make it semi-transparent */
     pointer-events: none; /* Prevent interaction */
   }
 
-  .RoleDraggable.dragging {
-    z-index: 1000 !important; /* Ensures it's above everything */
-    position: relative;
-  }
 /* Applied to the Parent tile when the user tried to start a session without
    assigning it — draws the eye to the one thing blocking them. */
-.RoleDraggable.needs-assignment {
+.RoleTile.needs-assignment {
   outline: 3px solid #d32f2f;
   outline-offset: 3px;
   border-radius: 8px;
@@ -60,5 +56,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .RoleDraggable.needs-assignment { animation: none; }
+  .RoleTile.needs-assignment { animation: none; }
 }
