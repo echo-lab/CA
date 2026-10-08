@@ -1,11 +1,16 @@
 /* LandingPage.css */
 
 .landing-container {
+    /* One width for the logo row and the text block -- they line up only as
+       long as both read it from here. */
+    --content-width: 800px;
     font-family: "Georgia", serif;
     text-align: center;
     background-color: #ffffff;
     color: #333333;
     padding: 40px 20px;
+    min-height: 100vh;
+    display: flex;
   }
   
   /* Hero Section */
@@ -14,7 +19,11 @@
     padding: 80px 20px;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    margin-bottom: 40px;
+    /* margin:auto centers it both ways; unlike align-items:center it still
+       scrolls instead of clipping when the content is taller than the screen */
+    margin: auto;
+    width: 100%;
+    box-sizing: border-box;
     position: relative;
   }
 
@@ -26,11 +35,20 @@
     height: auto;
   }
   
+  /* L&D is the only portrait logo (704x786), so at the shared 200px cap it
+     renders taller than the rest and dominates the row. */
+  .lab-logo--ld {
+    max-width: 130px;
+  }
+  
   .logo-container {
     display: flex;
-    max-width: 800px;      /* same width as your .hero-content */
+    align-items: center;   /* the logos have very different aspect ratios */
+    max-width: var(--content-width);   /* same width as .hero-content */
     margin: 0 auto 20px;   /* center it + bottom spacing */
-    justify-content: flex-start;  /* line up logos to the left edge */
+    /* space-between, not flex-start: the row then ends on the same right edge
+       as the paragraphs below, so both blocks read as one width. */
+    justify-content: space-between;
     gap: 20px;             /* space between logos */
   }
   
@@ -43,7 +61,7 @@
   }
   
   .hero-content {
-    max-width: 800px;
+    max-width: var(--content-width);
     margin: 0 auto;
     text-align: left;
   }

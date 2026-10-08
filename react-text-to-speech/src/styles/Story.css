@@ -1,9 +1,75 @@
 
-.row1 {
+/* One slim bar replaces the old navbar row plus the page-turn row. Grid, not
+   flex: three columns with two children centers the pager without a spacer. */
+.storybar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 72px;
+  margin-bottom: 16px;
+  padding: 0 16px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.storybar-pager {
   display: flex;
-  align-items: center; /* This will vertically center-align the flex items */
-  justify-content: space-between; /* This puts space between the flex items */
- height: 75px;
+  align-items: center;
+  gap: 8px;
+}
+
+/* visibility, not display: the chevron keeps its slot on the first and last
+   page, so the label doesn't slide sideways. */
+.storybar-pager .storybar-btn:disabled {
+  visibility: hidden;
+}
+
+/* Secondary by color, never by size -- a child's finger needs well past 44px. */
+.storybar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0;
+  line-height: 1;
+  color: #0d6efd;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.storybar-btn:hover {
+  color: #fff;
+  background: #0d6efd;
+}
+
+/* The glyph has to grow with the box or the button reads as mostly empty. */
+.storybar-btn .MuiSvgIcon-root {
+  font-size: 1.75rem;
+}
+
+/* justify-self or it stretches across the whole 1fr column. Grey and a step
+   smaller, so leaving the book never competes with turning a page. */
+.storybar-home {
+  justify-self: start;
+  min-width: 50px;
+  min-height: 50px;
+  color: #6c757d;
+}
+
+.storybar-home:hover {
+  background: #6c757d;
+}
+
+.storybar-page {
+  min-width: 9ch;          /* fixed width stops the chevrons shifting at page 10 */
+  text-align: center;
+  font-size: 1rem;
+  color: #495057;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
 .wrapper {
@@ -107,13 +173,6 @@ img {
   overflow: auto; /* Ensures the content is scrollable if it overflows */
   width: 100%; /* Take up the remaining width */
 }
-
-.row1 {
-  display: flex;
-  align-items: start; /* Align to the top */
-  justify-content: start; /* Align to the left */
-}
-
 
 .show-icon {
   position: relative;
@@ -234,24 +293,6 @@ img {
 
 
 
-.navigation-buttons-container {
-  display: flex;
-  align-items: center;
-  /* ... any other styles ... */
-}
-
-
-.next-page-button, .previous-page-button {
-  /* Removed the position absolute and added some margin for spacing */
-  margin: 0 10px; /* Adjust the margin as needed */
-}
-
-
-.navigation-buttons-container {
-  display: flex;
-  justify-content: flex-end; /* Align buttons to the right */
-  padding: 20px; /* Add padding as needed */
-}
 
 /* The parent image IS the play button — no separate icon underneath. */
 .play-sound-button {

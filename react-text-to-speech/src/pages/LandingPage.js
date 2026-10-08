@@ -1,9 +1,8 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import "../styles/LandingPage.css";
-import labLogos from "../Pictures/labImg.png"; 
 import labLogo1 from "../Pictures/CoDeS.png"; 
-import labLogo2 from "../Pictures/L&D.png"; 
+import labLogo2 from "../Pictures/L&D.png";
+import labLogo3 from "../Pictures/EchoLab.png" 
 import vtLogo from "../Pictures/vt.png";
 
 const LandingPage = () => {
@@ -12,8 +11,9 @@ const LandingPage = () => {
       <header className="hero-section">
         {/* Logo Container */}
         <div className="logo-container">
-         <img src={labLogo1} alt="Echolab logo" className="lab-logo" />
-         <img src={labLogo2} alt="Cobélab logo" className="lab-logo" />
+         <img src={labLogo1} alt="CoDeS" className="lab-logo" />
+         <img src={labLogo2} alt="L&D logo" className="lab-logo lab-logo--ld" />
+         <img src={labLogo3} alt="EchoLab logo" className="lab-logo" />
   <img src={vtLogo} alt="Virginia Tech logo" className="lab-logo" />
        </div>
         

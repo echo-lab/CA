@@ -1,11 +1,14 @@
 .avatar-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /* stretch, not center: the header row needs the full width to push the Next
+     button to the right edge. The grid below centers itself via .w-80. */
+  align-items: stretch;
 }
 
 .w-80 {
   width: 80%;
+  margin: 0 auto;
 }
 
 .d-flex {
@@ -25,16 +28,21 @@
 }
 
 .avatar-img-thumbnail {
-  flex-basis: 15%; /* Ensures 5 images per row */
-  max-width: 15%; /* Ensures the images do not exceed 20% width of the container */
+  /* The avatar art is already a circle on white, so a square box with a square
+     border read as misaligned. Fixed square + 50% radius clips to the artwork. */
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 50%;
+  /* Reserved on every state so selecting one doesn't reflow the grid. */
+  border: 4px solid transparent;
+  margin: 8px;
   cursor: pointer;
-  padding: 5px;
   box-sizing: border-box;
-  max-height: 150px;
 }
 
 .avatar-img-thumbnail.selected {
-  border: 3px solid #007bff;
+  border-color: #007bff;
 }
 
 .next-btn {

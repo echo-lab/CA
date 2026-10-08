@@ -1,7 +1,9 @@
 import React,  { useState, useRef, useEffect} from "react";
 import "../styles/Story.css";
 import "bootstrap/dist/css/bootstrap.css";
-import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import HomeIcon from "@mui/icons-material/Home";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import {useHotkeys} from "react-hotkeys-hook";
 import { Link, useLocation, useNavigate  } from 'react-router-dom';
@@ -717,31 +719,37 @@ function stripSSMLTags(text) {
     
   return (
     <div className="story container-fluid reader-container">
-      <div className="navbar navbar-light bg-light row1">
-        <div className="home btn col-1">
-          <Link to="/Home">
-            <button className="btn btn-primary">
-              <i>
-                <KeyboardDoubleArrowLeftIcon />
-              </i>
-            </button>
-          </Link>
-        </div>
-      </div>
+      <header className="storybar">
+        <Link to="/Home" className="storybar-btn storybar-home" aria-label="Back to the book list">
+          <HomeIcon />
+        </Link>
 
-      <div className="navigation-buttons-container">
-  <button 
-    onClick={gotoPreviousPage} 
-    className="btn btn-primary previous-page-button" 
-    disabled={state.page === 0}
-  >Previous Page</button>
-  
-  <button 
-    onClick={gotoNextPage} 
-    className="btn btn-primary next-page-button" 
-    disabled={state.page >= state.pagesValues.length - 1}
-  >Next Page</button>
-</div>
+        <div className="storybar-pager">
+          <button
+            type="button"
+            className="storybar-btn previous-page-button"
+            aria-label="Previous page"
+            onClick={gotoPreviousPage}
+            disabled={state.page === 0}
+          >
+            <ChevronLeftIcon />
+          </button>
+
+          <span className="storybar-page" aria-live="polite">
+            Page {state.page + 1} of {state.pagesValues.length}
+          </span>
+
+          <button
+            type="button"
+            className="storybar-btn next-page-button"
+            aria-label="Next page"
+            onClick={gotoNextPage}
+            disabled={state.page >= state.pagesValues.length - 1}
+          >
+            <ChevronRightIcon />
+          </button>
+        </div>
+      </header>
 
 
       
