@@ -7,6 +7,7 @@ const {
     OPENAI_PROMPT_CACHE_RETENTION,
     logOpenAIUsage,
     bedrockOffscript,
+    BEDROCK_OFFSCRIPT_MODEL,
 } = require('../lib/openai');
 const { JENNIE_SHARED_PROMPT_PREFIX, ACKNOWLEDGEMENT_PROMPT } = require('../lib/prompts');
 const { buildAcknowledgementPayload } = require('../lib/payloads');
@@ -57,7 +58,7 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         tlog(`page image ready (attached=${!!pageImageMessage})`);
 
         const stream = await offscript.chat.completions.create({
-            model: OPENAI_OFFSCRIPT_MODEL,
+            model: USE_BEDROCK ? BEDROCK_OFFSCRIPT_MODEL : OPENAI_OFFSCRIPT_MODEL,
             stream: true,
             stream_options: { include_usage: true },
             max_completion_tokens: 256,

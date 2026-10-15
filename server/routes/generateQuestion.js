@@ -7,6 +7,7 @@ const {
     OPENAI_PROMPT_CACHE_RETENTION,
     logOpenAIUsage,
     bedrockOffscript,
+    BEDROCK_OFFSCRIPT_MODEL,
 } = require('../lib/openai');
 const {
     resolveClickMode,
@@ -75,7 +76,7 @@ router.post('/api/generate-question-stream', async (req, res) => {
 
         tlog(`requesting a question on demand (clickMode=${clickMode}, utterances=${formattedUtterances ? 'yes' : 'none'})`);
         const result = await offscript.chat.completions.create({
-            model: OPENAI_OFFSCRIPT_MODEL,
+            model: USE_BEDROCK ? BEDROCK_OFFSCRIPT_MODEL : OPENAI_OFFSCRIPT_MODEL,
             max_completion_tokens: 512,
             reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',

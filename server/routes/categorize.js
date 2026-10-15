@@ -9,6 +9,7 @@ const {
     PROMPT_VERSION,
     logOpenAIUsage,
     bedrockOffscript,
+    BEDROCK_OFFSCRIPT_MODEL,
 } = require('../lib/openai');
 const {
     JENNIE_SHARED_PROMPT_PREFIX,
@@ -29,7 +30,7 @@ const router = express.Router();
 
 const USE_BEDROCK = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
 const offscript = USE_BEDROCK ? bedrockOffscript : openai;
-console.log(`[cat-stream] offscript provider = ${USE_BEDROCK ? 'bedrock (gpt-5.4)' : 'openai'}`);
+console.log(`[cat-stream] offscript provider = ${USE_BEDROCK ? 'bedrock' : 'openai'}`);
 
 router.post('/api/categorize-utterances-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -108,7 +109,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
 
         // Start categorization and question generation simultaneously
         const categorizationStreamPromise = offscript.chat.completions.create({
-            model: OPENAI_OFFSCRIPT_MODEL,
+            model: USE_BEDROCK ? BEDROCK_OFFSCRIPT_MODEL : OPENAI_OFFSCRIPT_MODEL,
             stream: true,
             stream_options: { include_usage: true },
             max_completion_tokens: 512,
@@ -121,7 +122,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
         });
 
         const questionPromise = offscript.chat.completions.create({
-            model: OPENAI_OFFSCRIPT_MODEL,
+            model: USE_BEDROCK ? BEDROCK_OFFSCRIPT_MODEL : OPENAI_OFFSCRIPT_MODEL,
             max_completion_tokens: 512,
             reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
             verbosity: 'low',
@@ -203,7 +204,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             });
             tlog('retrying categorization without streaming');
             const retryResult = await offscript.chat.completions.create({
-                model: OPENAI_OFFSCRIPT_MODEL,
+                model: USE_BEDROCK ? BEDROCK_OFFSCRIPT_MODEL : OPENAI_OFFSCRIPT_MODEL,
                 max_completion_tokens: 512,
                 reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
                 verbosity: 'low',
