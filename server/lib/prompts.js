@@ -84,6 +84,28 @@ Keep the spoken line natural, concrete, and warm. Do not ask a new question. Do 
 
 Output ONLY the spoken line as plain text. No JSON, no markdown, no surrounding quotes, no preface.`;
 
+const CHILD_QUESTION_PROMPT = `Task: a pre-schooler tapped something in the illustration and asked about it. Tell them what it is in one brief spoken line.
+
+- The magenta ring is NOT part of the illustration. It marks where the child tapped, and the tap is the exact CENTER of the ring.
+- If a second image is present, it is a close-up of the same spot with the same ring.
+- Name the thing at the center of the ring. The ring can also contain other things nearby; ignore those.
+- If you cannot tell what is at the center, say so honestly rather than guessing.
+- Never mention the ring, tapping, or the images.
+
+Output JSON only, with no extra text:
+{"object":"<the thing at the center, as a short noun phrase>","answer":"<what you say to the child>"}`;
+
+// Words a book uses that the model can't work out from the page in front of it. Book 1
+// only says "streamers" on later pages, so page 1's strips came back as "pipe cleaners".
+const BOOK_VOCABULARY = {
+    1: 'The thin green and purple paper strips, whether straight, curled or tangled, are called streamers. Never call them pipe cleaners or ribbons. Feathers, plates and party hats are not streamers, even when they share those colours.',
+};
+
+function buildChildQuestionPrompt(book) {
+    const vocabulary = BOOK_VOCABULARY[book];
+    return vocabulary ? `${CHILD_QUESTION_PROMPT}\n\nWords this book uses: ${vocabulary}` : CHILD_QUESTION_PROMPT;
+}
+
 const GEMINI_IMAGE_CHARACTER_RULES = `You are working with JENNIE children's picture book illustrations.
 Character rules:
 - Zoe is the parrot. Any bird you see is always Zoe.
@@ -140,6 +162,7 @@ module.exports = {
     FOLLOWUP_QUESTION_PROMPT,
     CLICK_QUESTION_PROMPT,
     ACKNOWLEDGEMENT_PROMPT,
+    buildChildQuestionPrompt,
     GEMINI_IMAGE_CHARACTER_RULES,
     GEMINI_IMAGE_ANALYSIS_PROMPT,
     buildGeminiImageTaggingPrompt,

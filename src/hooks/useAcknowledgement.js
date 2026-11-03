@@ -65,12 +65,14 @@ export function useAcknowledgement({
   }, [endAudio]);
 
 
-  const askAnswerAgain = useCallback((reason) => {
+  // With `onSpoken`, the caller decides what happens after the line, and the line
+  // stays on screen until the caller clears it.
+  const askAnswerAgain = useCallback((reason, { text = ANSWER_RETRY_TEXT, onSpoken } = {}) => {
     studyLog.pushEvent({ event_type: 'answer_retry_prompt', detail: reason });
     stopAcknowledgementAudio();
     acknowledgementRequestSeqRef.current += 1;  // orphan anything still in flight
     acknowledgementModeRef.current = true;
-    setAnswerRetryText(ANSWER_RETRY_TEXT);
+    setAnswerRetryText(text);
     setShowAvatar(true);
     setInAcknowledgementLoop(true);
     setIsAcknowledgementPlaying(true);
@@ -80,6 +82,10 @@ export function useAcknowledgement({
       if (done) return;
       done = true;
       setIsAcknowledgementPlaying(false);
+      if (onSpoken) {
+        onSpoken();
+        return;
+      }
       setAnswerRetryText('');           // line goes away, question comes back
       setAvatarPhase('question');       // restores the answer controls panel
       setAnswerSubmitted?.(false);      // manual send returns
@@ -87,7 +93,7 @@ export function useAcknowledgement({
     };
 
     Promise.resolve(
-      speak?.(ANSWER_RETRY_TEXT, narratorRole?.VA || 'kore', 'neutral', narratorRole?.role || null,
+      speak?.(text, narratorRole?.VA || 'kore', 'neutral', narratorRole?.role || null,
         AUDIO_SOURCES.ACKNOWLEDGEMENT, { onEnded: reopen, onError: reopen })
     ).then((started) => {
       if (!started) reopen();
@@ -129,7 +135,9 @@ export function useAcknowledgement({
     };
   };
 
-  const playAcknowledgement = async (reply) => {
+  // A child's own question goes through here too, with its own request (`send`),
+  // no prior question from the mate, and its own label in the study log.
+  const playAcknowledgement = async (reply, { question: askedQuestion, send = sendAcknowledgementLog, logType = 'acknowledgement' } = {}) => {
     // Deliberately not gated on isAnyAudioPlaying. The answer is already captured
     // by the time this runs, so returning here threw away what the child said —
     // silently, and on a value read up to 2.5s earlier (the manual-answer drain
@@ -142,7 +150,7 @@ export function useAcknowledgement({
 
     const currentState = stateRef.current;
     const pageQuestion = currentState.pagesValues[currentState.page]?.question || '';
-    const question = lastAskedQuestionRef.current || acknowledgementSessionRef.current.question || pageQuestion;
+    const question = askedQuestion ?? (lastAskedQuestionRef.current || acknowledgementSessionRef.current.question || pageQuestion);
     const requestSeq = acknowledgementRequestSeqRef.current + 1;
 
     acknowledgementRequestSeqRef.current = requestSeq;
@@ -211,7 +219,7 @@ export function useAcknowledgement({
         endAcknowledgementLoop();
       };
 
-      await sendAcknowledgementLog({
+      await send({
         question,
         reply,
         ...context,
@@ -239,7 +247,7 @@ export function useAcknowledgement({
           const acknowledgementId = `ack-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
           studyLog.pushQuestion({
             question_id: acknowledgementId,
-            question_type: 'acknowledgement',
+            question_type: logType,
             event: 'shown',
             question_text: acknowledgement,
             // expected_answer carries the question this turn is answering;

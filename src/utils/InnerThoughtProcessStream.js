@@ -208,6 +208,8 @@ const categorizeOffScriptUtterancesStreaming = async (
     }
 };
 
+const ACKNOWLEDGEMENT_ROUTE = '/api/acknowledgement-stream';
+
 const streamAcknowledgement = async ({
     question,
     reply,
@@ -226,9 +228,13 @@ const streamAcknowledgement = async ({
     onAudioError,
     signal,
     imageWaitMs = null,
+    // A child's own question streams back in the same shape, so it shares this
+    // reader and its audio handling, with its own route and request body.
+    route = ACKNOWLEDGEMENT_ROUTE,
+    requestBody = null,
 }) => {
     const BASE_URL = process.env.REACT_APP_API_BASE || 'https://localhost:5001';
-    const payload = {
+    const payload = requestBody || {
         question,
         reply,
         currentPageQuestion,
@@ -241,7 +247,7 @@ const streamAcknowledgement = async ({
         expectedAnswer,
         ttsVoiceName,
     };
-    gptDebugLog({ type: 'gpt_request', endpoint: '/api/acknowledgement-stream', payload });
+    gptDebugLog({ type: 'gpt_request', endpoint: route, payload });
 
     const t0 = performance.now();
     let tVerdict = null;
@@ -262,7 +268,7 @@ const streamAcknowledgement = async ({
     };
 
     try {
-        const response = await fetch(`${BASE_URL}/api/acknowledgement-stream`, {
+        const response = await fetch(`${BASE_URL}${route}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -330,15 +336,15 @@ const streamAcknowledgement = async ({
             requestToDoneMs: ms(t0, performance.now()),
         };
         console.log('[ack-stream] client timings (ms):', timings);
-        gptDebugLog({ type: 'gpt_response', endpoint: '/api/acknowledgement-stream', data: { acknowledgement, timings } });
+        gptDebugLog({ type: 'gpt_response', endpoint: route, data: { acknowledgement, timings } });
         return { acknowledgement };
     } catch (error) {
         if (error.name === 'AbortError') {
-            gptDebugLog({ type: 'gpt_aborted', endpoint: '/api/acknowledgement-stream' });
+            gptDebugLog({ type: 'gpt_aborted', endpoint: route });
             return null;
         }
         console.error('Error in acknowledgement streaming:', error);
-        gptDebugLog({ type: 'gpt_error', endpoint: '/api/acknowledgement-stream', error: error.message });
+        gptDebugLog({ type: 'gpt_error', endpoint: route, error: error.message });
         return null;
     } finally {
         // Only once audio actually started: a stream that produced none never

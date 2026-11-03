@@ -77,8 +77,19 @@
   --storybar-ink-rgb: var(--storybar-ink-home-rgb);
 }
 
+/* Filled while the child's question is in progress, so the press visibly took. */
+.storybar-ask {
+  justify-self: end;
+}
+
+.storybar-ask.is-asking:disabled {
+  --btn-disabled-color: #fff;
+  --btn-disabled-bg: var(--storybar-ink);
+  opacity: 1;
+}
+
 .storybar-page {
-  min-width: 9ch;          /* fixed width stops the chevrons shifting at page 10 */
+  min-width: 9ch;         /* fixed width stops the chevrons shifting at page 10 */
   text-align: center;
   font-size: 1rem;
   color: var(--storybar-ink-page);
@@ -1125,11 +1136,38 @@ img {
    percentages of the wrapper, line up with the picture. */
 .page-illustration {
   width: 105%;
+  margin-bottom: 10px;
 }
 
+/* No margin of its own: the wrapper has to be exactly the image's size, because taps,
+   tag regions and the ring are all percentages of the wrapper. The global img rule
+   would otherwise make it 10px taller and skew them vertically. */
 .page-illustration img {
   width: 100%;
   display: block;
+  margin-bottom: 0;
+}
+
+.ask-ring-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* A fixed 14% of the image width, matching RING_SPAN in server/lib/annotateImage.js,
+   centred on the tap. These pages carry plenty of their own yellow, so the thin dark
+   rim keeps its edge readable on any background. */
+.ask-ring {
+  position: absolute;
+  width: 14%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  border: 4px solid rgba(255, 208, 40, 0.98);
+  border-radius: 50%;
+  outline: 2px solid rgba(90, 60, 0, 0.55);
+  outline-offset: -6px;
 }
 
 /* Portrait (phone, upright tablet): one screen, top to bottom — bar, picture,

@@ -2,13 +2,32 @@
  * A click answers a click question by landing on the tagged region. Tolerance
  * forgives aim, not intent — the interesting cases are all about that line.
  */
-import { assessClick, distanceToBox, expandBox, isClickInsideBox, CLICK_TOLERANCE } from '../clickGeometry';
+import { assessClick, distanceToBox, expandBox, isClickInsideBox, tapFromClick, CLICK_TOLERANCE } from '../clickGeometry';
 
 // TARGET spans y 10-30%, x 20-40%. NEIGHBOUR sits just to its right at x 41-60%,
 // close enough that a generous margin around TARGET would otherwise reach it.
 const TARGET = [100, 200, 300, 400];
 const NEIGHBOUR = { label: 'Zoe', box_2d: [100, 410, 300, 600] };
 const TAGS = [{ label: 'Clara', box_2d: TARGET }, NEIGHBOUR];
+
+describe('tapFromClick', () => {
+  const rect = { left: 100, top: 50, width: 200, height: 100 };
+
+  test('converts a click to 0-1000 on each axis, relative to the image', () => {
+    expect(tapFromClick(200, 75, rect)).toEqual({ x: 500, y: 250 });
+    expect(tapFromClick(100, 50, rect)).toEqual({ x: 0, y: 0 });
+    expect(tapFromClick(300, 150, rect)).toEqual({ x: 1000, y: 1000 });
+  });
+
+  test('clamps a click just outside the image', () => {
+    expect(tapFromClick(99, 151, rect)).toEqual({ x: 0, y: 1000 });
+  });
+
+  test('returns null for an image with no size', () => {
+    expect(tapFromClick(1, 1, { left: 0, top: 0, width: 0, height: 10 })).toBeNull();
+    expect(tapFromClick(1, 1, null)).toBeNull();
+  });
+});
 
 describe('isClickInsideBox', () => {
   test('inside, edges, and outside', () => {

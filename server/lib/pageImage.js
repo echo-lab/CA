@@ -3,7 +3,7 @@ const path = require('path');
 
 const dataUrlCache = new Map(); // key: `${book}|${page}` -> dataUrl string | null
 
-function resolveImagePath(book, page) {
+function resolveImagePath(book, page, { fullRes = false } = {}) {
     const fileName = String(book) === '3'
         ? `${page} Library.jpg`
         : `Page_${page}.jpg`;
@@ -13,7 +13,7 @@ function resolveImagePath(book, page) {
     // less upload. Regenerate with scripts/make-llm-images.sh. Falls back to the
     // original so a missing llm/ copy degrades to the old behaviour, not a failure.
     const lowRes = path.join(dir, 'llm', fileName);
-    return fs.existsSync(lowRes) ? lowRes : path.join(dir, fileName);
+    return !fullRes && fs.existsSync(lowRes) ? lowRes : path.join(dir, fileName);
 }
 
 // Returns a base64 data URL for the page image, or null if unavailable.
@@ -57,4 +57,4 @@ function buildPageImageMessage(book, currentPageNumber) {
     };
 }
 
-module.exports = { loadPageImageDataUrl, buildPageImageMessage };
+module.exports = { resolveImagePath, loadPageImageDataUrl, buildPageImageMessage };

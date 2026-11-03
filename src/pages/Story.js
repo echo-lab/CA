@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import HomeIcon from "@mui/icons-material/Home";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -17,6 +18,7 @@ import QuestionAvatar from "../components/QuestionAvatar";
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
 import { useAcknowledgement } from "../hooks/useAcknowledgement";
 import { useStoryNavigation } from "../hooks/useStoryNavigation";
+import { useChildQuestion } from "../hooks/useChildQuestion";
 // Utils
 import { warmSay } from "../utils/warmSay";
 import { unlockTtsAudio } from "../utils/ttsClient";
@@ -357,6 +359,7 @@ function Reader() {
   });
 
   const clearQuestionUI = () => {
+    cancelAsk();
     closeAcknowledgementMode();
     abortCurrentCategorization();
     setAwaitingQuestionAnswer(false);
@@ -456,6 +459,43 @@ function Reader() {
     if (stopped) studyLog.pushEvent({ event_type: 'question_generation_cancelled', detail: why });
     return stopped;
   };
+
+  const {
+    askTap,
+    isAsking,
+    canTapPicture,
+    startAsk,
+    handleAskTap,
+    handleAskSend,
+    cancelAsk,
+  } = useChildQuestion({
+    book: id,
+    stateRef,
+    narratorRole,
+    deepgramTranscript,
+    inAcknowledgementLoop,
+    playAcknowledgement,
+    askAnswerAgain,
+    closeAcknowledgementMode,
+    resetAcknowledgementRevealState,
+    stopSpeaking,
+    // The child has taken the turn, so a question the mate was holding is dropped.
+    // That includes its click target, which would otherwise claim the child's tap.
+    dropPendingQuestion: () => {
+      stopQuestionGeneration('child_asked');
+      setGeneratedQuestion(null);
+      resetGeneratedQuestionState();
+      setQuestionHistory([]);
+      setClickTarget(null);
+    },
+    setShowAvatar,
+    setInAcknowledgementLoop,
+    setAvatarPhase,
+    setAnswerSubmitted,
+    setQuestionHistory,
+  });
+  // The cover (page 0) has no page image for the model to look at.
+  const askDisabled = isAsking || isAnyAudioPlaying || inAcknowledgementLoop || state.page === 0;
 
   // The reader tapped the question that is already showing.
   const handleSpeakGenerated = () => {
@@ -1052,6 +1092,17 @@ function Reader() {
             <ChevronRightIcon />
           </button>
         </div>
+
+        <button
+          type="button"
+          className={`storybar-btn storybar-ask btn${isAsking ? ' is-asking' : ''}`}
+          aria-label="Ask a question"
+          aria-pressed={isAsking}
+          onClick={startAsk}
+          disabled={askDisabled}
+        >
+          <QuestionMarkIcon />
+        </button>
       </header>
 
     <div className="reader-row">
@@ -1060,9 +1111,9 @@ function Reader() {
           className="page-illustration"
           style={{
             position: 'relative', display: 'inline-block',
-            cursor: clickAnswersQuestion ? POINT_CURSOR : 'default',
+            cursor: (clickAnswersQuestion || canTapPicture) ? POINT_CURSOR : 'default',
           }}
-          onClick={clickAnswersQuestion ? handleImageAnswerClick : undefined}
+          onClick={canTapPicture ? handleAskTap : (clickAnswersQuestion ? handleImageAnswerClick : undefined)}
         >
           <img src={state.pagesValues[state.page].img} alt="current page" />
             {(imageTags || []).map((tag, i) => {
@@ -1082,6 +1133,13 @@ function Reader() {
                 />
               );
             })}
+            {/* What the child tapped. Clipped so a tap near the edge can't spill onto
+                the layout. Tap coordinates are 0-1000, so /10 gives a percentage. */}
+            {askTap && (
+              <div className="ask-ring-layer">
+                <div className="ask-ring" style={{ left: `${askTap.x / 10}%`, top: `${askTap.y / 10}%` }} />
+              </div>
+            )}
         </div>
         <QuestionAvatar
           questionHistory={questionHistory}
@@ -1103,7 +1161,7 @@ function Reader() {
           answerRetryText={answerRetryText}
           answerSubmitted={answerSubmitted}
           answerDisabled={isAnyAudioPlaying}
-          onAnswerSubmit={handleAnswerSubmit}
+          onAnswerSubmit={isAsking ? handleAskSend : handleAnswerSubmit}
           sendBlink={sendBlink}
           isUserSpeaking={isUserSpeaking}
           awaitingClick={clickAnswersQuestion}

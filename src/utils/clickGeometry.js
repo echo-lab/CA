@@ -14,6 +14,14 @@
 // lower it if near misses are being credited too generously.
 export const CLICK_TOLERANCE = 50;
 
+// Where a click landed on the rendered image, normalized 0-1000. Clamped because a
+// click on the very edge can round just outside the element's rectangle.
+export function tapFromClick(clientX, clientY, rect) {
+  if (!rect?.width || !rect?.height) return null;
+  const scale = (offset, size) => Math.round(Math.min(1, Math.max(0, offset / size)) * 1000);
+  return { x: scale(clientX - rect.left, rect.width), y: scale(clientY - rect.top, rect.height) };
+}
+
 export function isClickInsideBox(box, xPct, yPct) {
   if (!Array.isArray(box) || box.length < 4) return false;
   const [y0, x0, y1, x1] = box.map(Number);
