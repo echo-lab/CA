@@ -156,10 +156,6 @@ function calculateConfidenceDetail(spokenWords, expectedText, options = {}) {
   return { confidence: result.confidence, fuzzyScore: result.fuzzyScore, phoneticScore: result.phoneticScore };
 }
 
-function calculateConfidence(spokenWords, expectedText) {
-  return calculateConfidenceDetail(spokenWords, expectedText).confidence;
-}
-
 function divideExpectedText(expectedText) {
   const words = expectedText[0].split(/\s+/).filter(w => w.length > 0);
   const totalWords = words.length;
@@ -285,10 +281,6 @@ export function abortCurrentCategorization() {
   speculativeLineEntries = [];
   isCategorizationPending = false;
   awaitingQuestionAnswer = false;
-}
-
-export function getIsCategorizationPending() {
-  return isCategorizationPending;
 }
 
 function computeSpeculativeDelta(previous, current) {
@@ -564,7 +556,7 @@ function checkFutureLines({ utteranceQueuesRef, currentLineIndex, totalLines, st
           }
         }
       } else {
-        if (calculateConfidence(allSpokenWords, variant.text) >= 0.6) {
+        if (calculateConfidenceDetail(allSpokenWords, variant.text).confidence >= 0.6) {
           captureStableOffScriptWords(offScriptLogRef, checkIndex, [], categorizationContext);
           clearMatchState(refs, allSpokenWordCount);
           jumpToFutureLine(jumpToLine, checkIndex, totalLines, onAutoLineAdvance);

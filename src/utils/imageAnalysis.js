@@ -122,17 +122,3 @@ export function prefetchPage(book, pages, currentPage) {
   const pageText = pageData?.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
   enqueuePage(book, targetIndex, pageText);
 }
-
-// Re-tags every page of one book, for the "Tag Images" button. Sequential on
-// purpose: the Vertex quota is per-minute per-project, and a 16-page burst is
-// exactly the shape that trips a 429. onProgress(done, total) drives the label.
-export async function tagBook(book, pages, onProgress = () => {}) {
-  // Index 0 is the cover, which has no Page_N image on disk.
-  const list = Object.values(pages).slice(1);
-  for (let i = 0; i < list.length; i++) {
-    const pageText = list[i]?.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
-    await ImageTagging({ book, page: i + 1, pageText, force: true });
-    onProgress(i + 1, list.length);
-  }
-  return list.length;
-}

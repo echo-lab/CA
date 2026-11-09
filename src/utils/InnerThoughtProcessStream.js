@@ -1,6 +1,91 @@
 import { gptDebugLog } from "./debugMonitor";
 import * as studyLog from "./studyLog";
 
+// Reads a server-sent-events body, handing each event's parsed JSON to onEvent.
+// A bad event (unparseable, or onEvent throwing) is logged and skipped, never
+// fatal to the rest of the stream.
+async function readSSE(response, onEvent, errorLabel) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop(); // keep incomplete last event
+
+        for (const event of events) {
+            const dataLine = event.split('\n').find(l => l.startsWith('data: '));
+            if (!dataLine) continue;
+            try { onEvent(JSON.parse(dataLine.slice(6))); }
+            catch (e) { console.error(errorLabel, e); }
+        }
+    }
+}
+
+// The question is handed over on the FIRST audio chunk rather than the last,
+// so the child sees it while the rest of the speech is still synthesising.
+// The invariant that it can never be shown before it can be spoken still
+// holds — delivery is gated on audio having actually started — and the
+// `audioComplete: false` flag tells the caller more chunks are coming, so a
+// tap mid-stream plays what has arrived and keeps filling. Chunks after
+// delivery go to onAudioChunk, whose suppression flag is what stops two
+// racing streams from interleaving.
+function createQuestionHandoff({ onQuestionReady, onAudioChunk, onAudioError }) {
+    let pending = null;
+    const pendingChunks = [];
+    let delivered = false;
+
+    const deliver = (reason, audioComplete) => {
+        if (delivered || !pending) return;
+        delivered = true;
+        if (typeof onQuestionReady !== 'function') return;
+        try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete); }
+        catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
+    };
+
+    return {
+        deliver,
+        // answerBox is the tag's own region — the click hit test uses it
+        // verbatim, so it must survive to the caller.
+        setQuestion(parsed) {
+            pending = {
+                question: parsed.generatedQuestion,
+                expectedAnswer: parsed.expectedAnswer ?? null,
+                click: {
+                    answerLabel: parsed.answerLabel ?? null,
+                    answerBox: parsed.answerBox ?? null,
+                },
+            };
+        },
+        audioChunk(parsed) {
+            if (delivered) {
+                // Already on screen — feed the live player directly.
+                if (typeof onAudioChunk === 'function') {
+                    try { onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs); }
+                    catch (cbErr) { console.error('onAudioChunk callback error:', cbErr); }
+                }
+            } else {
+                pendingChunks.push({ seq: parsed.seq, audioContent: parsed.audioContent, durationMs: parsed.durationMs });
+                deliver('audio_started', false);
+            }
+        },
+        // The question still gets shown; it simply cannot be spoken.
+        // Emptied in place, not rebound: once delivery has happened the
+        // caller holds this exact array, and a fragment left in it would
+        // play half a question with no end() ever coming.
+        audioError(message) {
+            pendingChunks.length = 0;
+            if (typeof onAudioError === 'function') {
+                try { onAudioError(message); } catch (cbErr) { console.error('onAudioError callback error:', cbErr); }
+            }
+            deliver('audio_failed', true);
+        },
+    };
+}
+
 const categorizeOffScriptUtterancesStreaming = async (
     formattedUtterances,
     currentPageQuestion,
@@ -56,115 +141,52 @@ const categorizeOffScriptUtterancesStreaming = async (
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
         const items = [];
         let generatedQuestion = null;
         let questionPrompt = null;
-        let buffer = '';
-        // The question is handed over on the FIRST audio chunk rather than the last,
-        // so the child sees it while the rest of the speech is still synthesising.
-        // The invariant that it can never be shown before it can be spoken still
-        // holds — delivery is gated on audio having actually started — and the
-        // `audioComplete: false` flag tells the caller more chunks are coming, so a
-        // tap mid-stream plays what has arrived and keeps filling. Chunks after
-        // delivery go to onAudioChunk, whose suppression flag is what stops two
-        // racing streams from interleaving.
-        let pending = null;
-        let pendingChunks = [];
-        let delivered = false;
-        const deliver = (reason, audioComplete) => {
-            if (delivered || !pending) return;
-            delivered = true;
-            if (typeof onQuestionReady !== 'function') return;
-            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete); }
-            catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
-        };
+        const handoff = createQuestionHandoff({ onQuestionReady, onAudioChunk, onAudioError });
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const events = buffer.split('\n\n');
-            buffer = events.pop(); // keep incomplete last event
-
-            for (const event of events) {
-                const dataLine = event.split('\n').find(l => l.startsWith('data: '));
-                if (!dataLine) continue;
-                try {
-                    const parsed = JSON.parse(dataLine.slice(6));
-                    if (parsed.type === 'question_prompt') {
-                        questionPrompt = parsed.messages;
-                    } else if (parsed.type === 'item') {
-                        if (tFirstItem === null) tFirstItem = performance.now();
-                        tLastItem = performance.now();
-                        items.push(parsed.item);
-                    } else if (parsed.type === 'done') {
-                        generatedQuestion = parsed.generatedQuestion;
-                        if (generatedQuestion) {
-                            // answerBox is the tag's own region — the click hit test
-                            // uses it verbatim, so it must survive to the caller.
-                            pending = {
-                                question: generatedQuestion,
-                                expectedAnswer: parsed.expectedAnswer ?? null,
-                                click: {
-                                    answerLabel: parsed.answerLabel ?? null,
-                                    answerBox: parsed.answerBox ?? null,
-                                },
-                            };
-                        }
-                        if (!generatedQuestion) {
-                            const reason = items.length === 0
-                                ? 'aborted — no categorization items parsed'
-                                : 'aborted — no ON_TOPIC utterances';
-                            gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: reason });
-                        }
-                    } else if (parsed.type === 'audio_chunk') {
-                        if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
-                        if (parsed.audioContent) {
-                            audioStarted = true;
-                            if (delivered) {
-                                // Already on screen — feed the live player directly.
-                                if (typeof onAudioChunk === 'function') {
-                                    try { onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs); }
-                                    catch (cbErr) { console.error('onAudioChunk callback error:', cbErr); }
-                                }
-                            } else {
-                                pendingChunks.push({ seq: parsed.seq, audioContent: parsed.audioContent, durationMs: parsed.durationMs });
-                                deliver('audio_started', false);
-                            }
-                        }
-                    } else if (parsed.type === 'audio_end') {
-                        if (tAudioEnd === null) tAudioEnd = performance.now();
-                        // Covers the case where no chunk ever arrived (no TTS voice).
-                        deliver('audio_ready', true);
-                        settleAudio();
-                    } else if (parsed.type === 'audio_error') {
-                        // onAudioError finishes the playback itself, so it is this
-                        // stream's terminal audio signal.
-                        audioSettled = true;
-                        // The question still gets shown; it simply cannot be spoken.
-                        // Emptied in place, not rebound: once delivery has happened the
-                        // caller holds this exact array, and a fragment left in it would
-                        // play half a question with no end() ever coming.
-                        pendingChunks.length = 0;
-                        if (typeof onAudioError === 'function') {
-                            try { onAudioError(parsed.message); } catch (cbErr) { console.error('onAudioError callback error:', cbErr); }
-                        }
-                        deliver('audio_failed', true);
-                    } else if (parsed.type === 'error') {
-                        throw new Error(parsed.error);
-                    }
-                } catch (e) {
-                    console.error('Error parsing SSE event:', e);
+        await readSSE(response, (parsed) => {
+            if (parsed.type === 'question_prompt') {
+                questionPrompt = parsed.messages;
+            } else if (parsed.type === 'item') {
+                if (tFirstItem === null) tFirstItem = performance.now();
+                tLastItem = performance.now();
+                items.push(parsed.item);
+            } else if (parsed.type === 'done') {
+                generatedQuestion = parsed.generatedQuestion;
+                if (generatedQuestion) {
+                    handoff.setQuestion(parsed);
+                } else {
+                    const reason = items.length === 0
+                        ? 'aborted — no categorization items parsed'
+                        : 'aborted — no ON_TOPIC utterances';
+                    gptDebugLog({ type: 'gpt_response', endpoint: '/api/categorize-utterances-stream/question', data: reason });
                 }
+            } else if (parsed.type === 'audio_chunk') {
+                if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
+                if (parsed.audioContent) {
+                    audioStarted = true;
+                    handoff.audioChunk(parsed);
+                }
+            } else if (parsed.type === 'audio_end') {
+                if (tAudioEnd === null) tAudioEnd = performance.now();
+                // Covers the case where no chunk ever arrived (no TTS voice).
+                handoff.deliver('audio_ready', true);
+                settleAudio();
+            } else if (parsed.type === 'audio_error') {
+                // onAudioError finishes the playback itself, so it is this
+                // stream's terminal audio signal.
+                audioSettled = true;
+                handoff.audioError(parsed.message);
+            } else if (parsed.type === 'error') {
+                throw new Error(parsed.error);
             }
-        }
+        }, 'Error parsing SSE event:');
 
         // No audio_end arrived (no TTS voice configured, or the body was cut short).
         // The question is still worth showing, just silent.
-        deliver('stream_closed', true);
+        handoff.deliver('stream_closed', true);
 
         const tDone = performance.now();
         const ms = (a, b) => a == null || b == null ? null : Math.round(b - a);
@@ -274,51 +296,32 @@ const streamAcknowledgement = async ({
             throw new Error(errorText || `HTTP error! status: ${response.status}`);
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
         let acknowledgement = null;
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const events = buffer.split('\n\n');
-            buffer = events.pop();
-
-            for (const event of events) {
-                const dataLine = event.split('\n').find(l => l.startsWith('data: '));
-                if (!dataLine) continue;
-                try {
-                    const parsed = JSON.parse(dataLine.slice(6));
-                    if (parsed.type === 'done') {
-                        if (tVerdict === null) tVerdict = performance.now();
-                        acknowledgement = parsed.acknowledgement || null;
-                        if (typeof onAcknowledgementReady === 'function') {
-                            onAcknowledgementReady(acknowledgement || '');
-                        }
-                    } else if (parsed.type === 'audio_chunk') {
-                        if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
-                        if (parsed.audioContent) {
-                            audioStarted = true;
-                            if (typeof onAudioChunk === 'function') onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs);
-                        }
-                    } else if (parsed.type === 'audio_end') {
-                        tAudioEnd = performance.now();
-                        settleAudio();
-                    } else if (parsed.type === 'audio_error') {
-                        // onAudioError finishes the turn itself — terminal.
-                        audioSettled = true;
-                        if (typeof onAudioError === 'function') onAudioError(parsed.message);
-                    } else if (parsed.type === 'error') {
-                        throw new Error(parsed.error);
-                    }
-                } catch (e) {
-                    console.error('Error parsing acknowledgement SSE event:', e);
+        await readSSE(response, (parsed) => {
+            if (parsed.type === 'done') {
+                if (tVerdict === null) tVerdict = performance.now();
+                acknowledgement = parsed.acknowledgement || null;
+                if (typeof onAcknowledgementReady === 'function') {
+                    onAcknowledgementReady(acknowledgement || '');
                 }
+            } else if (parsed.type === 'audio_chunk') {
+                if (tFirstAudioChunk === null) tFirstAudioChunk = performance.now();
+                if (parsed.audioContent) {
+                    audioStarted = true;
+                    if (typeof onAudioChunk === 'function') onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs);
+                }
+            } else if (parsed.type === 'audio_end') {
+                tAudioEnd = performance.now();
+                settleAudio();
+            } else if (parsed.type === 'audio_error') {
+                // onAudioError finishes the turn itself — terminal.
+                audioSettled = true;
+                if (typeof onAudioError === 'function') onAudioError(parsed.message);
+            } else if (parsed.type === 'error') {
+                throw new Error(parsed.error);
             }
-        }
+        }, 'Error parsing acknowledgement SSE event:');
 
         const ms = (a, b) => (a == null || b == null ? null : Math.round(b - a));
         const timings = {
@@ -398,88 +401,46 @@ const generateQuestionOnDemand = async ({
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
         let generatedQuestion = null;
         let questionPrompt = null;
         // Same hand-over as the categorize stream: delivered on the first audio chunk,
         // so the mate never swaps in a question it cannot yet speak, but does not wait
         // out the whole synthesis before showing one it can.
-        let pending = null;
-        let pendingChunks = [];
-        let delivered = false;
-        const deliver = (reason, audioComplete) => {
-            if (delivered || !pending) return;
-            delivered = true;
-            if (typeof onQuestionReady !== 'function') return;
-            try { onQuestionReady(pending.question, pending.expectedAnswer, pending.click, pendingChunks, reason, audioComplete); }
-            catch (cbErr) { console.error('onQuestionReady callback error:', cbErr); }
-        };
+        const handoff = createQuestionHandoff({ onQuestionReady, onAudioChunk, onAudioError });
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const events = buffer.split('\n\n');
-            buffer = events.pop();
-
-            for (const event of events) {
-                const dataLine = event.split('\n').find(l => l.startsWith('data: '));
-                if (!dataLine) continue;
-                try {
-                    const parsed = JSON.parse(dataLine.slice(6));
-                    if (parsed.type === 'question_prompt') {
-                        questionPrompt = parsed.messages;
-                    } else if (parsed.type === 'done') {
-                        generatedQuestion = parsed.generatedQuestion;
-                        if (generatedQuestion) {
-                            pending = {
-                                question: generatedQuestion,
-                                expectedAnswer: parsed.expectedAnswer ?? null,
-                                click: {
-                                    answerLabel: parsed.answerLabel ?? null,
-                                    answerBox: parsed.answerBox ?? null,
-                                },
-                            };
-                        }
-                        if (!generatedQuestion) {
-                            studyLog.pushQuestion({
-                                question_id: '',
-                                question_type: 'generated',
-                                event: 'generated_none',
-                                reason: 'manual request produced no usable question',
-                            });
-                        }
-                    } else if (parsed.type === 'audio_chunk') {
-                        if (parsed.audioContent) {
-                            audioStarted = true;
-                            if (delivered) {
-                                if (typeof onAudioChunk === 'function') onAudioChunk(parsed.seq, parsed.audioContent, parsed.durationMs);
-                            } else {
-                                pendingChunks.push({ seq: parsed.seq, audioContent: parsed.audioContent, durationMs: parsed.durationMs });
-                                deliver('audio_started', false);
-                            }
-                        }
-                    } else if (parsed.type === 'audio_end') {
-                        deliver('audio_ready', true);
-                        settleAudio();
-                    } else if (parsed.type === 'audio_error') {
-                        // onAudioError finishes the playback itself — terminal.
-                        audioSettled = true;
-                        pendingChunks.length = 0;
-                        if (typeof onAudioError === 'function') onAudioError(parsed.message);
-                        deliver('audio_failed', true);
-                    } else if (parsed.type === 'error') {
-                        throw new Error(parsed.error);
-                    }
-                } catch (e) {
-                    console.error('Error parsing SSE event:', e);
+        await readSSE(response, (parsed) => {
+            if (parsed.type === 'question_prompt') {
+                questionPrompt = parsed.messages;
+            } else if (parsed.type === 'done') {
+                generatedQuestion = parsed.generatedQuestion;
+                if (generatedQuestion) {
+                    handoff.setQuestion(parsed);
+                } else {
+                    studyLog.pushQuestion({
+                        question_id: '',
+                        question_type: 'generated',
+                        event: 'generated_none',
+                        reason: 'manual request produced no usable question',
+                    });
                 }
+            } else if (parsed.type === 'audio_chunk') {
+                if (parsed.audioContent) {
+                    audioStarted = true;
+                    handoff.audioChunk(parsed);
+                }
+            } else if (parsed.type === 'audio_end') {
+                handoff.deliver('audio_ready', true);
+                settleAudio();
+            } else if (parsed.type === 'audio_error') {
+                // onAudioError finishes the playback itself — terminal.
+                audioSettled = true;
+                handoff.audioError(parsed.message);
+            } else if (parsed.type === 'error') {
+                throw new Error(parsed.error);
             }
-        }
+        }, 'Error parsing SSE event:');
 
-        deliver('stream_closed', true);
+        handoff.deliver('stream_closed', true);
 
         gptDebugLog({
             type: 'gpt_response',

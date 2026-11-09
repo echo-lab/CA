@@ -2,18 +2,6 @@ import nlp from 'compromise';
 import numberToWords from 'number-to-words';
 import { HESITATION_WORDS } from './speechMatcher';
 
-export function splitIntoSentences(text) {
-  if (!text || typeof text !== 'string') return [text];
-  const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/).filter(s => s.trim().length > 0);
-  return sentences.length > 0 ? sentences : [text];
-}
-
-export function isMultiSentenceLong(text) {
-  const wordCount = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-  const hasMultipleSentences = /[.!?]\s+[A-Z]/.test(text);
-  return wordCount >= 8 && hasMultipleSentences;
-}
-
 export function normalizeText(text) {
   if (!text || typeof text !== 'string') return [''];
 

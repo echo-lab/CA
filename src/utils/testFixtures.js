@@ -39,20 +39,3 @@ export const SAMPLE_LINES = [
   'The 3 little pigs built their houses.',
   "I don't think we should go there.",
 ];
-
-// --- SSML samples ---
-
-export const SSML_SAMPLES = [
-  ['<prosody rate="slow">Hello there</prosody>', 'Hello there'],
-  ['<emphasis>Watch out!</emphasis>', 'Watch out!'],
-  ['<speak>The bear <break time="500ms"/> ran away.</speak>', 'The bear  ran away.'],
-];
-
-// --- ASR error patterns [spoken, expected] ---
-
-export const ASR_ERROR_PATTERNS = [
-  ['da bear', 'the bear'],
-  ['gonna', 'going to'],
-  ['wanna', 'want to'],
-  ['lil', 'little'],
-];
