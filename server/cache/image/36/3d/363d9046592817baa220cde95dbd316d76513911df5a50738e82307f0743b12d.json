@@ -1,97 +1,52 @@
 {
-  "createdAt": 1790087314835,
+  "createdAt": 1794259401695,
   "book": "1",
   "page": "6",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with black and white beak, looking left",
+        "label": "Zoe - large red parrot with colorful feathers, looking right",
         "box_2d": [
-          92,
-          298,
-          532,
-          705
+          78,
+          112,
+          541,
+          885
         ]
       },
       {
-        "label": "Clara - green chameleon with purple eyelids, reaching for a party hat",
+        "label": "Clara - green chameleon, looking down, touching a party hat",
         "box_2d": [
-          632,
-          742,
-          922,
-          986
+          660,
+          697,
+          884,
+          981
         ]
       },
       {
-        "label": "party hat - small green and purple striped hat near Clara",
+        "label": "Party hat - large green and purple striped hat in the bottom row",
         "box_2d": [
-          781,
-          672,
-          919,
-          762
+          690,
+          381,
+          962,
+          620
         ]
       },
       {
-        "label": "party hat - large green and purple striped hat in the front row",
+        "label": "Party hat - small green and purple striped hat in the top row, near Zoe's wing",
         "box_2d": [
-          702,
-          342,
-          924,
-          493
+          551,
+          391,
+          730,
+          501
         ]
       },
       {
-        "label": "party hat - small green and purple striped hat in the front row",
+        "label": "Stacked plates - purple and green plates on a table to the right",
         "box_2d": [
-          780,
-          237,
-          912,
-          317
-        ]
-      },
-      {
-        "label": "plates - stack of purple and green plates in a cardboard box",
-        "box_2d": [
-          531,
-          793,
-          642,
-          888
-        ]
-      },
-      {
-        "label": "plate - large orange plate on the far left",
-        "box_2d": [
-          441,
-          0,
-          553,
-          149
-        ]
-      },
-      {
-        "label": "cardboard box - brown box holding plates on the right",
-        "box_2d": [
-          470,
-          754,
-          663,
-          917
-        ]
-      },
-      {
-        "label": "cardboard box - open brown box in the upper right background",
-        "box_2d": [
-          211,
-          852,
-          354,
-          951
-        ]
-      },
-      {
-        "label": "cardboard box - brown box behind Zoe's left wing",
-        "box_2d": [
-          370,
-          142,
-          550,
-          394
+          427,
+          728,
+          541,
+          852
         ]
       }
     ]

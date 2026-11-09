@@ -1,8 +1,24 @@
-function buildNaturalLanguagePrompt({ text, emotion, role }) {
-  if (role === "Child") {
-    return `You are a 5-year-old child reading a children's story. Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher than a typical adult or older child. Be full of enthusiasm and excitement. Use a playful, innocent tone. Say the following: ${text}`;
+// Child lines on 3.x use the designed voice in VERTEX_CHILD_VOICE_ID (2.x models can't use designed voices).
+function childVoiceId(role, model) {
+  const id = (process.env.VERTEX_CHILD_VOICE_ID || "").split("#")[0].trim();
+  return role === "Child" && id && !/^gemini-2\./.test(model || "") ? id : null;
+}
+
+function voiceConfigFor({ role, model, voiceName }) {
+  const id = childVoiceId(role, model);
+  return id ? { voice: id } : { prebuiltVoiceConfig: { voiceName: voiceName || 'Kore' } };
+}
+
+// Gemini 3.x TTS reads instruction prose aloud (and rejects systemInstruction), but obeys a short leading [tag].
+function buildNaturalLanguagePrompt({ text, role, model }) {
+  if (!/^gemini-2\./.test(model || "")) {
+    // The designed child voice already sounds like a child, so it gets the plain line.
+    return role === "Child" && !childVoiceId(role, model) ? `[extreme high-pitch] ${text}` : text;
   }
-  return `Say the following in a clear, natural, conversational way suitable for narrating a children's story: ${text}`;
+  if (role === "Child") {
+    return `Speak with an extremely high-pitched, squeaky, youthful voice — as high as a young kindergartener naturally sounds. Your voice should be noticeably higher but read slowly. Say the following in verbatim: ${text}`;
+  }
+  return `Say the following in a slower, clear, natural, conversational way suitable for narrating a children's story: ${text}`;
 }
 
 function extractAudioBase64FromCandidates(response) {
@@ -56,13 +72,13 @@ async function liveSayHandler(req, res) {
 
     // Build prompt
     const emo = normEmotion(emotion);
+    const model = modelFromReq || process.env.VERTEX_MODEL || "gemini-3.8-flash-lite-tts";
     const ttsPrompt = buildNaturalLanguagePrompt({
       text: textNorm,
       emotion: emo,
-      role
+      role,
+      model
     });
-
-    const model = modelFromReq || process.env.VERTEX_MODEL || "gemini-2.5-flash-tts";
 
     if (/gemini-.*live/i.test(model)) {
       return res.status(400).json({
@@ -80,7 +96,7 @@ async function liveSayHandler(req, res) {
     const { key, base, fields } = buildKey({
       text: ttsPrompt,
       model,
-      voiceName,
+      voiceName: childVoiceId(role, model) || voiceName,
       emotion: emo,
       format,
       sampleRate,
@@ -120,18 +136,14 @@ async function liveSayHandler(req, res) {
         project: PROJECT_ID,
         location: LOCATION,
       });
-
+      
       // Select voice
-      const voiceToUse = voiceName || 'Kore';
+      const voiceToUse = childVoiceId(role, model) || voiceName || 'Kore';
 
       const config = {
         speechConfig: {
           languageCode: "en-US",
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: voiceToUse
-            }
-          }
+          voiceConfig: voiceConfigFor({ role, model, voiceName })
         }
       };
 
@@ -157,6 +169,11 @@ async function liveSayHandler(req, res) {
       }
 
       const pcm = Buffer.from(b64, "base64");
+      // gemini-3.8-flash-lite-tts returns a finished WAV here (raw PCM only when streaming); 2.5 returned raw PCM.
+      if (pcm.subarray(0, 4).toString("latin1") === "RIFF") {
+        console.log(`[live/say][tts] SUCCESS model=${model} voice=${voiceToUse} emotion=${emo} bytes=${pcm.byteLength} (wav)`);
+        return pcm;
+      }
       const int16 = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 2);
 
       const wav = new WaveFile();
@@ -205,8 +222,8 @@ async function* generateGeminiTtsChunks({ text, voiceName, emotion, role, speech
   let textNorm = normalizeText(text);
   textNorm = textNorm.replace(/\bZoe\b/g, "Zoey");
   const emo = normEmotion(emotion);
-  const ttsPrompt = buildNaturalLanguagePrompt({ text: textNorm, emotion: emo, role });
-  const resolvedModel = (model && String(model).trim()) || process.env.VERTEX_MODEL || "gemini-2.5-flash-tts";
+  const resolvedModel = (model && String(model).trim()) || process.env.VERTEX_MODEL || "gemini-3.8-flash-lite-tts";
+  const ttsPrompt = buildNaturalLanguagePrompt({ text: textNorm, emotion: emo, role, model: resolvedModel });
   if (/gemini-.*live/i.test(resolvedModel)) {
     throw new Error(`Model "${resolvedModel}" is a Live (WebSocket) model; use a TTS model.`);
   }
@@ -218,7 +235,7 @@ async function* generateGeminiTtsChunks({ text, voiceName, emotion, role, speech
   const config = {
     speechConfig: {
       languageCode: "en-US",
-      voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName || 'Kore' } },
+      voiceConfig: voiceConfigFor({ role, model: resolvedModel, voiceName }),
       ...(speechRate != null ? { speakingRate: speechRate } : {}),
     },
   };
@@ -238,14 +255,14 @@ async function* generateGeminiTtsChunks({ text, voiceName, emotion, role, speech
     totalBytes += sampleBytes;
     yield { seq: seq++, audioContent: b64, sampleBytes };
   }
-  console.log(`[vertex-tts-stream] complete model=${resolvedModel} voice=${voiceName || 'Kore'} chunks=${seq} totalBytes=${totalBytes}`);
+  console.log(`[vertex-tts-stream] complete model=${resolvedModel} voice=${childVoiceId(role, resolvedModel) || voiceName || 'Kore'} chunks=${seq} totalBytes=${totalBytes}`);
 }
 
 async function healthHandler(req, res) {
   const ok = Boolean(process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT);
   res.json({
     ok,
-    defaultModel: process.env.VERTEX_MODEL || "gemini-2.5-flash-tts",
+    defaultModel: process.env.VERTEX_MODEL || "gemini-3.8-flash-lite-tts",
     mode: "vertex-gemini-tts",
     location: process.env.VERTEX_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
   });

@@ -1,88 +1,97 @@
 {
-  "createdAt": 1790087088315,
+  "createdAt": 1794255397879,
   "book": "1",
   "page": "1",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with wings spread",
+        "label": "Zoe - large red parrot, wings spread, eyes closed in concentration",
         "box_2d": [
-          27,
-          191,
-          955,
-          820
+          0,
+          190,
+          950,
+          960
         ]
       },
       {
-        "label": "Clara - small green chameleon looking up at Zoe",
+        "label": "Clara - green chameleon, on the floor looking up at Zoe",
         "box_2d": [
+          686,
           712,
-          686,
-          955,
-          947
+          978,
+          980
         ]
       },
       {
-        "label": "Zoe's wing - red wing with colorful taped feathers",
+        "label": "Hanging decorations - green and purple measuring tapes taped to the wall",
         "box_2d": [
-          63,
-          104,
-          686,
+          16,
+          14,
+          825,
           420
         ]
       },
       {
-        "label": "Decorations - purple and green streamers scattered on the floor",
+        "label": "Floor mess - scattered green and purple measuring tapes on the floor",
         "box_2d": [
-          747,
-          236,
-          994,
-          651
-        ]
-      },
-      {
-        "label": "Decorations - green streamer unrolling from Zoe's wing",
-        "box_2d": [
-          440,
-          412,
-          818,
-          560
-        ]
-      },
-      {
-        "label": "Decorations - purple streamer unrolling from Zoe's wing",
-        "box_2d": [
-          260,
-          624,
-          716,
-          978
-        ]
-      },
-      {
-        "label": "Decorations - green and purple streamers taped to the wall",
-        "box_2d": [
-          2,
+          600,
           0,
-          425,
-          300
+          999,
+          999
         ]
       },
       {
-        "label": "Zoe's face - parrot with white fluffy cheeks and closed eyes",
+        "label": "Unrolling green tape - green measuring tape uncoiling from a roll",
         "box_2d": [
-          29,
-          432,
-          202,
-          602
+          669,
+          309,
+          846,
+          569
         ]
       },
       {
-        "label": "Zoe's beak - black and white striped beak",
+        "label": "Unrolling purple tape - purple measuring tape uncoiling from a roll",
+        "box_2d": [
+          692,
+          494,
+          840,
+          714
+        ]
+      },
+      {
+        "label": "Green tape piece - long green measuring tape flying near Zoe's right wing",
+        "box_2d": [
+          1,
+          760,
+          338,
+          999
+        ]
+      },
+      {
+        "label": "Purple tape piece - long purple measuring tape flying near Zoe's right wing",
+        "box_2d": [
+          242,
+          800,
+          540,
+          999
+        ]
+      },
+      {
+        "label": "Scissors - silver scissors on the floor, near the tape rolls",
+        "box_2d": [
+          729,
+          278,
+          819,
+          367
+        ]
+      },
+      {
+        "label": "Clear tape - small piece holding a green measuring tape on the wall",
         "box_2d": [
           52,
-          479,
-          226,
-          604
+          172,
+          104,
+          228
         ]
       }
     ]

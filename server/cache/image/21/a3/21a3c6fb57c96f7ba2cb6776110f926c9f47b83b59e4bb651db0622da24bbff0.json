@@ -1,70 +1,79 @@
 {
-  "createdAt": 1790087079120,
+  "createdAt": 1794255387266,
   "book": "1",
   "page": "2",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, holding a tablet with her wings",
+        "label": "Zoe - large red parrot looking at a tablet",
         "box_2d": [
           197,
-          0,
-          1000,
+          1,
+          993,
           761
         ]
       },
       {
-        "label": "Clara - small green chameleon, sitting on Zoe’s head",
+        "label": "Clara - small green chameleon on Zoe's head",
         "box_2d": [
-          27,
-          357,
-          352,
-          602
+          23,
+          350,
+          439,
+          632
         ]
       },
       {
-        "label": "tablet - black rectangular device, showing different cakes",
+        "label": "tablet - black digital device displaying cakes",
         "box_2d": [
-          174,
-          447,
-          714,
-          943
-        ]
-      },
-      {
-        "label": "cake - large purple and green striped cake with candles, on the tablet screen",
-        "box_2d": [
-          266,
-          378,
-          675,
-          712
-        ]
-      },
-      {
-        "label": "cake - orange and blue striped cake with candles, on the tablet screen",
-        "box_2d": [
-          262,
-          705,
-          468,
-          906
-        ]
-      },
-      {
-        "label": "cake - green, purple, and yellow striped cake with candles, on the tablet screen",
-        "box_2d": [
-          501,
-          703,
-          690,
-          902
-        ]
-      },
-      {
-        "label": "table - brown wooden table, holding the tablet",
-        "box_2d": [
-          671,
+          196,
           472,
-          1000,
-          1000
+          755,
+          892
+        ]
+      },
+      {
+        "label": "cake - large purple and green striped on the tablet",
+        "box_2d": [
+          248,
+          498,
+          686,
+          746
+        ]
+      },
+      {
+        "label": "cake - orange and blue striped on the tablet",
+        "box_2d": [
+          244,
+          714,
+          478,
+          872
+        ]
+      },
+      {
+        "label": "cake - yellow, purple, and green striped on the tablet",
+        "box_2d": [
+          516,
+          709,
+          733,
+          870
+        ]
+      },
+      {
+        "label": "Zoe's wing - colorful blue, green, and yellow feathers",
+        "box_2d": [
+          677,
+          13,
+          966,
+          501
+        ]
+      },
+      {
+        "label": "Zoe's beak - black and white striped",
+        "box_2d": [
+          388,
+          270,
+          596,
+          426
         ]
       }
     ]

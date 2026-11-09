@@ -1,70 +1,52 @@
 {
-  "createdAt": 1790087135317,
+  "createdAt": 1794255415469,
   "book": "1",
   "page": "4",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot with colorful wings spread",
+        "label": "Zoe - large red parrot with colourful wings spread, looking right",
         "box_2d": [
-          117,
-          107,
-          915,
-          876
+          116,
+          88,
+          937,
+          866
         ]
       },
       {
-        "label": "Clara - small green chameleon on the floor, looking down",
+        "label": "Clara - small green chameleon on the floor, looking down with a sad expression",
         "box_2d": [
-          623,
+          558,
           706,
-          965,
-          893
+          903,
+          942
         ]
       },
       {
-        "label": "Blackboard - green board with a light wooden frame",
+        "label": "Streamers on wall - vertical purple and green paper decorations taped to the wall",
         "box_2d": [
           0,
-          319,
-          396,
-          680
+          88,
+          480,
+          915
         ]
       },
       {
-        "label": "Paper pattern - green and purple strips taped to the wall",
+        "label": "Streamers on floor - tangled purple and green paper decorations covering the floor",
         "box_2d": [
-          0,
-          107,
-          349,
-          893
-        ]
-      },
-      {
-        "label": "Paper strips - green and purple mess on the floor",
-        "box_2d": [
-          463,
+          488,
           0,
           1000,
           1000
         ]
       },
       {
-        "label": "Zoe's beak - black and white striped beak",
+        "label": "Chalkboard - dark green board with a light brown wooden frame",
         "box_2d": [
-          179,
-          501,
-          332,
-          630
-        ]
-      },
-      {
-        "label": "Zoe's eye - large black eye with a white patch",
-        "box_2d": [
-          221,
-          411,
-          329,
-          499
+          0,
+          290,
+          483,
+          707
         ]
       }
     ]

@@ -1,97 +1,97 @@
 {
-  "createdAt": 1790087289907,
+  "createdAt": 1794256094244,
   "book": "1",
   "page": "5",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot, looking left with a black and white beak",
+        "label": "Zoe - large red parrot with striped beak, looking at a box",
         "box_2d": [
-          31,
-          289,
-          787,
-          713
-        ]
-      },
-      {
-        "label": "Clara - small green chameleon, looking sad with purple eyelids",
-        "box_2d": [
-          489,
-          812,
-          690,
-          987
-        ]
-      },
-      {
-        "label": "Party hat - large green and purple striped hat on the table",
-        "box_2d": [
-          691,
-          632,
-          943,
-          773
-        ]
-      },
-      {
-        "label": "Party hat - medium green and purple striped hat on the table",
-        "box_2d": [
-          677,
-          356,
-          892,
-          507
-        ]
-      },
-      {
-        "label": "Party hat - small green and purple striped hat on the table",
-        "box_2d": [
-          700,
-          17,
-          924,
-          165
-        ]
-      },
-      {
-        "label": "Party hat - green and purple striped hat, inside the cardboard box",
-        "box_2d": [
-          487,
-          205,
-          603,
-          266
-        ]
-      },
-      {
-        "label": "Cardboard box - open box on the table with party hats inside",
-        "box_2d": [
-          388,
-          180,
-          730,
-          509
-        ]
-      },
-      {
-        "label": "Table - light green surface with floral pattern",
-        "box_2d": [
-          483,
-          0,
-          1000,
-          1000
-        ]
-      },
-      {
-        "label": "Feathers - colorful feathers on Zoe's wing, green, blue, and yellow",
-        "box_2d": [
-          468,
-          318,
-          813,
+          63,
+          196,
+          755,
           712
         ]
       },
       {
-        "label": "Stack of plates - purple and green plates on the table",
+        "label": "Clara - small green chameleon, looking sad",
         "box_2d": [
-          516,
-          819,
-          624,
-          920
+          330,
+          770,
+          608,
+          924
+        ]
+      },
+      {
+        "label": "cardboard box - open, holding party hats",
+        "box_2d": [
+          439,
+          219,
+          706,
+          506
+        ]
+      },
+      {
+        "label": "party hat - large, purple and green striped, in open box",
+        "box_2d": [
+          501,
+          311,
+          638,
+          417
+        ]
+      },
+      {
+        "label": "party hat - small, purple and green striped, in open box",
+        "box_2d": [
+          506,
+          219,
+          563,
+          269
+        ]
+      },
+      {
+        "label": "party hat - large, purple and green striped, on left of table",
+        "box_2d": [
+          706,
+          73,
+          936,
+          311
+        ]
+      },
+      {
+        "label": "party hat - small, purple and green striped, on left of table",
+        "box_2d": [
+          783,
+          303,
+          915,
+          416
+        ]
+      },
+      {
+        "label": "party hat - large, purple and green striped, on right of table",
+        "box_2d": [
+          704,
+          555,
+          936,
+          792
+        ]
+      },
+      {
+        "label": "party hat - small, purple and green striped, on right of table",
+        "box_2d": [
+          781,
+          442,
+          911,
+          553
+        ]
+      },
+      {
+        "label": "stacked plates - purple and green, on the table",
+        "box_2d": [
+          482,
+          702,
+          584,
+          794
         ]
       }
     ]

@@ -1,79 +1,97 @@
 {
-  "createdAt": 1790087099925,
+  "createdAt": 1794255405252,
   "book": "1",
   "page": "3",
   "data": {
     "tags": [
       {
-        "label": "Zoe - large red parrot looking at streamers",
+        "label": "Zoe - large red parrot reaching for streamers",
         "box_2d": [
-          97,
-          72,
-          946,
-          856
+          113,
+          335,
+          959,
+          810
         ]
       },
       {
-        "label": "Clara - small green chameleon hugging her tail",
+        "label": "Clara - small green chameleon on the right, hugging her tail",
         "box_2d": [
-          539,
-          810,
-          781,
-          959
+          426,
+          755,
+          788,
+          936
         ]
       },
       {
-        "label": "streamers - purple and green hanging on the wall",
+        "label": "Streamer - purple, hanging on the far left wall",
         "box_2d": [
-          73,
-          102,
-          608,
-          706
+          71,
+          38,
+          706,
+          126
         ]
       },
       {
-        "label": "streamers - purple and green messy on the floor",
+        "label": "Streamer - green, hanging second from the left wall",
         "box_2d": [
-          650,
+          71,
+          142,
+          706,
+          230
+        ]
+      },
+      {
+        "label": "Streamers - tangled pile of purple on the floor",
+        "box_2d": [
+          705,
+          590,
+          999,
+          999
+        ]
+      },
+      {
+        "label": "Streamers - tangled pile of green on the floor",
+        "box_2d": [
+          600,
           0,
           999,
-          1000
+          580
         ]
       },
       {
-        "label": "Zoe's wing - yellow-feathered, pointing at streamers",
+        "label": "Zoe's wing - outstretched, with yellow, blue, and green feathers",
         "box_2d": [
-          227,
-          240,
-          483,
-          442
+          225,
+          275,
+          450,
+          395
         ]
       },
       {
-        "label": "Clara's tail - striped green, being hugged",
+        "label": "Zoe's beak - striped black and white",
         "box_2d": [
-          642,
-          853,
-          762,
-          963
+          180,
+          480,
+          350,
+          595
         ]
       },
       {
-        "label": "frame - light brown wooden around opening",
+        "label": "Clara's tail - green and striped, curled around her body",
         "box_2d": [
-          102,
-          396,
-          618,
-          929
-        ]
-      },
-      {
-        "label": "tape - white, roll and scraps on the floor",
-        "box_2d": [
+          590,
+          780,
           790,
-          215,
-          930,
-          530
+          935
+        ]
+      },
+      {
+        "label": "Tape - white roll on the floor near the purple streamers",
+        "box_2d": [
+          788,
+          389,
+          845,
+          440
         ]
       }
     ]
