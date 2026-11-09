@@ -1,3 +1,5 @@
+import { stripSSMLTags } from './textNormalizer';
+
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 
 // Flip to false to disable image tagging + analysis (and their prefetch).
@@ -73,10 +75,6 @@ Use clear and simple language. Avoid guessing.`,
   return promise;
 }
 
-function stripSSML(text) {
-  return text.replace(/<\/?[^>]+(>|$)/g, '');
-}
-
 // Throttled prefetch queue — at most 2 concurrent page fetches (4 requests: analyze + tag per page)
 const PREFETCH_CONCURRENCY = 2;
 let activeCount = 0;
@@ -108,7 +106,7 @@ export function prefetchImageAnalysis(book, pages) {
   if (!IMAGE_PIPELINE_ENABLED) return;
   pages.slice(1, 4).forEach((pageData, sliceIndex) => {
     const page = sliceIndex + 1; // slice starts at pages[1], so page 1, 2, 3
-    const pageText = pageData.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
+    const pageText = pageData.text?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
     enqueuePage(book, page, pageText);
   });
 }
@@ -119,6 +117,6 @@ export function prefetchPage(book, pages, currentPage) {
   const targetIndex = currentPage + 3; // 3 pages ahead
   if (targetIndex >= pages.length) return;
   const pageData = pages[targetIndex];
-  const pageText = pageData?.text?.map(t => stripSSML(t.Dialogue)).join(' ') || '';
+  const pageText = pageData?.text?.map(t => stripSSMLTags(t.Dialogue)).join(' ') || '';
   enqueuePage(book, targetIndex, pageText);
 }

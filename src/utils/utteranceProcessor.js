@@ -1,6 +1,6 @@
 import { categorizeOffScriptUtterancesStreaming, streamAcknowledgement } from "./InnerThoughtProcessStream";
 import { calculateHybridScore, findSubsequenceMatch } from "./speechMatcher";
-import { normalizeText } from "./textNormalizer";
+import { normalizeText, stripSSMLTags } from "./textNormalizer";
 import { debugLog } from "./debugMonitor";
 import { isHumanRead } from "./roles";
 
@@ -110,10 +110,6 @@ export function resetOffScriptStateForPage(offScriptLogRef) {
 
 function emptyQueues() {
   return Array.from({ length: VARIANT_SLOT_COUNT }, () => []);
-}
-
-function stripSSMLTags(text) {
-  return text.replace(/<\/?[^>]+(>|$)/g, "");
 }
 
 export function buildBookContext(pagesValues, centerPage) {
@@ -595,7 +591,7 @@ export async function processUserUtterance({
   const ackInProgress = isAcknowledgementModeRef?.current === true;
 
   // A pending generated question no longer blocks categorization; it keeps being rewritten unless it's mid-playback.
-  const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
+  const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && questionGenEnabledRef?.current !== false;
   const categorizationContext = canCategorizeLive
     ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, questionHistoryRef, ttsVoiceName, onAudioError, onQuestionReady, onAudioChunk, onAudioEnd }
     : null;

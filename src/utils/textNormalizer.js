@@ -2,6 +2,10 @@ import nlp from 'compromise';
 import numberToWords from 'number-to-words';
 import { HESITATION_WORDS } from './speechMatcher';
 
+export function stripSSMLTags(text) {
+  return text.replace(/<\/?[^>]+(>|$)/g, "");
+}
+
 export function normalizeText(text) {
   if (!text || typeof text !== 'string') return [''];
 

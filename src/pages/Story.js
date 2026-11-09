@@ -1,24 +1,23 @@
 import "../styles/Story.css";
 import React, { useState, useRef, useEffect } from "react";
-import HomeIcon from "@mui/icons-material/Home";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import TouchAppIcon from '@mui/icons-material/TouchApp';
 import { useHotkeys } from "react-hotkeys-hook";
 import { useLocation, useNavigate } from 'react-router-dom';
-import ReactScrollableFeed from 'react-scrollable-feed';
 // Book Data
 import { data as data1 } from "../Book/Book1";
 import { data as data2 } from "../Book/Book2";
 import { data as data3 } from "../Book/Book3";
 // Components
 import QuestionAvatar from "../components/QuestionAvatar";
+import DialogueList from "../components/DialogueList";
+import PageIllustration from "../components/PageIllustration";
+import StoryBar from "../components/StoryBar";
 // Hooks
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
 import { useAcknowledgement } from "../hooks/useAcknowledgement";
 import { useStoryNavigation } from "../hooks/useStoryNavigation";
+import { usePreloadPageAudio } from "../hooks/usePreloadPageAudio";
 // Utils
-import { warmSay } from "../utils/warmSay";
+import { stripSSMLTags } from "../utils/textNormalizer";
 import { unlockTtsAudio } from "../utils/ttsClient";
 import { AUDIO_SOURCES } from "../utils/audioPlaybackLock";
 import { useAudioStreamControl } from "../utils/AudioStreamControl";
@@ -28,7 +27,6 @@ import * as studyLog from "../utils/studyLog";
 import { getRoleKind } from "../utils/roles";
 import { roles as MATE_DEFINITIONS } from "../Book/Roles";
 import { generateQuestionOnDemand } from "../utils/InnerThoughtProcessStream";
-import { assessClick } from "../utils/clickGeometry";
 
 class Book {
   constructor(data) {
@@ -37,12 +35,6 @@ class Book {
     this.pages = data.Book.Pages;
   }
 };
-
-// Cartoon pointing-glove cursor as an inline data URI (hotspot on the fingertip), with `pointer` as the fallback.
-const POINT_HAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32">
-<path d="M10.5 2C9.1 2 8 3.1 8 4.5V17.2L6.4 15.4C5.4 14.3 3.7 14.3 2.7 15.4C1.8 16.4 1.8 17.9 2.7 18.9L9.5 27C10.6 28.3 12.2 29 13.9 29H21C24.3 29 27 26.3 27 23V15C27 13.6 25.9 12.5 24.5 12.5C23.9 12.5 23.4 12.7 23 13C22.8 11.8 21.8 11 20.5 11C19.7 11 19 11.4 18.5 11.9C18.2 10.8 17.2 10 16 10C15.4 10 14.9 10.2 14.5 10.5V4.5C14.5 3.1 13.4 2 12 2Z" fill="#ffffff" stroke="#000000" stroke-width="2.6" stroke-linejoin="round"/>
-</svg>`;
-const POINT_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(POINT_HAND_SVG)}") 8 2, pointer`;
 
 // One fixed mate voices and shows every question; module scope keeps it stable for the useEffect dependency.
 const QUESTION_MATE_DEF = MATE_DEFINITIONS.find((r) => r.questionMate);
@@ -82,7 +74,6 @@ function Reader() {
       window.removeEventListener("keydown", unlock);
     };
   }, []);
-  const PRELOAD_CONCURRENCY = 1;
   // Quiet time after the last transcript before the send button starts blinking.
   const SILENCE_BLINK_MS = 5000;
   // How long after the last transcript fragment the mic still counts as hearing speech.
@@ -93,64 +84,19 @@ function Reader() {
   const QUESTION_GEN_ENABLED = true;
 
   const mateFrames = {
-    "Green Grant": [
-      require("../Pictures/Mate01/Mates-01.png"),
-      require("../Pictures/Mate01/Mates-01-1.png"),
-      require("../Pictures/Mate01/Mates-01-2.png"),
-      require("../Pictures/Mate01/Mates-01-3.png"),
-    ],
-    "Yellow Yancey": [
-      require("../Pictures/Mate02/Mates-02.png"),
-      require("../Pictures/Mate02/Mates-02-1.png"),
-      require("../Pictures/Mate02/Mates-02-2.png"),
-      require("../Pictures/Mate02/Mates-02-3.png"),
-    ],
-    "Violet Victor": [
-      require("../Pictures/Mate03/Mates-03.png"),
-      require("../Pictures/Mate03/Mates-03-1.png"),
-      require("../Pictures/Mate03/Mates-03-2.png"),
-      require("../Pictures/Mate03/Mates-03-3.png"),
-    ],
-    "Blue Beatrice": [
-      require("../Pictures/Mate04/Mates-04.png"),
-      require("../Pictures/Mate04/Mates-04-1.png"),
-      require("../Pictures/Mate04/Mates-04-2.png"),
-      require("../Pictures/Mate04/Mates-04-3.png"),
-    ],
     [QUESTION_MATE_NAME]: [
       require("../Pictures/Mate09/Mates-09.png"),
       require("../Pictures/Mate09/Mates-09-1.png"),
       require("../Pictures/Mate09/Mates-09-2.png"),
       require("../Pictures/Mate09/Mates-09-3.png"),
     ],
-    "Ruby Randy": [
-      require("../Pictures/Mate06/Mates-06.png"),
-      require("../Pictures/Mate06/Mates-06-1.png"),
-      require("../Pictures/Mate06/Mates-06-2.png"),
-      require("../Pictures/Mate06/Mates-06-3.png"),
-    ],
-    "Coral Carly": [
-      require("../Pictures/Mate05/Mates-05.png"),
-      require("../Pictures/Mate05/Mates-05-1.png"),
-      require("../Pictures/Mate05/Mates-05-2.png"),
-      require("../Pictures/Mate05/Mates-05-3.png"),
-    ],
   };
 
-  const mateListeningImages = {
-    "Green Grant": require("../Pictures/Mate01/Mates-01-L.png"),
-    "Yellow Yancey": require("../Pictures/Mate02/Mates-02-L.png"),
-    "Violet Victor": require("../Pictures/Mate03/Mates-03-L.png"),
-    "Blue Beatrice": require("../Pictures/Mate04/Mates-04-L.png"),
-    [QUESTION_MATE_NAME]: require("../Pictures/Mate09/Mates-09-L.png"),
-    "Ruby Randy": require("../Pictures/Mate06/Mates-06-L.png"),
-    "Coral Carly": require("../Pictures/Mate05/Mates-05-L.png"),
-  };
-  
+  const mateListeningImage = require("../Pictures/Mate09/Mates-09-L.png")
   const narratorRole = QUESTION_MATE;
   const narratorImage = narratorRole?.img;
   const frames = narratorRole ? mateFrames[narratorRole.role] : [narratorImage];
-  const listeningImage = (narratorRole && mateListeningImages[narratorRole.role]) || narratorImage;
+  const listeningImage = (narratorRole && mateListeningImage || narratorImage);
 
   const {
     geminiLiveConnect,
@@ -208,7 +154,6 @@ function Reader() {
   const [audioHasEnded, setAudioHasEnded] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState(null);
 
-  const [isCategorizationPending, setIsCategorizationPending] = useState(false);
   const [questionHistory, setQuestionHistory] = useState([]);
   const [showAvatar, setShowAvatar] = useState(false);
   const [inAcknowledgementLoop, setInAcknowledgementLoop] = useState(false);
@@ -249,10 +194,6 @@ function Reader() {
   const utteranceQueuesRef = useRef([]);
   const currentLineTrackingRef = useRef({ page: -1, index: -1 });
   const offScriptLogRef = useRef([]);
-  const currentPageRef = useRef(state.page);
-
-  let lastSpokenText = "";
-  let lastSpokenTime = 0;
 
   const {
     isGeneratedQuestionPlaying,
@@ -343,7 +284,6 @@ function Reader() {
     setClickTarget(null);
     setGeneratingQuestion(false);
     resetGeneratedQuestionState();
-    setIsCategorizationPending(false);
     setShowAvatar(false);
     setQuestionHistory([]);
     resetAcknowledgementRevealState();
@@ -376,23 +316,8 @@ function Reader() {
   // click counts only while that question is actually pending an answer.
   const clickAnswersQuestion = !!clickTarget && inAcknowledgementLoop && !answerSubmitted;
 
-  // Correct only if the click (as % of the rendered image) hits the tag's stored box; the model's text isn't consulted.
-  const handleImageAnswerClick = (e) => {
-    if (!clickAnswersQuestion) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-    // Near enough counts. imageTags is passed so the margin cannot credit a click
-    // that actually landed on a different tagged object.
-    const { correct, distance, reason, hitLabel } = assessClick({
-      box: clickTarget.box_2d,
-      tags: imageTags,
-      xPct,
-      yPct,
-    });
-
+  // Called by PageIllustration with the already-scored click.
+  const handleImageAnswerClick = ({ correct, distance, reason, hitLabel, xPct, yPct }) => {
     setAnswerSubmitted(true);
     cancelManualAnswer(); // nothing spoken counts as the answer here
     studyLog.pushEvent({
@@ -412,6 +337,27 @@ function Reader() {
         : `I clicked somewhere else in the picture, not the ${clickTarget.label}.`);
   };
 
+  // Logs a question the model produced and returns its id; reason marks where it came from.
+  const logGeneratedQuestion = (questionText, expectedAnswer, reason) => {
+    const questionId = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    studyLog.pushQuestion({
+      question_id: questionId,
+      question_type: 'generated',
+      event: 'generated',
+      question_text: questionText,
+      expected_answer: expectedAnswer ?? '',
+      ...(reason ? { reason } : {}),
+    });
+    return questionId;
+  };
+
+  // Puts a generated question on screen; click is present only for a click question, and is always a real tag's box.
+  const beginQuestion = (questionId, questionText, expectedAnswer, click, audioChunks, audioComplete) => {
+    lastExpectedAnswerRef.current = expectedAnswer ?? null;
+    setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
+    startGeneratedQuestion(questionText, { questionId, audioChunks, audioComplete });
+  };
+
   const manualQuestionPendingRef = useRef(false);
   const manualQuestionAbortRef = useRef(null);
   const [generatingQuestion, setGeneratingQuestion] = useState(false);
@@ -425,7 +371,6 @@ function Reader() {
       stopped = true;
     }
     manualQuestionPendingRef.current = false;
-    setIsCategorizationPending(false);
     setGeneratingQuestion(false);
     if (stopped) studyLog.pushEvent({ event_type: 'question_generation_cancelled', detail: why });
     return stopped;
@@ -446,7 +391,6 @@ function Reader() {
     manualQuestionPendingRef.current = true;
     const controller = new AbortController();
     manualQuestionAbortRef.current = controller;
-    setIsCategorizationPending(true);
     setGeneratingQuestion(true);
     studyLog.pushEvent({ event_type: 'manual_question_request', detail: `page ${state.page + 1}` });
 
@@ -467,19 +411,9 @@ function Reader() {
         onQuestionReady: (questionText, expectedAnswer, click, audioChunks, reason, audioComplete = true) => {
           // The reader may have moved on while the model was thinking.
           if (stateRef.current.page !== pageIndex) return;
-          const questionId = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-          studyLog.pushQuestion({
-            question_id: questionId,
-            question_type: 'generated',
-            event: 'generated',
-            question_text: questionText,
-            expected_answer: expectedAnswer ?? '',
-            reason: 'manual',
-          });
-          lastExpectedAnswerRef.current = expectedAnswer ?? null;
-          setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
+          const questionId = logGeneratedQuestion(questionText, expectedAnswer, 'manual');
           setGeneratingQuestion(false);
-          startGeneratedQuestion(questionText, { questionId, audioChunks, audioComplete });
+          beginQuestion(questionId, questionText, expectedAnswer, click, audioChunks, audioComplete);
         },
         onAudioChunk: handleAudioChunk,
         onAudioEnd: handleAudioEnd,
@@ -491,7 +425,6 @@ function Reader() {
       // have replaced it while this one was in flight.
       if (manualQuestionAbortRef.current === controller) manualQuestionAbortRef.current = null;
       manualQuestionPendingRef.current = false;
-      setIsCategorizationPending(false);
       // Safety net: covers a request that produced nothing, or failed outright.
       setGeneratingQuestion(false);
     }
@@ -530,29 +463,6 @@ function Reader() {
     inAcknowledgementLoopRef,
     generatedQuestionPendingRef,
   });
-
-  const handleTextSelection = () => {
-    setTimeout(() => {
-      let text = window.getSelection().toString().trim();
-      text = text.replace(/(?<=\s|^)[.,!?;:"'""''\-—]?(?=\s|$)/g, '').trim();
-
-      const now = Date.now();
-      if (
-        text.length > 0 &&
-        (text !== lastSpokenText || now - lastSpokenTime > 1000)
-      ) {
-        speak(text);
-        lastSpokenText = text;
-        lastSpokenTime = now;
-      }
-    }, 100);
-  };
-
-  function canon(text) {
-    return stripSSMLTags(String(text || ""))
-      .trim()
-      .replace(/\s+/g, " ");
-  }
 
   useEffect(() => {
     if (DEEPGRAM_ENABLED) connectToDeepgram();
@@ -595,70 +505,7 @@ function Reader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.page]);
 
-  useEffect(() => {
-    const current = state.pagesValues[state.page];
-    const next = state.pagesValues[state.page + 1];
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-    if (!current?.text?.length) return;
-
-    const voiceByChar = new Map();
-    for (const opt of state.CharacterRoles || []) {
-      if (opt.role === "Parent") continue;
-      if (opt.VA) voiceByChar.set(opt.Character, { voiceName: opt.VA, role: opt.role });
-    }
-
-    const pagesToWarm = [current];
-    if (next?.text?.length) pagesToWarm.push(next);
-
-    // Warm page questions with the mate's voice, since that's who speaks them.
-    const questionVoice = narratorRole?.VA
-      ? { voiceName: narratorRole.VA, role: narratorRole.role }
-      : null;
-    const tasks = [];
-    for (const page of pagesToWarm) {
-      for (const line of page.text) {
-        const charInfo = voiceByChar.get(line.Character);
-        if (!charInfo) continue;
-        const text = canon(line.Dialogue);
-        if (!text) continue;
-        tasks.push({
-          text,
-          voiceName: charInfo.voiceName,
-          role: charInfo.role
-        });
-      }
-      if (page.question && questionVoice) {
-        tasks.push({
-          text: page.question,
-          voiceName: questionVoice.voiceName,
-          role: questionVoice.role
-        });
-      }
-    }
-    if (!tasks.length) return;
-
-    let i = 0;
-    let running = 0;
-    let stopped = false;
-
-    const pump = () => {
-      if (stopped) return;
-      while (running < PRELOAD_CONCURRENCY && i < tasks.length) {
-        const t = tasks[i++];
-        running++;
-        warmSay(t)
-          .catch(() => {})
-          .finally(async () => {
-            running--;
-            await sleep(400);
-            queueMicrotask(pump);
-          });
-      }
-    };
-
-    pump();
-    return () => { stopped = true; };
-  }, [state.page, state.pagesValues, state.CharacterRoles, narratorRole]);
+  usePreloadPageAudio(state, narratorRole);
 
   useEffect(() => {
     const wasPlaying = wasGeminiAudioPlayingRef.current;
@@ -666,8 +513,6 @@ function Reader() {
     }
     wasGeminiAudioPlayingRef.current = isGeminiAudioPlaying;
   }, [isGeminiAudioPlaying]);
-
-  useEffect(() => { currentPageRef.current = state.page; }, [state.page]);
 
   useEffect(() => { stateRef.current = state; });
 
@@ -720,37 +565,22 @@ function Reader() {
     processUserUtterance({
       userUtterance,
       lastProcessedUtteranceRef,
-      userUtterancesRef,
       accumulatedUtterancesRef,
       utteranceQueuesRef,
       currentLineTrackingRef,
       offScriptLogRef,
       state: stateRef.current,
       speakerLabels,
-      gotoNextPage,
       jumpToLine,
       setAudioHasEnded,
       setIsPlaying,
       onAutoLineAdvance: markNextLineChangeAutomatic,
-      onCategorizationStart: () => setIsCategorizationPending(true),
-      onCategorizationResult: (result) => {
-        if (!questionGenEnabledRef.current) return;
-        if (result?.sourcePage !== stateRef.current.page) return;
-        setIsCategorizationPending(false);
-      },
       onQuestionReady: (questionText, expectedAnswer = null, click = null, audioChunks = [], reason = '', audioComplete = true) => {
         if (!questionGenEnabledRef.current) return;
 
         // Logged before the suppression check so the record reflects every
         // question the model actually produced, not only the ones shown.
-        const questionId = `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-        studyLog.pushQuestion({
-          question_id: questionId,
-          question_type: "generated",
-          event: "generated",
-          question_text: questionText,
-          expected_answer: expectedAnswer ?? "",
-        });
+        const questionId = logGeneratedQuestion(questionText, expectedAnswer);
 
         if (isGeneratedQuestionPlayingRef.current) {
           suppressGeneratedAudioStreamRef.current = true;
@@ -776,11 +606,7 @@ function Reader() {
           });
           return;
         }
-        lastExpectedAnswerRef.current = expectedAnswer;
-        // Present only for a click question, and always a real tag's box — the
-        // server drops any question whose label was not in the tag list.
-        setClickTarget(click?.answerBox ? { label: click.answerLabel, box_2d: click.answerBox } : null);
-        startGeneratedQuestion(questionText, { questionId, audioChunks, audioComplete });
+        beginQuestion(questionId, questionText, expectedAnswer, click, audioChunks, audioComplete);
       },
       imageDescriptionRef,
       userAttentionRef,
@@ -841,100 +667,6 @@ function Reader() {
     handlePlayClick();
   });
 
-  function stripSSMLTags(text) {
-    return text.replace(/<\/?[^>]+(>|$)/g, "");
-  }
-
-  function parseText(text) {
-    const htmlText = text
-      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-    return <div dangerouslySetInnerHTML={{__html: htmlText}}></div>;
-  }
-
- function renderPageRows() {
-
-
-    return (
-      <ReactScrollableFeed>
-      <div className="table-column" ref={tableContainerRef}>
-        {state.pagesValues[state.page]?.text?.map((val, key) => {
-          let isActiveRowParent = false;
-          let isActiveRowChild = false;
-          const isActiveRow = val.Reading;
-          const currentRole = selectedOptions.find(
-            (option) => option.Character === val.Character
-          );
-
-          if(currentRole.role === "Parent"){
-            isActiveRowParent = true;
-          }
-
-          if(currentRole.role === "Child"){
-            isActiveRowChild = true;
-          }
-
-          const roleImage = currentRole ? currentRole.img : "";
-          const roleName = currentRole ? currentRole.Role : "Role image"; // default alt text
-          const character = CurrentBook.characters.find(c => c.Name === val.Character);
-          const characterImage = character ? character.img : "";
-          const isChild = currentRole?.role === "Child";
-
-          return (
-            <div
-              ref={(el) => dialogueRefs.current[key] = el}
-              className={`dialogue-row${isActiveRowParent && isActiveRow ? " active active-parent" : ""}${isActiveRowChild && isActiveRow ? " active active-child" : ""}`}
-              key={key}
-              onClick={() => {
-                const selectedText = window.getSelection().toString().trim();
-                if (isChild && val.Reading && selectedText === "") {
-                  const currentRole = selectedOptions.find(
-                    (option) => option.Character === val.Character
-                  );
-                  const voiceName = currentRole?.VA || "kore";
-                  const role = currentRole?.role || null;
-                  speak(val.Dialogue, voiceName, "neutral", role)
-                    .then((started) => {
-                      if (started) setChildHasPlayed(true);
-                    });
-                }
-              }}
-            >
-              {/* Animated hand pointer for child lines */}
-              {isChild && isActiveRow && !childHasPlayed && (
-                <TouchAppIcon
-                  className="child-tap-icon"
-                  sx={{ fontSize: 48 }}
-                />
-              )}
-
-              <div className="tw-flex-none tw-w-1/4">
-              <div className="role-image-container-text tw-flex tw-justify-around">
-              {currentRole && roleImage && <img src={roleImage} alt={roleName} style={{width: "25%"}}  className="overlay-image"/>}
-
-                {characterImage && <img src={characterImage} alt={val.Character} style={{width: "55%"}} className={`${isActiveRow ? "active-roleImage" : ""}`} />}
-              </div>
-              </div>
-              <div className="tw-flex-none tw-w-2/3">
-                <div className={`tw-p-4 borderless text-size  ${isActiveRow ? "active-dialogue" : ""} `} onMouseUp={handleTextSelection}>
-                  {val.Dialogue.split('\n').map((str, index, array) =>  index === array.length - 1 ?  parseText(str) :
-                  <>
-                    {parseText(str)}
-                     <br />
-                  </>
-              )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      </ReactScrollableFeed>
-    );
-  };
-
   function renderNavigationButtons() {
     const isLastIndex = state.pagesValues[state.page].text.length === state.index;
     const isLastPage = state.page === state.pagesValues.length - 1;
@@ -976,72 +708,24 @@ function Reader() {
       <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
 
 
-      <header className="storybar -tw-mx-3 tw-bg-[#f8f9fa] tw-border-b tw-border-solid tw-border-[#dee2e6] tw-px-4">
-        <button
-          type="button"
-          className="storybar-btn storybar-home btn"
-          aria-label="Back to the book list"
-          onClick={() => navigate('/Home', { state: { name } })}
-        >
-          <HomeIcon />
-        </button>
-
-        <div className="storybar-pager">
-          <button
-            type="button"
-            className="storybar-btn btn previous-page-button"
-            aria-label="Previous page"
-            onClick={gotoPreviousPage}
-            disabled={state.page === 0}
-          >
-            <ChevronLeftIcon />
-          </button>
-
-          <span className="storybar-page" aria-live="polite">
-            Page {state.page + 1} of {state.pagesValues.length}
-          </span>
-
-          <button
-            type="button"
-            className="storybar-btn btn next-page-button"
-            aria-label="Next page"
-            onClick={gotoNextPage}
-            disabled={state.page >= state.pagesValues.length - 1}
-          >
-            <ChevronRightIcon />
-          </button>
-        </div>
-      </header>
+      <StoryBar
+        page={state.page}
+        pageCount={state.pagesValues.length}
+        onHome={() => navigate('/Home', { state: { name } })}
+        onPrev={gotoPreviousPage}
+        onNext={gotoNextPage}
+      />
 
     <div className="reader-row">
       <div className="tw-flex-none tw-w-full landscape:tw-w-5/12 reader-picture-column">
-        <div
-          className="page-illustration"
-          style={{
-            position: 'relative', display: 'inline-block',
-            cursor: clickAnswersQuestion ? POINT_CURSOR : 'default',
-          }}
-          onClick={clickAnswersQuestion ? handleImageAnswerClick : undefined}
-        >
-          <img src={state.pagesValues[state.page].img} alt="current page" />
-            {(imageTags || []).map((tag, i) => {
-              if (!Array.isArray(tag?.box_2d) || tag.box_2d.length < 4) return null;
-              const [y0, x0, y1, x1] = tag.box_2d;
-              return (
-                <div
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    top: `${y0 / 10}%`, left: `${x0 / 10}%`,
-                    height: `${(y1 - y0) / 10}%`, width: `${(x1 - x0) / 10}%`,
-                    cursor: POINT_CURSOR,
-                  }}
-                  title={tag.label}
-                  onClick={() => { userAttentionRef.current = tag.label; console.log('[userAttention]', tag.label); }}
-                />
-              );
-            })}
-        </div>
+        <PageIllustration
+          img={state.pagesValues[state.page].img}
+          imageTags={imageTags}
+          clickTarget={clickTarget}
+          clickAnswersQuestion={clickAnswersQuestion}
+          onAnswerClick={handleImageAnswerClick}
+          onTagClick={(label) => { userAttentionRef.current = label; console.log('[userAttention]', label); }}
+        />
         <QuestionAvatar
           questionHistory={questionHistory}
           showAvatar={showAvatar}
@@ -1073,7 +757,18 @@ function Reader() {
       <div className="tw-flex-none tw-w-full landscape:tw-w-7/12 table-container">
 
 
-        <div className="tw-w-full tw-px-3 tw-mx-auto">{renderPageRows()}</div>
+        <div className="tw-w-full tw-px-3 tw-mx-auto">
+          <DialogueList
+            lines={state.pagesValues[state.page]?.text}
+            selectedOptions={selectedOptions}
+            characters={CurrentBook.characters}
+            childHasPlayed={childHasPlayed}
+            onChildPlayed={() => setChildHasPlayed(true)}
+            speak={speak}
+            dialogueRefs={dialogueRefs}
+            tableContainerRef={tableContainerRef}
+          />
+        </div>
         {renderNavigationButtons()}
       </div>
     </div>

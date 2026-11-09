@@ -5,10 +5,7 @@ import { createStreamingPcmPlayer } from "../utils/streamingPcmPlayer";
 import { setAwaitingQuestionAnswer } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 import { isHumanRead } from "../utils/roles";
-
-function stripSSMLTags(text) {
-  return text.replace(/<\/?[^>]+(>|$)/g, "");
-}
+import { stripSSMLTags } from "../utils/textNormalizer";
 
 const SPEECH_CHARS_PER_SEC = 14;
 
