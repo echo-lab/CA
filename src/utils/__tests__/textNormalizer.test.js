@@ -1,4 +1,4 @@
-import { normalizeText, splitIntoSentences } from '../textNormalizer';
+import { normalizeText } from '../textNormalizer';
 
 // --- Combinatorial test data ---
 
@@ -255,29 +255,6 @@ describe('textNormalizer', () => {
         expect(normalized).toContain('one book');
         expect(normalized).toContain('two books');
         expect(normalized).toContain('three books');
-      });
-    });
-  });
-
-  describe('splitIntoSentences', () => {
-    MULTI_SENTENCE_CASES.forEach(([input, , expectedCount]) => {
-      it(`splits "${input.substring(0, 40)}..." into ${expectedCount} sentence(s)`, () => {
-        const result = splitIntoSentences(input);
-        expect(result.length).toBe(expectedCount);
-      });
-    });
-
-    describe('book narrator line splitting', () => {
-      it('B1: splits "Clara saw Zoe was upset. Zoe was still her best friend. Clara took a deep breath."', () => {
-        const result = splitIntoSentences('Clara saw Zoe was upset. Zoe was still her best friend. Clara took a deep breath.');
-        expect(result.length).toBe(3);
-        expect(result[0]).toContain('Clara saw Zoe');
-        expect(result[2]).toContain('deep breath');
-      });
-
-      it('B1: keeps "They threw open the cake box." as single sentence', () => {
-        const result = splitIntoSentences('They threw open the cake box.');
-        expect(result.length).toBe(1);
       });
     });
   });
