@@ -1,4 +1,3 @@
-import { type } from '@testing-library/user-event/dist/type';
 import { createContext, useCallback, useContext, useRef, useState, useEffect } from 'react';
 import { AUDIO_SOURCES, createAudioPlaybackLock } from './audioPlaybackLock';
 import * as studyLog from './studyLog';
