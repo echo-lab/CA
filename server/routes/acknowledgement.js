@@ -93,10 +93,7 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
         let usage = null;
         let finishReason = null;
 
-        // TTS is pipelined against generation: each finished sentence is synthesised
-        // while the model is still writing the next one, rather than waiting for the
-        // whole reply. Synthesis stays serial so chunks reach the client in playback
-        // order, and `seq` keeps counting across sentence boundaries.
+        // TTS is pipelined: each finished sentence is synthesised while the model writes the next, serially so chunks arrive in order.
         let spokenUpTo = 0;
         let ttsSeq = 0;
         let ttsFailed = false;
@@ -125,9 +122,7 @@ router.post('/api/acknowledgement-stream', async (req, res) => {
             });
         };
 
-        // A leading fence or quote means the model ignored the plain-text instruction,
-        // so the reply needs the cleanup below before any of it is safe to speak —
-        // fall back to synthesising the cleaned whole once the stream ends.
+        // A leading fence or quote means the reply needs cleanup first, so synthesise the cleaned whole once the stream ends.
         const canSpeakAhead = () => !/^\s*[`"']/.test(raw);
 
         for await (const chunk of stream) {

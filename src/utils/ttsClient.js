@@ -24,18 +24,11 @@ export function getTtsAudioElement() {
   return sharedAudio;
 }
 
-// Silences whatever is currently speaking. The element is a module singleton
-// (one voice at a time, and one element to keep unlocked for autoplay), which
-// also means nothing about unmounting React stops it — callers leaving a page
-// have to say so.
+// Stops whatever is speaking; the shared <audio> outlives React unmounts, so pages must call this when leaving.
 export function stopTts() {
   if (!sharedAudio) return;
   sharedAudio.pause();
-  // Order is the point: detach the element from the blob BEFORE revoking.
-  // Revoking while src still points at the URL strands the element on a dead
-  // source and the next say() aborts mid-load. removeAttribute + load() is the
-  // spec'd detach; it fires emptied/abort, not error, and does not re-lock
-  // autoplay, so the gesture unlock survives.
+  // Detach the element from the blob before revoking it, or the next say() aborts mid-load.
   sharedAudio.removeAttribute("src");
   sharedAudio.load();
   revokeCurrentUrl();

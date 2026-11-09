@@ -1,8 +1,6 @@
 import React from "react";
 
-// Sits to the right of the listening pulse and is the only control that submits
-// the answer. Blinks yellow once the room has been quiet for a moment, as a nudge
-// that the answer looks finished — see `blink` in Story.js.
+// The only control that submits the answer; blinks yellow once the room goes quiet (see `blink` in Story.js).
 export default function SendButton({ blink, disabled, onClick }) {
   return (
     <button

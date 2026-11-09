@@ -130,12 +130,7 @@ export function useAcknowledgement({
   };
 
   const playAcknowledgement = async (reply) => {
-    // Deliberately not gated on isAnyAudioPlaying. The answer is already captured
-    // by the time this runs, so returning here threw away what the child said —
-    // silently, and on a value read up to 2.5s earlier (the manual-answer drain
-    // resolves long after the click that closed the closure). Contention is
-    // handled downstream instead: stopAcknowledgementAudio clears a prior
-    // acknowledgement, and a busy lock falls back to showing the reply as text.
+    // Deliberately not gated on isAnyAudioPlaying: the answer is already captured, and contention is handled downstream.
     if (isAnyAudioPlaying) {
       studyLog.pushEvent({ event_type: 'acknowledgement_while_audio_busy', detail: reply });
     }
@@ -196,9 +191,7 @@ export function useAcknowledgement({
           remoteAudioRef.current.muted = false;
         }
 
-        // TTS can fail after the text already arrived (quota, network), and the
-        // audio lock can be held by another source. Closing right away would wipe
-        // a line the child never heard, so leave it on screen to be read instead.
+        // If TTS fails or the lock is busy, leave the text on screen to be read instead of closing it unheard.
         if (!heardAudio && fullAcknowledgementTextRef.current) {
           setRevealedAcknowledgement(fullAcknowledgementTextRef.current);
           silentCloseTimerRef.current = setTimeout(() => {
@@ -242,9 +235,7 @@ export function useAcknowledgement({
             question_type: 'acknowledgement',
             event: 'shown',
             question_text: acknowledgement,
-            // expected_answer carries the question this turn is answering;
-            // user_answer is what the child actually said (or, for a click
-            // question, the phrasing built from where they clicked).
+            // expected_answer is the question being answered; user_answer is what the child said (or the phrasing of their click).
             expected_answer: question || '',
             user_answer: reply || '',
           });
@@ -291,9 +282,7 @@ export function useAcknowledgement({
         onAudioEnd: () => {
           if (requestSeq !== acknowledgementRequestSeqRef.current || !acknowledgementModeRef.current) return;
           if (acknowledgementAudioBlockedRef.current) {
-            // Previously returned here, leaving the loop half-open with the
-            // avatar up and nothing listening. The text was already revealed,
-            // so settle the turn normally.
+            // Settle the turn normally here; returning early left the loop half-open with nothing listening.
             acknowledgementAudioBlockedRef.current = false;
             finishStreamingAcknowledgement();
             return;

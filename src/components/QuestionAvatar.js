@@ -80,9 +80,7 @@ export default function QuestionAvatar({
         };
     }, [isGeneratedQuestionPlaying, isPageQuestionPlaying, isGeminiAudioPlaying, isAcknowledgementPlaying, showAvatar, inAcknowledgementLoop, listeningImage]);
 
-    // From the closing click until the acknowledgement lands, the question is
-    // replaced by a thinking panel — the old question staying up read as though
-    // it were still waiting for an answer.
+    // Between the closing click and the acknowledgement, show a thinking panel instead of the old question.
     const hasAcknowledgement = questionHistory.some(m => m.type === 'acknowledgement');
     const showThinking = Boolean(answerSubmitted) && !hasAcknowledgement;
 
@@ -104,9 +102,7 @@ export default function QuestionAvatar({
 
         const handleLatestClick = () => {
             if (!latest) return;
-            // Logged before dispatch so clicks that turn into no-ops (a
-            // acknowledgement bubble, or a play blocked by the audio lock) are
-            // still recorded as clicks.
+            // Logged before dispatch so clicks that become no-ops are still recorded.
             studyLog.pushQuestion({
                 question_id: latest.id,
                 question_type: latest.type,
@@ -118,13 +114,9 @@ export default function QuestionAvatar({
             else onPlaySound();
             };
 
-        // The mate itself is the manual generate button. It only speaks an existing
-        // question when one is waiting to be heard — otherwise there is nothing to
-        // replay and the tap means "give me something to ask".
+        // Tapping the mate replays a waiting question, otherwise asks for a new one.
         const hasUnheardQuestion = Boolean(latest) && latest.type === 'generated' && !isThoughtRevealed;
-        // Deaf to clicks while it is talking or already writing something. A tap
-        // mid-sentence would either cut the mate off or queue a question nobody
-        // asked for on top of the one being spoken.
+        // Ignore taps while the mate is talking or generating, so it isn't cut off or double-queued.
         const mateBusy = generatingQuestion || isSpeaking || isGeminiAudioPlaying;
         const handleAvatarClick = () => {
             if (mateBusy) return;
@@ -135,16 +127,12 @@ export default function QuestionAvatar({
             onRequestQuestion?.();
         };
 
-        // A click question is answered on the illustration, so the speech controls are
-    // hidden: the pulse would claim the mic is being listened to for the answer,
-    // and the send button would have nothing to send.
+        // Click questions are answered on the illustration, so the speech controls are hidden.
     const showAnswerButton = inAcknowledgementLoop && avatarPhase === 'question' && !answerSubmitted && !awaitingClick;
 
         return (
             <div className={`question-area ${narratorImage ? 'has-avatar' : ''}${showAnswerButton ? ' has-answer-button' : ''}`}>
-                {/* Always present when a mate was chosen: it is the manual question
-                    button, not just the speaker. Without a chosen mate there is no
-                    image to draw, so it degrades to no avatar rather than a broken one. */}
+                {/* Always shown when a mate was chosen (it's the question button); no mate means no avatar. */}
                 {narratorImage && (
                 <div className={`role-image-container${mateBusy ? ' is-busy' : ''}`}>
                     <img
@@ -164,9 +152,7 @@ export default function QuestionAvatar({
                         </span>
                     </div>
                 )}
-                {/* The retry line takes the dots' place rather than becoming a bubble of
-                    its own: it is a prompt to act, not part of the conversation, so it
-                    leaves no trace once spoken. */}
+                {/* The retry line replaces the dots instead of becoming a bubble, so it leaves no trace once spoken. */}
                 {!generatingQuestion && showThinking && (
                     <div className="question-message thinking latest" aria-live="polite"
                          aria-label={answerRetryText || "Thinking"}>
@@ -211,10 +197,7 @@ export default function QuestionAvatar({
                     ].filter(Boolean).join(' ');
                     return (
                     <div
-                        // Render identity, not log identity. A generated bubble keeps
-                        // its slot when its question is rewritten, so React reuses the
-                        // node and the slide-in animation does not replay. Bubbles
-                        // without a slot never change id, so falling back is safe.
+                        // Key by render slot (stable across rewrites) so React doesn't replay the slide-in; falls back to id.
                         key={msg.slot || msg.id}
                         className={classes}
                         onClick={isLatest ? handleLatestClick : undefined}

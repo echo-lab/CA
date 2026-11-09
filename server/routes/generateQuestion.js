@@ -22,10 +22,7 @@ const router = express.Router();
 const USE_BEDROCK = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
 const offscript = USE_BEDROCK ? bedrockOffscript : openai;
 
-// Asked for directly by tapping the mate, rather than provoked by something said.
-// Same prompt and same click handling as the conversational path — the only
-// difference is that there may be no utterances to draw on, which the payload
-// says explicitly so the model leans on the page text and illustration instead.
+// Question requested by tapping the mate: same prompt and click handling, but the payload says there may be no utterances.
 router.post('/api/generate-question-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');

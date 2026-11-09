@@ -17,9 +17,7 @@
     padding: 5px;
   }
 
-  /* Was Bootstrap's .row. Reproduced here rather than as utilities because the
-     two columns are sized against this exact geometry (375px + 375px = 750px,
-     with box-sizing making the .75rem gutters land inside them). */
+  /* Was Bootstrap's .row; the two 375px columns depend on this exact geometry. */
   .signup .row-signup{
     display: flex;
     flex-wrap: wrap;

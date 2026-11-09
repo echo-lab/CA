@@ -1,16 +1,5 @@
 #!/usr/bin/env node
-/*
- * Latency benchmark for question generation + TTS.
- *
- * Usage:
- *   node scripts/bench.js                  # run all benchmarks once
- *   node scripts/bench.js --runs 5         # repeat 5x and show min/median/max
- *   node scripts/bench.js --tts-only       # skip categorize/question generation
- *   node scripts/bench.js --qg-only        # skip TTS
- *   BASE=http://localhost:5005 node scripts/bench.js
- *
- * Make sure the server is running first (npm run dev or npm run server).
- */
+/* Latency benchmark for question generation + TTS (server must be running): node scripts/bench.js [--runs N] [--tts-only | --qg-only], BASE=<url> to override. */
 
 const BASE = process.env.BASE || process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 

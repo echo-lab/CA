@@ -39,9 +39,7 @@
   .lab-logos {
     max-width: 100%;
     height: auto;
-    /* Adjust as needed:
-       e.g., width: 500px; or any specific size you prefer
-    */
+    /* Adjust width as needed (e.g. 500px). */
   }
   
   .hero-content {

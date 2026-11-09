@@ -11,9 +11,7 @@ function buildOpenAIDynamicPagePayload({
     questionHistory,
     systemQuestions,
 }) {
-    // Every question already generated on this page, oldest first. Sent as a list
-    // because a page can carry several follow-ups and the model needs to see all of
-    // them to avoid repeating one — not just the most recent.
+    // All questions already asked on this page, oldest first, so the model avoids repeating any of them.
     const questionHistoryBlock = Array.isArray(questionHistory) && questionHistory.length
         ? `<generated_question_list>\n${questionHistory.map((q) => `- "${q}"`).join('\n')}\n(Already asked on this page. Do NOT repeat or rephrase any of them.)\n</generated_question_list>\n`
         : '';

@@ -1,7 +1,4 @@
-// Role classification, in one place.
-//
-// The app distinguishes three kinds of reader, and the distinction was
-// previously re-derived by hardcoded name comparisons in five separate files.
+// Role classification in one place (three kinds of reader), replacing name checks once spread across five files.
 
 export const ROLE_KIND = {
   AI_MATE: "ai_mate",

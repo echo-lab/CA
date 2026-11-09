@@ -1,11 +1,7 @@
-// Click questions answer to a region of the page image, never to free text. The
-// model only ever picks a label; the coordinates come from the tag it named, so a
-// question can never point at a box that does not exist.
+// Click questions are answered by a tagged image region; the model only picks a label, never coordinates.
 const { parseJsonFromModelText } = require('./modelParsing');
 
-// A tag is only usable as an answer if it has a real, non-empty box: the hit test
-// compares the click against these four numbers, so a malformed one would either
-// never match or match everywhere.
+// A tag is usable only with a real, non-empty box, since the click hit test compares against it.
 function usableTags(tags) {
     return (Array.isArray(tags) ? tags : []).filter((t) => {
         if (!t || !String(t.label || '').trim()) return false;
@@ -20,10 +16,7 @@ function tagLabels(tags) {
     return usableTags(tags).map((t) => String(t.label).trim());
 }
 
-// Every book asks both kinds; which one a turn gets is a coin flip, decided once
-// per generated question. A click question still needs real tags — without them
-// there is nothing to click, so it falls back to a spoken question rather than
-// asking something unanswerable.
+// Each generated question is spoken or click at random; click falls back to spoken when the page has no usable tags.
 function resolveClickMode(clickTags) {
     const clickLabels = tagLabels(clickTags);
     const wanted = Math.random() < 0.5;
@@ -47,9 +40,7 @@ function resolveClickAnswer(rawModelText, tags) {
     const wanted = String(parsed?.answer_label ?? parsed?.expected_answer ?? '').trim();
     if (!question || !wanted) return null;
 
-    // Case- and whitespace-insensitive only. No fuzzy matching: a near miss means
-    // the model was not copying from the list, and guessing which tag it meant
-    // would put the answer box somewhere the child was never asked to click.
+    // Case/whitespace-insensitive match only; no fuzzy matching, so a near-miss label is rejected rather than guessed.
     const key = wanted.toLowerCase();
     const tag = usableTags(tags).find((t) => String(t.label).trim().toLowerCase() === key);
     if (!tag) return null;

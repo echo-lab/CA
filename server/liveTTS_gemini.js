@@ -44,9 +44,7 @@ async function withRetries(fn, { attempts = 2, delayMs = 300 } = {}) {
 const { CFG, buildKey, readIfFresh, writeAtomically, normalizeText, normEmotion } = require('./lib/cache/ttsCache');
 const { oncePerKey } = require('./lib/cache/inflight');
 
-// Warm imports + client once at module load. Subsequent requests just await the
-// already-resolved promise — no per-request import or client construction, and
-// the underlying HTTP agent's TLS connection to Google is reused.
+// Imports and client are created once at module load, so requests reuse them and the TLS connection.
 let depsPromise;
 function getDeps() {
   if (!depsPromise) {
@@ -66,9 +64,7 @@ function getDeps() {
 // Kick off warmup at startup so the first /live/say request doesn't pay for it.
 getDeps().catch(err => console.warn('[liveTTS] warmup failed; will retry on first request', err));
 
-// Streaming TTS: call Gemini via generateContentStream and yield raw PCM chunks
-// as base64 strings. Caller is responsible for forwarding them (e.g., via SSE)
-// and the client decodes/plays via Web Audio API.
+// Streaming TTS: yields raw PCM chunks from Gemini as base64; the caller forwards them (e.g. SSE) for Web Audio playback.
 async function* generateGeminiTtsChunks({ text, voiceName, emotion, role, speechRate, model }) {
   const { ai } = await getDeps();
   if (!ai) throw new Error('GEMINI_API_KEY not set');

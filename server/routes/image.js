@@ -17,11 +17,7 @@ const GEMINI_IMAGE_CONTEXT_CACHE_TTL_SEC = Number(process.env.GEMINI_IMAGE_CONTE
 
 const geminiImageContextCache = new Map();
 
-// The context-cache tagging branch runs without a responseSchema, so the model
-// sometimes wraps the box in an extra array: [[y0,x0,y1,x1]]. Unwrap here, the one
-// place every tag consumer reads through — render, click grading, tag editing — rather
-// than guarding a length in each. Applied to cache hits too: files written before this
-// fix are still on disk.
+// Unwrap the extra array the model sometimes returns ([[y0,x0,y1,x1]]) here, where every tag consumer reads, including old cache files.
 function normalizeTags(tags) {
   return (Array.isArray(tags) ? tags : []).map((t) => {
     let box = t?.box_2d;

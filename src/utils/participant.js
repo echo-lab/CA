@@ -1,12 +1,4 @@
-// Participant identity for the study.
-//
-// IDs are provisioned by hand in server/participants.json — nothing here ever
-// creates one. The ID reaches the app either by being typed at /Signup or via a
-// ?pid=<id> query param on any route, is verified against the server, and is
-// then held in sessionStorage.
-//
-// sessionStorage (not localStorage) is deliberate: a shared study iPad must not
-// carry participant A's ID into participant B's session after a tab close.
+// Participant identity: hand-provisioned IDs from /Signup or ?pid=, verified by the server, kept in sessionStorage so a shared iPad doesn't leak them.
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001";
 
@@ -59,9 +51,7 @@ export function clearParticipant() {
   }
 }
 
-// Reads ?pid=<id> from the current URL. Lets a session be started from a
-// handed-out link with no typing — the lower-risk path with young children on
-// a shared tablet.
+// Reads ?pid=<id> so a session can start from a link with no typing.
 export function getPidFromUrl() {
   if (typeof window === "undefined") return "";
   try {

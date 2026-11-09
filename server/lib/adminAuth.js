@@ -1,8 +1,4 @@
-// Shared-token auth for the admin routes.
-//
-// One token in server/.env.local (ADMIN_TOKEN), sent as `x-admin-token` or as a
-// bearer token. Not a user system: this guards a single researcher's admin page,
-// and the study data behind it, on a host that is otherwise open to the internet.
+// Shared-token admin auth: ADMIN_TOKEN from .env.local, sent as x-admin-token or a bearer token.
 const crypto = require('crypto');
 
 function configuredToken() {

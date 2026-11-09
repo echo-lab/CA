@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-// Study admin: roster management and log browsing. Gated by the shared
-// ADMIN_TOKEN the server holds; the token lives in sessionStorage so it is gone
-// when the tab closes rather than sitting in localStorage on a shared machine.
+// Study admin (roster + logs), gated by ADMIN_TOKEN kept in sessionStorage so it's gone when the tab closes.
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 const TOKEN_KEY = 'jennie.adminToken';
 
@@ -12,9 +10,7 @@ const dropToken = () => { try { sessionStorage.removeItem(TOKEN_KEY); } catch { 
 
 const KB = (n) => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`);
 
-// Log files are written as session_<id>_<stream>.csv, plus a per-participant
-// sessions.csv. Anything else (a stray README, older flat session_<id>.csv) lands
-// in "other" so it is still reachable through the filter rather than invisible.
+// Logs are session_<id>_<stream>.csv plus sessions.csv per participant; anything else is listed under "other".
 const NO_PARTICIPANT = '(top level)';
 const streamOf = (name) => {
   const m = String(name).match(/_(events|questions|transcript)\.csv$/i);

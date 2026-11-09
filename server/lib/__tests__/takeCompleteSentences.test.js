@@ -1,7 +1,4 @@
-// Guards the sentence segmentation that decides what gets sent to TTS while the
-// model is still generating (server/routes/acknowledgement.js). The failure that
-// matters: emitting a fragment that the next token would have changed, or never
-// emitting at all and silently falling back to whole-reply synthesis.
+// Guards TTS sentence segmentation: never emit a fragment the next token could change, and never fail to emit at all.
 const assert = require('assert');
 const { takeCompleteSentences } = require('../modelParsing');
 

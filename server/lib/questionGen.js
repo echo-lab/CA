@@ -1,7 +1,4 @@
-// The question half of a turn: build the messages, resolve the model's reply, and
-// stream the spoken audio. Shared by the categorize stream (which generates from
-// the conversation) and the manual button (which generates from the page alone),
-// so the two can never drift apart on prompt choice or click handling.
+// The question half of a turn, shared by the categorize stream and the manual button so they can't drift apart.
 const {
     JENNIE_SHARED_PROMPT_PREFIX,
     FOLLOWUP_QUESTION_PROMPT,
@@ -17,9 +14,7 @@ const {
 } = require('./clickAnswer');
 const { generateGeminiTtsChunks } = require('../liveTTS');
 
-// Stands in for the utterance block when the question was asked for directly
-// rather than provoked by something said. An empty block reads as "they said
-// nothing worth using"; this says there was no conversation to draw on at all.
+// Utterance placeholder for a directly requested question: there was no conversation at all, not nothing worth using.
 const NO_UTTERANCES = '(none — no conversation to draw on yet; use the page text and illustration)';
 
 function buildQuestionMessages({
@@ -65,10 +60,7 @@ function sanitizeMessagesForDebug(messages) {
         : m));
 }
 
-// Always returns the four fields, nulled out when nothing usable came back.
-// Every click question ends with the same instruction. Appended here rather than
-// asked for in the prompt so the wording is identical every time and the model
-// cannot forget it, paraphrase it, or bury it mid-sentence.
+// Always returns the four fields (null when unusable); the click instruction is appended here so its wording never varies.
 const CLICK_SUFFIX = 'Click it.';
 function withClickSuffix(question) {
     const q = String(question || '').trim();
@@ -83,9 +75,7 @@ function resolveQuestion(rawQuestion, { clickMode, clickTags, clickLabels, log =
     if (!raw) return empty;
 
     if (clickMode) {
-        // The answer is the tag's own box, never anything the model wrote. A label
-        // that is not a real tag has no clickable region, so the question is
-        // dropped rather than asked unanswerably.
+        // The answer is the tag's own box; a label that isn't a real tag drops the question.
         const click = resolveClickAnswer(raw, clickTags);
         if (!click) {
             console.warn('[questionGen] click question rejected — label not in tag list', {
@@ -118,9 +108,7 @@ function resolveQuestion(rawQuestion, { clickMode, clickTags, clickLabels, log =
     return { ...empty, generatedQuestion: raw };
 }
 
-// Streams the spoken question as SSE audio chunks. Never throws: a TTS failure
-// sends audio_error and leaves the question itself standing, so the child still
-// sees it even when it cannot be spoken.
+// Streams the spoken question as SSE audio chunks; never throws (a TTS failure sends audio_error but keeps the question).
 async function streamQuestionAudio(res, { text, voiceName, tag = 'question', log = () => {} }) {
     if (!text || !voiceName) return;
     const t0 = Date.now();

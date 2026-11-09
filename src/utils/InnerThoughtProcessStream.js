@@ -1,9 +1,7 @@
 import { gptDebugLog } from "./debugMonitor";
 import * as studyLog from "./studyLog";
 
-// Reads a server-sent-events body, handing each event's parsed JSON to onEvent.
-// A bad event (unparseable, or onEvent throwing) is logged and skipped, never
-// fatal to the rest of the stream.
+// Reads an SSE body and passes each event's JSON to onEvent; bad events are logged and skipped.
 async function readSSE(response, onEvent, errorLabel) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -25,14 +23,7 @@ async function readSSE(response, onEvent, errorLabel) {
     }
 }
 
-// The question is handed over on the FIRST audio chunk rather than the last,
-// so the child sees it while the rest of the speech is still synthesising.
-// The invariant that it can never be shown before it can be spoken still
-// holds — delivery is gated on audio having actually started — and the
-// `audioComplete: false` flag tells the caller more chunks are coming, so a
-// tap mid-stream plays what has arrived and keeps filling. Chunks after
-// delivery go to onAudioChunk, whose suppression flag is what stops two
-// racing streams from interleaving.
+// Hands the question over on its first audio chunk (audioComplete false while more is coming), so it's never shown before it can be spoken.
 function createQuestionHandoff({ onQuestionReady, onAudioChunk, onAudioError }) {
     let pending = null;
     const pendingChunks = [];
@@ -72,10 +63,7 @@ function createQuestionHandoff({ onQuestionReady, onAudioChunk, onAudioError }) 
                 deliver('audio_started', false);
             }
         },
-        // The question still gets shown; it simply cannot be spoken.
-        // Emptied in place, not rebound: once delivery has happened the
-        // caller holds this exact array, and a fragment left in it would
-        // play half a question with no end() ever coming.
+        // Empty in place, not rebound: the caller may hold this array, and a leftover fragment would play and hang.
         audioError(message) {
             pendingChunks.length = 0;
             if (typeof onAudioError === 'function') {
@@ -115,10 +103,7 @@ const categorizeOffScriptUtterancesStreaming = async (
     let tFirstAudioChunk = null;
     let tAudioEnd = null;
 
-    // Exactly one terminal audio signal reaches the player, whatever becomes of
-    // the stream. The player releases the audio lock only from its onEnded, and
-    // onEnded needs end() — so a body cut short mid-speech, or an error event,
-    // would otherwise strand it: lock held, Next button dead, no further TTS.
+    // Exactly one terminal audio signal must reach the player, or the audio lock stays held and Next goes dead.
     let audioStarted = false;
     let audioSettled = false;
     const settleAudio = () => {
@@ -197,9 +182,7 @@ const categorizeOffScriptUtterancesStreaming = async (
             requestToDoneMs: ms(t0, tDone),
             lastItemToQuestionMs: ms(tLastItem, tDone),
             requestToFirstAudioChunkMs: ms(t0, tFirstAudioChunk),
-            // What the child actually waits through: the question is now on screen at
-            // requestToFirstAudioChunkMs, so the gap to this is speech still arriving,
-            // not dead time. Before pipelining the two were the same moment.
+            // Time until the speech finishes arriving; the question is already shown at requestToFirstAudioChunkMs.
             requestToAudioEndMs: ms(t0, tAudioEnd),
             itemCount: items.length,
             generatedQuestion: !!generatedQuestion,
@@ -270,10 +253,7 @@ const streamAcknowledgement = async ({
     let tFirstAudioChunk = null;
     let tAudioEnd = null;
 
-    // Exactly one terminal audio signal reaches the player, whatever becomes of
-    // the stream. The player releases the audio lock only from its onEnded, and
-    // onEnded needs end() — so a body cut short mid-speech, or an error event,
-    // would otherwise strand it: lock held, Next button dead, no further TTS.
+    // Exactly one terminal audio signal must reach the player, or the audio lock stays held and Next goes dead.
     let audioStarted = false;
     let audioSettled = false;
     const settleAudio = () => {
@@ -379,10 +359,7 @@ const generateQuestionOnDemand = async ({
     gptDebugLog({ type: 'gpt_request', endpoint: '/api/generate-question-stream', payload });
 
     const t0 = performance.now();
-    // Exactly one terminal audio signal reaches the player, whatever becomes of
-    // the stream. The player releases the audio lock only from its onEnded, and
-    // onEnded needs end() — so a body cut short mid-speech, or an error event,
-    // would otherwise strand it: lock held, Next button dead, no further TTS.
+    // Exactly one terminal audio signal must reach the player, or the audio lock stays held and Next goes dead.
     let audioStarted = false;
     let audioSettled = false;
     const settleAudio = () => {
@@ -403,9 +380,7 @@ const generateQuestionOnDemand = async ({
 
         let generatedQuestion = null;
         let questionPrompt = null;
-        // Same hand-over as the categorize stream: delivered on the first audio chunk,
-        // so the mate never swaps in a question it cannot yet speak, but does not wait
-        // out the whole synthesis before showing one it can.
+        // Same first-chunk hand-off as the categorize stream.
         const handoff = createQuestionHandoff({ onQuestionReady, onAudioChunk, onAudioError });
 
         await readSSE(response, (parsed) => {

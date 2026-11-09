@@ -19,10 +19,7 @@ function Signup() {
   const [verifying, setVerifying] = useState(false);
   const navigate = useNavigate();
 
-  // userName is display-only — it is spoken aloud to the child on the character
-  // screen ("Hello {userName}, I am Child"), so it must never fall back to the
-  // participant ID. The roster's `child` field covers ?pid= links where the form
-  // was skipped; failing that it stays empty, as it did before IDs existed.
+  // userName is display-only (spoken to the child), so it never falls back to the participant ID.
   const proceed = (record, name) => {
     setParticipant(record);
     navigate('/ChildSelect', {

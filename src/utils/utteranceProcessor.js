@@ -26,25 +26,15 @@ export function clearSpeculativeOffScript() {
 
 export function setCurrentBookId(v) { currentBookId = v; }
 
-// The current page's image tags, so a click-question book can be given real
-// clickable regions to choose an answer from. Module state rather than a
-// parameter because sendOffScriptLog is also called from the deferred path,
-// which has no access to component state.
+// Current page's image tags for click questions; module state because the deferred sendOffScriptLog path has no component state.
 let clickTags = [];
 export function setClickTags(tags) { clickTags = Array.isArray(tags) ? tags : []; }
 
-// Opening the answer window also starts capturing. There is no "begin answering"
-// click: the mic is already live, so everything said between the question ending
-// and the submit press is the answer.
+// Opening the answer window starts capturing: everything said until Send is the answer.
 export function setAwaitingQuestionAnswer(v) {
   const opening = !!v && !awaitingQuestionAnswer;
   if (opening) {
-    // A categorize request started while the question was still an unclicked
-    // thought can outlive the click. Left running it delivers a question in the
-    // middle of the answer, which resets the bubble to a fresh thought while the
-    // answer sits unsent in the buffer. Nothing said from here belongs to that
-    // request anyway — it is the answer now. Must run BEFORE the assignment
-    // below: abortCurrentCategorization clears awaitingQuestionAnswer itself.
+    // Abort any in-flight categorization first (before the assignment below, since it clears awaitingQuestionAnswer), so it can't land mid-answer.
     abortCurrentCategorization();
   }
   awaitingQuestionAnswer = !!v;
@@ -55,10 +45,7 @@ export function setAwaitingQuestionAnswer(v) {
   }
 }
 
-// How long endManualAnswer waits after Send for a trailing transcript before the
-// acknowledgement request goes out. finishDrain() short-circuits it the moment a tail
-// final lands, so this is only paid in full when nothing more arrives — but when it is
-// paid, it is dead air the child sits through. Lowered from 2500.
+// Max wait after Send for a trailing transcript (cut short by finishDrain); lowered from 2500 since it's dead air.
 const ANSWER_DRAIN_MS = 1200;
 
 let manualAnswerBuffer = [];
@@ -200,13 +187,7 @@ function endsTerminal(text) {
   return /[.?!]\s*$/.test(String(text || '').trim());
 }
 
-// Deepgram cuts a final at every pause, so a child listing things ("my books,
-// game cards,") produces finals that stop mid-sentence. Those used to be dropped
-// outright — the words never reached categorization at all. Hold one instead and
-// prepend it to the speaker's next final.
-//
-// Never across speakers: if someone else talks next, the held fragment goes out as
-// its own line rather than being glued to a different person's words.
+// Hold a mid-sentence Deepgram final and prepend it to the same speaker's next one, never across speakers.
 let pendingFragment = null; // { text, speaker, lineIndex }
 
 function speakerOf(label) {
@@ -246,15 +227,9 @@ function resolveUtterances({ text, speaker, lineIndex }) {
   return out;
 }
 
-// ponytail: a fragment whose speaker never says anything else is dropped at the
-// next page turn or abort. Add an idle-timer flush if sessions show real content
-// stranded there — the debugLog above makes it visible either way.
+// ponytail: a held fragment whose speaker never speaks again is dropped at page turn/abort; add an idle-timer flush if content gets stranded.
 
-// Cancels an in-flight question request without disturbing the answer window.
-// abortCurrentCategorization clears awaitingQuestionAnswer, which would throw away
-// an answer already being captured — this is for the case where the reader has
-// committed to the question already on screen and the one being generated behind
-// it is no longer wanted.
+// Cancels the in-flight question request without closing the answer window (unlike abortCurrentCategorization).
 export function abortQuestionGeneration() {
   const wasRunning = !!currentAbortController || isCategorizationPending;
   if (currentAbortController) {
@@ -616,16 +591,10 @@ export async function processUserUtterance({
     return;
   }
 
-  // A pending question now only suppresses off-script categorization — it can no
-  // longer trigger an answer, and the flag is deliberately not consumed here: it
-  // stays armed until the answer window closes or the question UI is cleared.
+  // A pending question only suppresses categorization, and stays armed until the answer window closes or the UI clears.
   const ackInProgress = isAcknowledgementModeRef?.current === true;
 
-  // A pending generated question no longer blocks categorization. It used to,
-  // which meant an unclicked "I have a question!" froze generation until the page
-  // turned — and a thought the pair got to late asked about a conversation that
-  // had already moved on. Now it keeps being rewritten; startGeneratedQuestion
-  // refuses to swap one that is mid-playback, so nothing interrupts itself.
+  // A pending generated question no longer blocks categorization; it keeps being rewritten unless it's mid-playback.
   const canCategorizeLive = !awaitingQuestionAnswer && !ackInProgress && questionGenEnabledRef?.current !== false && Boolean(onCategorizationResult || onCategorizationStart);
   const categorizationContext = canCategorizeLive
     ? { state, onCategorizationResult, onCategorizationStart, imageDescriptionRef, userAttentionRef, questionHistoryRef, ttsVoiceName, onAudioError, onQuestionReady, onAudioChunk, onAudioEnd }

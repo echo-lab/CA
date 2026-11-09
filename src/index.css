@@ -1,21 +1,12 @@
-/* Tailwind. Placed in index.css because index.js imports it before App.css and
-   every page stylesheet, so app CSS still wins on equal specificity. `base` is
-   nearly empty here since preflight is off in tailwind.config.js; it is kept so
-   turning preflight back on later needs no edit. All utilities are prefixed
-   `tw-` while Bootstrap is still loaded — see the config for why. */
+/* Tailwind, imported first so app CSS wins at equal specificity; preflight is off and utilities use the tw- prefix while Bootstrap is loaded. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Owned button component, replacing Bootstrap's. Imported here so it precedes
-   every page stylesheet, and so pages keep overriding it (e.g. .next-btn's
-   padding on the avatar pages). Inert until bootstrap.css is removed. */
+/* Owned button component replacing Bootstrap's; inert until bootstrap.css is removed. */
 @import "./styles/buttons.css";
 
-/* Replaces the parts of Bootstrap's reboot the app was authored against.
-   Tailwind's preflight is off (see tailwind.config.js), so nothing else
-   supplies these. box-sizing is the load-bearing one: the 750px Signup card,
-   the 56px storybar buttons and the 18rem book cards all size against it. */
+/* Replaces the parts of Bootstrap's reboot the app relies on (preflight is off); box-sizing is the load-bearing one. */
 *,
 *::before,
 *::after {

@@ -65,10 +65,7 @@ app.use(adminRoutes);
 
 // WebSocket proxy endpoint for Deepgram using SDK - keeps API key on server
 function setupDeepgramProxy(server) {
-    // noServer + manual upgrade routing so this WS server coexists with others
-    // (e.g. /api/gemini-live-proxy) on the same HTTP server. `{ server, path }`
-    // would cause ws to abortHandshake on any non-matching path and destroy
-    // sockets meant for other proxies.
+    // noServer + manual upgrade routing so this WS server can share the HTTP server with other proxies (`{ server, path }` would kill their sockets).
     const DEEPGRAM_PATH = '/api/deepgram-proxy';
     // 3s: two frames land inside Deepgram's 10s window even if the loop stalls.
     const KEEPALIVE_INTERVAL_MS = 3000;
@@ -98,22 +95,14 @@ function setupDeepgramProxy(server) {
             interim_results: true,
             diarize_model: 'v1',
             smart_format: true,
-            // Silence before a transcript is finalised, so it is a floor under every
-            // response: nothing is even sent until it elapses. Lowered from 500 to
-            // trim that floor. Calibration value, not a constant to minimise — a
-            // child pausing mid-thought gets cut off if this goes too low. Raise it
-            // back toward 500 if utterances start arriving truncated.
+            // Silence before Deepgram finalises a transcript (a floor on every response); calibration knob: raise toward 500 if utterances arrive truncated.
             endpointing: 30,
             utterance_end_ms: 1200,
             vad_events: true,
             keyterms: ['zoe:5', 'clara:5', 'add', 'bags', 'beamed', 'beep:5', 'beeps:5', 'big', 'boom', 'boop:5', 'boops:5', 'box', 'clash', 'cried', 'ding', 'dong', 'end', 'fluttered', 'fun', 'gasped', 'go', 'got', 'hats', 'hey', 'how', 'hug', 'peeked', 'said', 'sang', 'squawk', 'streamers', 'upset', 'zap:5', 'zip:5', 'zop:5', 'zoodely:5', 'zoop:5'],
         });
 
-        // Deepgram closes any socket that goes 10s without audio or a text frame
-        // (NET-0001). The client deliberately sends nothing while the mic is
-        // suppressed during TTS playback, so a long narration would otherwise kill
-        // transcription for the rest of the session. KeepAlive frames hold the
-        // socket open and are not billed as audio.
+        // Deepgram drops sockets after 10s without audio; KeepAlive frames (not billed) hold it open while the mic is muted during TTS.
         let keepAliveTimer = null;
         const stopKeepAlive = () => {
             if (keepAliveTimer) {

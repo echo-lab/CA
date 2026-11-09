@@ -55,11 +55,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
     try {
         const questionAbortController = new AbortController();
         tlog(`handler start, both OpenAI calls about to launch promptVersion=${PROMPT_VERSION} cacheKey=${OPENAI_PROMPT_CACHE_KEY}`);
-        // The illustration goes to the classifier as well as to the question call.
-        // Without it, a remark about something the child is looking at ("that one's
-        // funny") was judged on page text alone and often came back off-topic —
-        // which aborts the question call that could already see the picture.
-        // Same cached data URL both calls use, so this costs no extra disk read.
+        // The classifier also gets the illustration, or picture-related remarks get judged off-topic; reuses the cached data URL.
         const categorizationImageMessage = buildPageImageMessage(book, currentPageNumber);
         const categorizationMessages = [
             { role: "developer", content: JENNIE_SHARED_PROMPT_PREFIX },
@@ -99,9 +95,7 @@ router.post('/api/categorize-utterances-stream', async (req, res) => {
             clickMode,
         });
 
-        // Dump the question call's messages to the debug monitor verbatim. Only the
-        // server assembles these, so the client would otherwise be guessing at what
-        // the model actually saw.
+        // Send the question call's exact messages to the debug monitor, since only the server knows what the model saw.
         res.write(`data: ${JSON.stringify({
             type: 'question_prompt',
             messages: sanitizeMessagesForDebug(questionMessages),

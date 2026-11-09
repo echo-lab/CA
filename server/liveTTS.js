@@ -8,11 +8,7 @@ const handlers = require(useVertex ? './liveTTS_vertex' : './liveTTS_gemini');
 const fallback = require(useVertex ? './liveTTS_gemini' : './liveTTS_vertex');
 console.log(`[liveTTS] Using ${useVertex ? 'Vertex AI' : 'Gemini API key'} backend`);
 
-// The TTS quota is per-minute per-project per-model, so a burst of turns can 429
-// an otherwise healthy backend. The two backends have separate quotas, so failing
-// over keeps the turn audible instead of leaving the child with silence.
-// Only before the first chunk — mid-stream the child has already heard audio, and
-// restarting would replay it.
+// Fail over to the other TTS backend (separate quota) on failure, but only before the first chunk, so heard audio is never replayed.
 async function* generateGeminiTtsChunks(opts) {
   let started = false;
   try {

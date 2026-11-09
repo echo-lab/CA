@@ -181,9 +181,7 @@ router.get('/api/study-log/download/:stream', requireAdmin, (req, res) => {
     res.send(headers.join(',') + '\n' + concatBodies(files));
 });
 
-// Session metadata, concatenated across every participant folder. There is no
-// longer a single global sessions.csv on disk — this endpoint is what rebuilds
-// the cross-participant view on demand.
+// Session metadata concatenated across participant folders; there's no single global sessions.csv any more.
 router.get('/api/study-log/download-sessions', requireAdmin, (req, res) => {
     const participant = req.query.participant;
     let files = collectSessionFiles();

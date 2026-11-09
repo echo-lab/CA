@@ -55,10 +55,7 @@ function updateSessionMetadata() {
     bookId = normalizeBookId(routeState.id);
   }
 
-  // The verified participant ID in sessionStorage is authoritative. Router
-  // state only survives in memory, so a refresh or a direct hit on /Story would
-  // otherwise log a blank user_id; the route-state values are kept purely as a
-  // fallback for sessions started before an ID was stored.
+  // The verified sessionStorage participant ID wins; router state is only a fallback for older sessions.
   const storedUserId = getParticipantId();
   const routeUserId = storedUserId || routeState.participantId || routeState.userName || routeState.name;
   if (routeUserId !== undefined && routeUserId !== null && routeUserId !== "") {
@@ -201,9 +198,7 @@ function saveCSVToFile() {
       keepalive: true,
     })
       .then(async (res) => {
-        // A 4xx is a *resolved* promise, so without this check a rejected
-        // batch (e.g. a user_id that is not on the participant roster) would
-        // discard the whole session with no signal at all.
+        // A 4xx still resolves, so check res.ok or a rejected batch silently loses the session.
         if (!res.ok) {
           const body = await res.text().catch(() => "");
           console.error(`[log] save rejected ${res.status}:`, body);
@@ -216,17 +211,7 @@ function saveCSVToFile() {
   hasPendingCSVFlush = false;
 }
 
-// LEGACY (as of the study-log cutover): everything from here down to
-// attachDOMObserver infers page turns by diffing the page image's src, and
-// dead-reckons currentPageNumber from those diffs. src/utils/studyLog.js now
-// emits page_turn from real navigation state in useStoryNavigation, with
-// accurate direction/trigger and a manual-intervention count that includes the
-// Play button and Enter key.
-//
-// This path is kept running only so one pilot session can be diffed against the
-// new stream. Its counter is separate module state, so the two do not interfere.
-// Delete this block (and the pendingTurnSource click listener) once the diff
-// confirms the new stream, per the migration plan.
+// LEGACY: infers page turns from page-image src changes; kept only to diff a pilot session against studyLog.js. Delete once confirmed.
 function isStoryRoute() {
   const win = getWindow();
   if (!win?.location?.pathname) return false;

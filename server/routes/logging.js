@@ -12,9 +12,7 @@ const router = express.Router();
 // Resolve paths relative to the server/ root (this file lives in server/routes/).
 const SERVER_ROOT = path.join(__dirname, '..');
 
-// Participant lookup — the client calls this before letting anyone into the
-// study flow. IDs are provisioned by hand in server/participants.json; there is
-// deliberately no endpoint that creates one.
+// Participant lookup used before entering the study; IDs are added by hand in participants.json, never via an endpoint.
 router.get('/api/participants/:id', (req, res) => {
     const record = participants.lookup(req.params.id);
     if (!record) {
@@ -34,9 +32,7 @@ router.post('/api/log-session', (req, res) => {
         if (rows.length === 0) {
             return res.status(400).json({ message: 'rows must be non-empty' });
         }
-        // Reject unknown participants outright. A dropped ID would otherwise
-        // surface as a hole in the data long after the session is over, so it
-        // is better for the client to fail loudly while the study is running.
+        // Reject unknown participants loudly now, rather than leaving a silent hole in the data.
         if (participants.isEnforced()) {
             const unknown = [...new Set(rows.map((r) => r && r.user_id))]
                 .filter((id) => !participants.lookup(id));
@@ -115,9 +111,7 @@ router.get('/api/log-events/download', (req, res) => {
     if (!fs.existsSync(logsDir)) {
         return res.status(404).json({ message: 'No event logs found' });
     }
-    // Legacy single-schema logs only. The study-log streams also live in this
-    // directory as session_<id>_events.csv etc. with different headers, and
-    // concatenating those in here would silently produce a ragged CSV.
+    // Legacy single-schema logs only; the study-log stream CSVs have different headers and would make a ragged file.
     const files = fs.readdirSync(logsDir)
         .filter((f) => (
             f.startsWith('session_') &&

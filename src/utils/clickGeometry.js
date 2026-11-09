@@ -1,17 +1,6 @@
-// Deciding whether a click answers a click question. The question's answer is a
-// tagged region, so correctness is pure geometry — nothing the model wrote is
-// consulted here.
-//
-// Boxes are normalized 0-1000 as [y_min, x_min, y_max, x_max]; clicks arrive as a
-// percentage of the rendered image, so a click is multiplied by 10 to compare.
+// Click-answer geometry: boxes are 0-1000 [y_min, x_min, y_max, x_max]; clicks arrive as percentages (x10 to compare).
 
-// How far outside a box a click may land and still count. Normalized units, so 50
-// is 5% of the image dimension — roughly a fingertip on a tablet.
-//
-// ponytail: one fixed number, deliberately not scaled to box size. A fixed margin
-// already helps small targets proportionally more, which is the case that needs
-// help. This is the calibration knob: raise it if children keep missing by a hair,
-// lower it if near misses are being credited too generously.
+// ponytail: fixed tolerance (50 = 5% of the image) for near-miss clicks; calibration knob, raise if children miss by a hair, lower if too generous.
 export const CLICK_TOLERANCE = 50;
 
 export function isClickInsideBox(box, xPct, yPct) {
@@ -36,12 +25,7 @@ export function distanceToBox(box, xPct, yPct) {
   return Math.hypot(dx, dy);
 }
 
-// The region a click may land in and still count, for drawing. Clamped to the
-// image, since a click can never land outside it anyway.
-//
-// Note this is the box's *bounding* rectangle: because distanceToBox is
-// straight-line, the true acceptance region has rounded corners of radius
-// `tolerance`. Callers that draw it should round the corners to match.
+// Bounding rectangle of the accepted click region, clamped to the image (the true region has rounded corners of radius `tolerance`).
 export function expandBox(box, tolerance = CLICK_TOLERANCE) {
   if (!Array.isArray(box) || box.length < 4) return null;
   const [y0, x0, y1, x1] = box.map(Number);
@@ -68,12 +52,7 @@ function sameBox(a, b) {
   return [0, 1, 2, 3].every((i) => Number(a[i]) === Number(b[i]));
 }
 
-// Decides whether a click answers the question.
-//
-// Tolerance is forgiving about aim, not about intent: if the click landed squarely
-// inside some OTHER tagged object, the child pointed at that thing on purpose and
-// slack must not turn it into a correct answer. Only genuine near misses — clicks
-// that hit nothing in particular — get the benefit of the margin.
+// A click inside some other tagged object is a deliberate wrong answer; only clicks that hit nothing get the tolerance.
 export function assessClick({ box, tags = [], xPct, yPct, tolerance = CLICK_TOLERANCE }) {
   const distance = distanceToBox(box, xPct, yPct);
   if (!Number.isFinite(distance)) {

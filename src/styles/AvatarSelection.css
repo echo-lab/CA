@@ -4,9 +4,7 @@
   align-items: center;
 }
 
-/* draggable={false} in the JSX stops the drag from starting; these two stop the
-   browser showing a drag ghost or a text selection on a long press, which is the
-   usual way a tap goes wrong on a tablet. */
+/* Stop the drag ghost and text selection on long press, the usual way a tablet tap goes wrong. */
 .avatar-img-thumbnail {
   -webkit-user-drag: none;
   user-select: none;

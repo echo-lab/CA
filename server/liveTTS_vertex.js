@@ -196,9 +196,7 @@ async function liveSayHandler(req, res) {
   }
 }
 
-// Streaming TTS over Vertex (matches liveTTS_gemini.js's generateGeminiTtsChunks):
-// yields raw PCM base64 chunks as the model emits them, for cat-stream's
-// progressive-reveal audio push.
+// Streaming TTS over Vertex; same contract as liveTTS_gemini's generateGeminiTtsChunks (yields raw PCM base64 chunks).
 async function* generateGeminiTtsChunks({ text, voiceName, emotion, role, speechRate, model }) {
   const PROJECT_ID = process.env.VERTEX_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
   const LOCATION = process.env.VERTEX_LOCATION || process.env.GOOGLE_CLOUD_LOCATION || "us-central1";

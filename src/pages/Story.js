@@ -38,23 +38,13 @@ class Book {
   }
 };
 
-// A chunky cartoon glove pointing at the target. The OS `pointer` hand is easy to
-// miss on a busy illustration, and a crosshair reads as "aim", not "tap". Inlined as
-// a data URI so there is no asset to load, with `pointer` as the fallback for any
-// browser that rejects the image. Hotspot sits on the fingertip.
+// Cartoon pointing-glove cursor as an inline data URI (hotspot on the fingertip), with `pointer` as the fallback.
 const POINT_HAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32">
 <path d="M10.5 2C9.1 2 8 3.1 8 4.5V17.2L6.4 15.4C5.4 14.3 3.7 14.3 2.7 15.4C1.8 16.4 1.8 17.9 2.7 18.9L9.5 27C10.6 28.3 12.2 29 13.9 29H21C24.3 29 27 26.3 27 23V15C27 13.6 25.9 12.5 24.5 12.5C23.9 12.5 23.4 12.7 23 13C22.8 11.8 21.8 11 20.5 11C19.7 11 19 11.4 18.5 11.9C18.2 10.8 17.2 10 16 10C15.4 10 14.9 10.2 14.5 10.5V4.5C14.5 3.1 13.4 2 12 2Z" fill="#ffffff" stroke="#000000" stroke-width="2.6" stroke-linejoin="round"/>
 </svg>`;
 const POINT_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(POINT_HAND_SVG)}") 8 2, pointer`;
 
-// Every question-side voice and avatar is one fixed mate, whichever mates the
-// family cast for the story characters. JENNIE is always the same character when
-// she asks something, so the child hears one consistent asker across page
-// questions, generated questions, and acknowledgements.
-//
-// Defined at module scope, not inside the component: narratorRole sits in a
-// useEffect dependency array, and rebuilding the object every render would
-// re-fire that effect on every render.
+// One fixed mate voices and shows every question; module scope keeps it stable for the useEffect dependency.
 const QUESTION_MATE_DEF = MATE_DEFINITIONS.find((r) => r.questionMate);
 const QUESTION_MATE_NAME = QUESTION_MATE_DEF?.Role;
 const QUESTION_MATE = QUESTION_MATE_DEF && {
@@ -70,9 +60,7 @@ function Reader() {
   const navigate = useNavigate();
   const [, setIsAudioPlaying] = useState(false);
   const [childHasPlayed, setChildHasPlayed] = useState(false);
-  // Must default to an array: several call sites do selectedOptions.find(...),
-  // which throws on the old `{}` default when /story is opened without router
-  // state (a new tab, a shared link, a lost history entry).
+  // Default to an array: call sites use .find(), which fails when /story opens without router state.
   const selectedOptions = Array.isArray(location.state?.selectedOptions)
     ? location.state.selectedOptions
     : [];
@@ -97,9 +85,7 @@ function Reader() {
   const PRELOAD_CONCURRENCY = 1;
   // Quiet time after the last transcript before the send button starts blinking.
   const SILENCE_BLINK_MS = 5000;
-  // How long after the last transcript fragment the mic is still treated as
-  // hearing speech. Interims arrive every few hundred ms while someone talks, so
-  // this only lapses in a real gap.
+  // How long after the last transcript fragment the mic still counts as hearing speech.
   const SPEAKING_IDLE_MS = 900;
   const DEEPGRAM_ENABLED = true;
   const GEMINI_Enabled = true;
@@ -228,10 +214,7 @@ function Reader() {
   const [inAcknowledgementLoop, setInAcknowledgementLoop] = useState(false);
   const [avatarPhase, setAvatarPhase] = useState('question');
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
-  // Blinks the send button once the room has been quiet long enough that the
-  // answer looks finished. Deepgram only emits finals, which land 0.3-2.4s after
-  // the speaker stops, so this counts quiet from the last transcript, not from
-  // the last sound.
+  // Blink the send button after enough quiet since the last transcript (Deepgram finals lag 0.3-2.4s behind speech).
   const [sendBlink, setSendBlink] = useState(false);
   // Whether the mic is hearing speech right now — drives the pulse animation.
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
@@ -241,11 +224,7 @@ function Reader() {
 
   const inAcknowledgementLoopRef = useRef(false);
   useEffect(() => { inAcknowledgementLoopRef.current = inAcknowledgementLoop; }, [inAcknowledgementLoop]);
-  // Reset on both edges. Opening offers the button for a new question; closing
-  // matters just as much, because ending the loop also empties questionHistory —
-  // leaving this set would put the thinking dots back up after the
-  // acknowledgement had already finished playing. The closing click does not
-  // change this value, so the flag it sets survives until the loop moves.
+  // Reset on both opening and closing the loop, or the thinking dots return after the acknowledgement finished.
   useEffect(() => { setAnswerSubmitted(false); }, [inAcknowledgementLoop]);
 
   const questionGenEnabledRef = useRef(QUESTION_GEN_ENABLED);
@@ -397,9 +376,7 @@ function Reader() {
   // click counts only while that question is actually pending an answer.
   const clickAnswersQuestion = !!clickTarget && inAcknowledgementLoop && !answerSubmitted;
 
-  // Correctness is decided purely by the tag's own box: the click is converted to
-  // a percentage of the rendered image and tested against the stored coordinates.
-  // Nothing the model wrote is consulted here.
+  // Correct only if the click (as % of the rendered image) hits the tag's stored box; the model's text isn't consulted.
   const handleImageAnswerClick = (e) => {
     if (!clickAnswersQuestion) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -439,10 +416,7 @@ function Reader() {
   const manualQuestionAbortRef = useRef(null);
   const [generatingQuestion, setGeneratingQuestion] = useState(false);
 
-  // Committing to the question already on screen makes whatever is being generated
-  // behind it obsolete: the reader has chosen, and the next thing that matters is
-  // their answer. Cancelling here also stops a late arrival replacing the question
-  // mid-answer, and saves the TTS for one nobody will hear.
+  // Committing to the on-screen question cancels generation behind it, so nothing replaces it mid-answer.
   const stopQuestionGeneration = (why) => {
     let stopped = abortQuestionGeneration();
     if (manualQuestionAbortRef.current) {
@@ -459,10 +433,7 @@ function Reader() {
 
   // The reader tapped the question that is already showing.
   const handleSpeakGenerated = () => {
-    // Only cancel work that would REPLACE this question. Delivery happens on the
-    // first audio chunk, so while its own audio is still streaming the in-flight
-    // request is the one feeding the speech about to play — aborting it there cuts
-    // the question off mid-sentence, which is what an early tap used to do.
+    // Only cancel work that would replace this question; aborting its own still-streaming audio would cut it off.
     if (generatedQuestionAudioEndedRef.current) stopQuestionGeneration('question_committed');
     speakGenerated();
   };
@@ -639,9 +610,7 @@ function Reader() {
     const pagesToWarm = [current];
     if (next?.text?.length) pagesToWarm.push(next);
 
-    // Page questions are spoken by the mate avatar, not by whoever reads the
-    // Narrator character, so they warm with that voice — otherwise a human-read
-    // Narrator warmed nothing and every page question paid full synthesis.
+    // Warm page questions with the mate's voice, since that's who speaks them.
     const questionVoice = narratorRole?.VA
       ? { voiceName: narratorRole.VA, role: narratorRole.role }
       : null;
@@ -702,19 +671,13 @@ function Reader() {
 
   useEffect(() => { stateRef.current = state; });
 
-  // Leaving mid-narration. The <audio> in ttsClient is a module singleton outside
-  // the React tree, and the audio lock lives on a provider above <Router>, so
-  // unmounting stops neither: without this the lock stays held at
-  // 'story-narration' forever and the Next button is dead on return.
+  // Stop narration on unmount; the shared <audio> and lock outlive the component, or Next stays dead on return.
   useEffect(() => () => {
     stopSpeaking();
     // Covers the streaming-PCM player, the acknowledgement audio, and the
     // module-level awaiting-answer flag — all already handled by this one call.
     clearQuestionUIRef.current();
-    // pagesValues is a live reference into ../Book/BookN (Book assigns
-    // this.pages = data.Book.Pages, and Object.values is shallow), so a Reading
-    // flag left set outlives the unmount and makes the next visit look like a
-    // read already in progress.
+    // Clear the Reading flag on unmount; pagesValues is shared with the Book module and outlives this component.
     const page = stateRef.current?.pagesValues?.[stateRef.current.page];
     for (let i = 0; i < (page?.text?.length || 0); i++) page.text[i].Reading = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -801,9 +764,7 @@ function Reader() {
           return;
         }
 
-        // Covers the narrow race the abort in setAwaitingQuestionAnswer cannot:
-        // a response already parsed when the window opened. Showing it here would
-        // replace the question being answered and strand the captured answer.
+        // Drop a response already parsed when the answer window opened, so it can't replace the question being answered.
         if (isManualAnswerActive() || acknowledgementModeRef.current) {
           suppressGeneratedAudioStreamRef.current = true;
           studyLog.pushQuestion({
@@ -834,9 +795,7 @@ function Reader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userUtterance]);
 
-  // Interims land every few hundred ms while someone is talking, so this stays
-  // true through a sentence and lapses in the gaps. Finals are too coarse: they
-  // only arrive after the speaker has already stopped.
+  // True while interim transcripts keep arriving (every few hundred ms), lapsing in gaps; finals arrive too late for this.
   useEffect(() => {
     if (!inAcknowledgementLoop || answerSubmitted || !deepgramTranscript) {
       setIsUserSpeaking(false);

@@ -16,9 +16,7 @@ const PULSE_INTERVAL_MS = 100;
 // rather than a flat or fully-open one.
 const REST_FRAME = PULSE_FRAMES.indexOf(pulse5);
 
-// Pure indicator: it shows that the mic is live, and no longer submits — the
-// paper-plane SendButton beside it does that. It animates only while someone is
-// actually talking, and holds a still frame through the quiet.
+// Indicator only (SendButton submits): shows the mic is live and animates only while someone is talking.
 export default function AnswerButton({ isUserSpeaking }) {
   const [frame, setFrame] = useState(REST_FRAME);
 

@@ -1,8 +1,4 @@
-/**
- * Mid-sentence Deepgram finals must be carried forward, not dropped — but never
- * merged across speakers. Replays the 2026-08-17 20:56 session in which six of
- * ten utterances never reached categorization.
- */
+/** Mid-sentence finals are carried forward but never merged across speakers (replays the 2026-08-17 session). */
 jest.mock('../InnerThoughtProcessStream', () => ({
   categorizeOffScriptUtterancesStreaming: jest.fn(async () => ({ items: [], generatedQuestion: null })),
 }));

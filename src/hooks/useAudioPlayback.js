@@ -56,10 +56,7 @@ export function useAudioPlayback({
   const suppressGeneratedAudioStreamRef = useRef(false);
   const generatedQuestionAudioRef = useRef(null);
   const generatedQuestionAudioUrlRef = useRef(null);
-  // The one in-flight speak() call: its lock source, and the detach for its
-  // ended/error pair. Lets an interrupt hand-execute what the listener that will
-  // never fire owed the lock — the same shape as resetGeneratedQuestionState
-  // pairing teardownStreamingPlayer with an explicit endAudio.
+  // The in-flight speak() call (lock source + listener detach), so an interrupt can release what the never-firing listener owed.
   const activeSpeechRef = useRef(null);
 
   const [isGeneratedQuestionPlaying, setIsGeneratedQuestionPlaying] = useState(false);
@@ -129,10 +126,7 @@ export function useAudioPlayback({
     });
   }, []);
 
-  // audioChunks is the question's COMPLETE audio, handed over in one piece. The
-  // stream holds everything back until its TTS has finished, so a question is only
-  // ever shown once it can be spoken — which is what stops a click landing on a
-  // half-streamed question and overlapping the previous one.
+  // Shows a new generated question; audioChunks is the audio received so far, complete only when audioComplete is true.
   const startGeneratedQuestion = useCallback((questionText, { questionId, audioChunks = [], audioComplete = true } = {}) => {
     const text = String(questionText || '').trim();
     if (!text || isGeneratedQuestionPlayingRef.current) return;
@@ -140,9 +134,7 @@ export function useAudioPlayback({
     const qid = questionId || `gen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     currentQuestionIdRef.current = qid;
 
-    // Any player from the previous question is discarded, finished or not. A
-    // half-played one left here would keep its scheduled chunks sounding
-    // underneath the new question — the overlap this replaces.
+    // Stop any previous question's player so its scheduled chunks don't keep sounding under the new question.
     const existing = streamingPlayerRef.current;
     if (existing) {
       try { existing.stop(); } catch {}
@@ -153,21 +145,13 @@ export function useAudioPlayback({
     generatedQuestionPendingRef.current = true;
     acknowledgementFromPageQuestionRef.current = false;
     cumulativeAudioMsRef.current = 0;
-    // The question arrives once its audio has started, not once it has finished, so
-    // the chunk list may still be filling — handleAudioChunk appends the rest and
-    // handleAudioEnd closes it. A click mid-stream is safe: speakGenerated plays what
-    // has arrived and only calls end() once audioComplete.
-    //
-    // While streaming, an empty list is simply "not yet"; it only means TTS failed
-    // when the audio is already complete and nothing came.
+    // The chunk list may still be filling (handleAudioChunk / handleAudioEnd); an empty list means TTS failed only once audio is complete.
     generatedQuestionAudioChunksRef.current = [...audioChunks];
     generatedQuestionAudioEndedRef.current = audioComplete;
     generatedQuestionAudioErrorRef.current = (audioComplete && !audioChunks.length) ? 'no audio' : null;
     generatedQuestionPlayRequestedRef.current = false;
     suppressGeneratedAudioStreamRef.current = false;
-    // Every generated question on this page, oldest first, so the next request can be
-    // told not to repeat one. Guarded against the replace case below re-adding the
-    // same text. Cleared on page change in Story.
+    // Questions generated on this page, oldest first, so the next request avoids repeats; cleared on page change in Story.
     if (questionHistoryRef.current[questionHistoryRef.current.length - 1] !== text) {
       questionHistoryRef.current.push(text);
     }
@@ -179,9 +163,7 @@ export function useAudioPlayback({
       const last = prev[prev.length - 1];
       if (last && last.type === "generated") {
         if (last.text === text) return prev;
-        // Mint a fresh id rather than spreading the previous entry's: two
-        // generated questions on one page would otherwise share a question_id
-        // and be indistinguishable in the log.
+        // Mint a fresh id so two generated questions on one page stay distinguishable in the log.
         studyLog.pushQuestion({
           question_id: qid,
           question_type: "generated",
@@ -189,10 +171,7 @@ export function useAudioPlayback({
           question_text: text,
           reason: last.id,
         });
-        // slot is carried over untouched. It is the bubble's render identity, and
-        // keeping it stable is what stops React remounting the node and replaying
-        // the slide-in every time an unclicked question is rewritten. The id still
-        // churns, because the study log needs to tell the two questions apart.
+        // Keep slot (render identity) so React doesn't replay the slide-in; the id still changes for the study log.
         return [...prev.slice(0, -1), { ...last, id: qid, text }];
       }
       return [
@@ -259,10 +238,7 @@ export function useAudioPlayback({
       return;
     }
     generatedQuestionAudioErrorRef.current = message || 'Generated question audio failed';
-    // The question is already on screen by now (delivery happens on the first chunk),
-    // so whatever arrived before the failure has to go: a tap would otherwise play a
-    // fragment and hang, since no audio_end is coming to end() the player. Marking it
-    // ended sends speakGenerated down its tts_unavailable path instead.
+    // Drop partial audio after a mid-stream failure and mark it ended, so a tap takes the tts_unavailable path instead of hanging.
     generatedQuestionAudioChunksRef.current = [];
     generatedQuestionAudioEndedRef.current = true;
     if (fullQuestionTextRef.current) setRevealedQuestion(fullQuestionTextRef.current);
@@ -341,10 +317,7 @@ export function useAudioPlayback({
   };
 
   const playSound = () => {
-    // Same voice as generated questions and acknowledgements: JENNIE speaks as the
-    // mate avatar shown beside the question. This used to follow whoever read the
-    // Narrator character instead, so a human-read Narrator gave page questions a
-    // different voice from every other thing JENNIE said.
+    // Page questions use the mate's voice, like generated questions and acknowledgements, not the Narrator reader's.
     const voiceName = narratorRole?.VA || "kore";
     const role = narratorRole?.role || null;
     const question = state.pagesValues[state.page].question;
@@ -362,9 +335,7 @@ export function useAudioPlayback({
     };
 
     logPagePlay('play_requested');
-    // speak() resolves false when the audio lock is held, and in that path
-    // neither onBegin nor onError fires — so without consuming the result a
-    // blocked page-question click is invisible in every direction.
+    // speak() resolves false when the lock is held (no onBegin/onError), so check the result or the blocked click is invisible.
     Promise.resolve(
       speak(question, voiceName, "neutral", role, AUDIO_SOURCES.PAGE_QUESTION, {
         onBegin: () => {
@@ -441,10 +412,7 @@ export function useAudioPlayback({
         options.onError?.();
         audioEnded();
       };
-      // Closes over the exact bindings passed to addEventListener — identity is
-      // the only thing removeEventListener matches on. `once` removes whichever
-      // handler fired; this removes its twin, and is what an interrupt calls
-      // when neither will ever fire.
+      // Removes the exact listener pair that was added (identity is what matters); called on interrupt when neither will fire.
       const detach = () => {
         audioEl.removeEventListener("ended", handleEnded);
         audioEl.removeEventListener("error", handleError);
@@ -593,10 +561,7 @@ export function useAudioPlayback({
     }
   }, [teardownStreamingPlayer, endAudio]);
 
-  // Cuts off the shared <audio> mid-utterance. pause() fires neither ended nor
-  // error, and those are the only path to endAudio — and the lock lives on a
-  // provider mounted above <Router>, so it outlives this component. Leaving it
-  // held pins isAnyAudioPlaying true forever and deadlocks the Next button.
+  // pause() fires neither ended nor error, so release the lock here or it stays held forever and the Next button deadlocks.
   const stopSpeaking = useCallback(() => {
     const claim = activeSpeechRef.current;
     activeSpeechRef.current = null;

@@ -7,10 +7,7 @@ jest.mock('../../utils/ttsClient');
 jest.mock('../../utils/utteranceProcessor', () => ({ setAwaitingQuestionAnswer: jest.fn() }));
 jest.mock('../../utils/studyLog', () => ({ pushQuestion: jest.fn() }));
 
-// Interrupting an utterance is the case the shared <audio> cannot signal for
-// itself: pause() fires neither `ended` nor `error`, so both the lock release
-// and the listener removal have to be done by hand. These two assertions are
-// what a regression there would break.
+// pause() fires neither `ended` nor `error`, so an interrupt must release the lock and remove listeners by hand.
 function setup() {
   const audioEl = { addEventListener: jest.fn(), removeEventListener: jest.fn(), ended: false };
   say.mockResolvedValue({ audio: audioEl, url: 'blob:x' });
@@ -76,9 +73,7 @@ test('stopSpeaking removes the exact listeners it registered', async () => {
 
   act(() => { result.current.stopSpeaking(); });
 
-  // removeEventListener only matches on function identity. Registering a fresh
-  // closure per speak() and removing a different one leaks a pair per
-  // interrupt, and every stale pair fires on some later `ended`.
+  // removeEventListener matches by identity, so speak() must remove the exact closures it added or they leak.
   const added = Object.fromEntries(audioEl.addEventListener.mock.calls.map(([t, fn]) => [t, fn]));
   const removed = Object.fromEntries(audioEl.removeEventListener.mock.calls.map(([t, fn]) => [t, fn]));
 

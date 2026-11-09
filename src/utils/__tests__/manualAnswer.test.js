@@ -145,9 +145,7 @@ test('cancelling during the drain resolves empty', async () => {
   await expect(pending).resolves.toBe('');
 });
 
-// Tapping the question already on screen cancels whatever is being generated
-// behind it. That must not disturb the answer the reader is in the middle of
-// giving — abortCurrentCategorization would, which is why this is separate.
+// Committing to the on-screen question must cancel generation without disturbing the answer in progress.
 describe('abortQuestionGeneration', () => {
   test('leaves an answer already being captured intact', async () => {
     setAwaitingQuestionAnswer(true);

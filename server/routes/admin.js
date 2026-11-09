@@ -1,8 +1,4 @@
-// Admin API: roster management and log-file browsing.
-//
-// Every route here is behind requireAdmin. Removing a participant drops their
-// roster row but never touches their collected data — deleting human-subjects
-// records on a button press is not something this endpoint will do.
+// Admin API (roster + log browsing), all behind requireAdmin; removing a participant never deletes their data.
 const express = require('express');
 const fs = require('fs');
 const path = require('path');

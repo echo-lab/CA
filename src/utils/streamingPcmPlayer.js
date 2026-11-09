@@ -1,21 +1,7 @@
-// Streaming PCM player for Gemini TTS audio chunks.
-//
-// Gemini emits 16-bit signed little-endian mono PCM at 24kHz. Each base64 chunk
-// is decoded into an AudioBuffer and scheduled contiguously on an AudioContext,
-// so the first chunk starts playing as soon as it arrives without waiting for
-// the rest of the stream.
-//
-// AEC note: Chrome's acoustic echo canceller only "sees" audio rendered through
-// HTMLMediaElements (<audio>/<video>) or native media playback — NOT audio sent
-// straight to an AudioContext's destination. To let AEC cancel this TTS from the
-// mic input, we route the player's output through a local WebRTC loopback into
-// an <audio> element instead of ctx.destination. If the loopback can't be set up
-// we fall back to direct ctx.destination output (audible, but not AEC-cancelled).
+// Plays streamed 24kHz mono PCM chunks as they arrive, routed through a WebRTC loopback into <audio> so Chrome's echo canceller hears it (direct output fallback).
 
 const SAMPLE_RATE = 24000;
-// How long to keep the loopback alive after the last chunk finishes on the
-// AudioContext timeline, so the (slightly delayed) <audio> playback tail isn't
-// clipped by teardown.
+// Keep the loopback alive this long after the last chunk so the delayed <audio> tail isn't clipped.
 const LOOPBACK_TAIL_MS = 500;
 
 function decodePcmBase64ToAudioBuffer(ctx, b64) {
@@ -56,9 +42,7 @@ export function createStreamingPcmPlayer({ onEnded, onError } = {}) {
     try { outputBus.connect(ctx.destination); } catch {}
   }
 
-  // Idempotent (closes whatever refs currently exist, then nulls them). Not
-  // early-returned on loopbackTornDown, so a teardown that races ahead of the
-  // async setup still closes PCs assigned afterwards.
+  // Idempotent, and not skipped on loopbackTornDown, so it also closes connections set up after a racing teardown.
   function teardownLoopback() {
     loopbackTornDown = true;
     if (loopbackAudioEl) {
@@ -69,10 +53,7 @@ export function createStreamingPcmPlayer({ onEnded, onError } = {}) {
     if (loopbackRemotePc) { try { loopbackRemotePc.close(); } catch {} loopbackRemotePc = null; }
   }
 
-  // ctx.close() returns a promise that REJECTS if the context is already closed
-  // (sync try/catch won't catch it). Guard on state and swallow the rejection so
-  // a second close (stop() + delayed end-cleanup) can't throw "Uncaught (in
-  // promise) InvalidStateError".
+  // ctx.close() rejects on an already-closed context, so check state and swallow the rejection.
   function closeCtx() {
     if (ctx.state === 'closed') return;
     try { ctx.close().catch(() => {}); } catch {}

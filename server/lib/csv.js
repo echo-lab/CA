@@ -1,13 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Shared CSV helpers for the study-log writers.
-//
-// Every write here is synchronous on purpose. Express handlers run one at a
-// time on a single thread, so an fs.*Sync call completes before the next
-// request is dequeued and two concurrent flushes can never interleave inside a
-// file. Converting these to fs.promises would introduce exactly the race this
-// avoids — don't.
+// Shared CSV helpers; writes are deliberately synchronous so concurrent flushes can never interleave (don't convert to fs.promises).
 
 function escape(value) {
     const s = value === null || value === undefined ? '' : String(value);
@@ -44,13 +38,7 @@ function parseCsv(text) {
     return records.filter((r) => r.length > 1 || (r[0] ?? '').trim() !== '');
 }
 
-// Rewrites a file whose on-disk header no longer matches `headers`, remapping
-// every existing row by column NAME. Without this, changing a header list would
-// keep the old header line while writing new rows in the new column order, so
-// values would silently land under the wrong columns.
-//
-// Columns that were removed are dropped; columns that were added come out blank
-// for historical rows. Returns true when a migration happened.
+// Rewrites a file whose header no longer matches, remapping rows by column name (removed columns dropped, new ones blank); returns true if migrated.
 function migrateHeaderIfNeeded(filePath, headers) {
     if (!fs.existsSync(filePath)) return false;
     const text = fs.readFileSync(filePath, 'utf8');
@@ -88,9 +76,7 @@ function appendRows(filePath, headers, rows) {
     return rows.length;
 }
 
-// Read-modify-write a single row identified by keyColumn. Used for the session
-// metadata file, where a row is written at session start and completed at
-// session end — an append would leave two half-rows per session instead of one.
+// Read-modify-write one row by keyColumn, so a session's start and end update one row instead of appending two.
 function upsertRow(filePath, headers, row, keyColumn) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
@@ -102,9 +88,7 @@ function upsertRow(filePath, headers, row, keyColumn) {
         return 'created';
     }
 
-    // Bring the file onto the current column list first. Previously this kept
-    // the file's own (possibly stale) header while writing new rows in the new
-    // column order, which silently shifted values into the wrong columns.
+    // Migrate the file to the current columns first, so new rows never land under stale headers.
     migrateHeaderIfNeeded(filePath, headers);
 
     const existing = fs.readFileSync(filePath, 'utf8').split('\n');

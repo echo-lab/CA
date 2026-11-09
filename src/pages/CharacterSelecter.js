@@ -45,9 +45,7 @@ function getDifficultyLabel(bookId, characterName) {
   return DIFFICULTY_MAP[bookId]?.[characterName] ?? "";
 }
 
-// Click/keyboard props for a div that acts as a button. A real <button> can't be
-// used: role tiles contain the play <button>, and buttons can't nest. The
-// target check keeps Enter on that inner button from also firing this one.
+// Button behaviour for a div: role tiles contain a play <button>, and buttons can't nest.
 function pressable(onPress) {
   return {
     role: "button",
@@ -186,9 +184,7 @@ export default function CharaterSelecter() {
   const training = location.state?.training === true;
   const navigate = useNavigate();
 
-  // The role-preview clips play through ttsClient's module-level <audio>, which
-  // nothing in the React tree owns, so leaving mid-clip would otherwise keep it
-  // talking over the next page. One page-level stop covers every role tile.
+  // Stop role-preview clips on leaving; ttsClient's shared <audio> isn't owned by React and would keep talking.
   useEffect(() => () => { stopTts(); }, []);
 
   const [modalOpen, setModalOpen] = useState(false);

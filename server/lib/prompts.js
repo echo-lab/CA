@@ -94,10 +94,7 @@ const GEMINI_IMAGE_ANALYSIS_PROMPT = `${GEMINI_IMAGE_CHARACTER_RULES}
 Answer as a parent speaking to a child.
 Give a SHORT answer of 1 sentence.`;
 
-// The label is not just a name: it is the string the click-question model copies
-// verbatim as its answer, and the one handed back as the Reference Answer for the
-// acknowledgement. A bare "books" cannot tell two stacks apart or give the question
-// model anything to reason about, so each label carries its own description.
+// Each label is the exact answer string the click-question model copies, so it must be descriptive enough to tell objects apart.
 function buildGeminiImageTaggingPrompt({ pageText = '' } = {}) {
   return `${GEMINI_IMAGE_CHARACTER_RULES}
 You are tagging a children's storybook page for clickable image overlays.

@@ -1,7 +1,4 @@
-/**
- * A click answers a click question by landing on the tagged region. Tolerance
- * forgives aim, not intent — the interesting cases are all about that line.
- */
+/** A click near the tagged region counts; tolerance forgives aim, not intent. */
 import { assessClick, distanceToBox, expandBox, isClickInsideBox, CLICK_TOLERANCE } from '../clickGeometry';
 
 // TARGET spans y 10-30%, x 20-40%. NEIGHBOUR sits just to its right at x 41-60%,

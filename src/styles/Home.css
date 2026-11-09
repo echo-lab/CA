@@ -26,9 +26,7 @@
      on the element. Bootstrap's .display-3 used to win this cascade. */
 }
 
-/* Was Bootstrap's .shadow utility. The base shadow is reproduced here; the
-   hover only scales, because the hover box-shadow this rule used to declare was
-   never visible — Bootstrap's .shadow carried !important and outranked it. */
+/* Was Bootstrap's .shadow; hover only scales, since the old hover shadow was never visible. */
 .book-card {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }

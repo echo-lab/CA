@@ -1,6 +1,4 @@
-// Checks the TTS backend failover in liveTTS.js: fall over only when the primary
-// dies before yielding, never mid-stream (that would replay heard audio).
-// Run: node test_liveTTS_fallback.js
+// Checks TTS failover: only before the primary yields, never mid-stream. Run: node test_liveTTS_fallback.js
 const assert = require('assert');
 const Module = require('module');
 

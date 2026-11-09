@@ -1,11 +1,4 @@
-/**
- * A question must not reach the UI until its TTS has STARTED — it is handed over on
- * the first audio chunk so the child sees it while the rest is still synthesising,
- * and never before there is audio to speak. What still must not happen: delivering
- * twice, delivering with no audio at all, or leaving a fragment behind after a
- * mid-stream failure, any of which lets a click catch a half-streamed question and
- * overlap the previous one.
- */
+/** A question is delivered once, only after its audio starts, and never leaves a fragment behind after a failure. */
 import { TextDecoder as NodeTextDecoder, TextEncoder as NodeTextEncoder } from 'util';
 
 // jsdom ships neither, and the SSE reader needs both.
@@ -99,9 +92,7 @@ describe('question is committed once its audio has started', () => {
     global.fetch = mockStream([ITEM, DONE, CHUNK(0), { type: 'audio_error', message: 'died mid-stream' }]);
     const ready = jest.fn();
     await run(ready, jest.fn());
-    // The question was already delivered on chunk 0, so the caller holds this exact
-    // array — it must be emptied in place, or a tap plays a fragment and hangs
-    // waiting for an end() that the failed stream will never send.
+    // Already delivered on chunk 0, so the array must be emptied in place or a tap plays a fragment and hangs.
     expect(ready).toHaveBeenCalledTimes(1);
     expect(ready.mock.calls[0][3]).toEqual([]);
   });

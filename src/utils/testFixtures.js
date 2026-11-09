@@ -1,6 +1,4 @@
-/**
- * Shared test fixtures for JENNIE NLP tests
- */
+/** Shared test fixtures for JENNIE NLP tests */
 
 // --- Factory helpers ---
 

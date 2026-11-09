@@ -1,20 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-// The roster is edited by hand (server/participants.json) — add a row per
-// participant before their session. It is re-read whenever the file's mtime
-// changes so new IDs go live without restarting the server.
-//
-// The file is gitignored: each deployment has its own real participant IDs and
-// they should not travel through the repo. Copy participants.example.json to
-// participants.json on a fresh checkout.
+// Hand-edited, gitignored roster (copy participants.example.json); re-read on mtime change, so new IDs work without a restart.
 const ROSTER_PATH = path.join(__dirname, '..', 'participants.json');
 
 let cache = { mtimeMs: -1, byId: new Map(), present: false };
 
-// IDs are compared case- and whitespace-insensitively so "p001", "P001 " and
-// "P001" are the same participant. The roster's own spelling is what gets
-// logged, so the CSVs stay consistent regardless of what was typed.
+// IDs match case/whitespace-insensitively; the roster's spelling is what gets logged.
 function normalizeId(value) {
     if (value === null || value === undefined) return '';
     return String(value).trim().toUpperCase();
@@ -94,10 +86,7 @@ function participantDir(userId) {
     return path.join(LOGS_DIR, participantDirName(userId));
 }
 
-// Creates the participant's log folder if it does not exist yet. Called when a
-// participant is verified and again when their session starts, so the folder is
-// in place before any rows are written rather than appearing only once the
-// first batch happens to flush.
+// Create the participant's log folder up front (at verification and session start), before any rows are written.
 function ensureParticipantDir(userId) {
     const dir = participantDir(userId);
     if (!fs.existsSync(dir)) {
@@ -107,9 +96,7 @@ function ensureParticipantDir(userId) {
     return dir;
 }
 
-// Walks logs/ and returns every file whose basename passes `matches`, across
-// all participant folders (plus any left at the top level by older versions).
-// Sorted by full path, so a participant's files stay contiguous.
+// All log files under logs/ matching `matches`, across participant folders and the legacy top level, sorted by path.
 function collectLogFiles(matches) {
     if (!fs.existsSync(LOGS_DIR)) return [];
     const found = [];
@@ -135,10 +122,7 @@ function filterToParticipant(files, participant) {
     return files.filter((f) => f.toLowerCase().startsWith(dir));
 }
 
-// --- roster writes (admin only) -------------------------------------------
-// loadRoster() returns a normalized Map for lookups; these two work on the raw
-// array so hand-written fields survive a round trip. Every write is atomic and
-// bumps mtime, which is what makes loadRoster pick the change up with no restart.
+// --- roster writes (admin only): work on the raw array so hand-written fields survive; atomic writes bump mtime so loadRoster reloads.
 function readRoster() {
     try {
         const parsed = JSON.parse(fs.readFileSync(ROSTER_PATH, 'utf8'));
