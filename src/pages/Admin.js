@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-// Study admin (roster + logs), gated by ADMIN_TOKEN kept in sessionStorage so it's gone when the tab closes.
+// Study admin (roster + recent sessions), gated by ADMIN_TOKEN kept in sessionStorage so it's gone when the tab closes.
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5001';
 const TOKEN_KEY = 'jennie.adminToken';
 
@@ -8,57 +8,17 @@ const readToken = () => { try { return sessionStorage.getItem(TOKEN_KEY) || ''; 
 const saveToken = (t) => { try { sessionStorage.setItem(TOKEN_KEY, t); } catch { /* private mode */ } };
 const dropToken = () => { try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ } };
 
-const KB = (n) => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`);
-
-// Logs are session_<id>_<stream>.csv plus sessions.csv per participant; anything else is listed under "other".
-const NO_PARTICIPANT = '(top level)';
-const streamOf = (name) => {
-  const m = String(name).match(/_(events|questions|transcript)\.csv$/i);
-  if (m) return m[1].toLowerCase();
-  if (/(^|[/\\])sessions\.csv$/i.test(name)) return 'sessions';
-  return 'other';
-};
-const WHEN = (ms) => new Date(ms).toLocaleString();
-
-// Toggleable chips. Multi-select on purpose: picking questions and transcript
-// shows both, rather than the last one clicked.
-function FilterRow({ label, options, picked, onToggle }) {
-  if (options.length === 0) return null;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-      <span style={{ fontSize: 12, color: '#666', width: 82 }}>{label}</span>
-      {options.map((opt) => {
-        const on = picked.includes(opt);
-        return (
-          <button
-            key={opt} type="button" onClick={() => onToggle(opt)}
-            aria-pressed={on}
-            style={{
-              fontSize: 12, padding: '3px 10px', borderRadius: 12, cursor: 'pointer',
-              border: `1px solid ${on ? '#0d6efd' : '#ccc'}`,
-              background: on ? '#0d6efd' : '#fff',
-              color: on ? '#fff' : '#333',
-            }}
-          >{opt}</button>
-        );
-      })}
-    </div>
-  );
-}
+const WHEN = (ms) => (ms ? new Date(ms).toLocaleString() : '—');
 
 export default function Admin() {
   const [token, setToken] = useState(readToken);
   const [authed, setAuthed] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [roster, setRoster] = useState([]);
-  const [files, setFiles] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [newRow, setNewRow] = useState({ user_id: '', parent: '', child: '', 'parent-figure': '' });
-  // Within a category the picks are OR'd, across categories AND'd — so
-  // [T001] + [questions, transcript] means T001's questions and transcripts.
-  const [pickedIds, setPickedIds] = useState([]);
-  const [pickedTypes, setPickedTypes] = useState([]);
 
   const api = useCallback(async (path, options = {}) => {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -73,9 +33,9 @@ export default function Admin() {
   const refresh = useCallback(async () => {
     setBusy(true);
     try {
-      const [p, l] = await Promise.all([api('/api/admin/participants'), api('/api/admin/logs')]);
+      const [p, s] = await Promise.all([api('/api/admin/participants'), api('/api/admin/sessions')]);
       setRoster(p.participants || []);
-      setFiles(l.files || []);
+      setSessions(s.sessions || []);
       setError('');
     } catch (err) {
       setError(err.message);
@@ -103,7 +63,7 @@ export default function Admin() {
     setTokenInput('');
   };
 
-  const signOut = () => { dropToken(); setToken(''); setAuthed(false); setRoster([]); setFiles([]); };
+  const signOut = () => { dropToken(); setToken(''); setAuthed(false); setRoster([]); setSessions([]); };
 
   const addParticipant = async (e) => {
     e.preventDefault();
@@ -119,26 +79,11 @@ export default function Admin() {
 
   const removeParticipant = async (id) => {
     // Irreversible for the roster row, so make them say the id out loud.
-    if (!window.confirm(`Remove "${id}" from the roster?\n\nTheir log files stay on disk and can still be downloaded.`)) return;
+    if (!window.confirm(`Remove "${id}" from the roster?\n\nTheir logged data stays in the database.`)) return;
     setError('');
     try {
       const data = await api(`/api/admin/participants/${encodeURIComponent(id)}`, { method: 'DELETE' });
       setRoster(data.participants || []);
-    } catch (err) { setError(err.message); }
-  };
-
-  // A plain <a href> cannot carry the token header, so fetch the bytes and hand
-  // the browser a blob instead.
-  const download = async (path, filename) => {
-    setError('');
-    try {
-      const res = await fetch(`${API_BASE}${path}`, { headers: { 'x-admin-token': token } });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || `HTTP ${res.status}`);
-      const url = URL.createObjectURL(await res.blob());
-      const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
     } catch (err) { setError(err.message); }
   };
 
@@ -164,18 +109,7 @@ export default function Admin() {
     );
   }
 
-  const columns = [...new Set(roster.flatMap((r) => Object.keys(r || {})))];
-
-  // Options come from the files actually present, so a filter can never offer a
-  // choice that matches nothing.
-  const idOptions = [...new Set(files.map((f) => f.participant || NO_PARTICIPANT))].sort();
-  const typeOptions = [...new Set(files.map((f) => streamOf(f.file)))].sort();
-  const toggle = (setter) => (value) =>
-    setter((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
-  // An empty category means "no constraint", not "match nothing".
-  const visibleFiles = files.filter((f) =>
-    (pickedIds.length === 0 || pickedIds.includes(f.participant || NO_PARTICIPANT)) &&
-    (pickedTypes.length === 0 || pickedTypes.includes(streamOf(f.file))));
+  const columns = [...new Set(roster.flatMap((r) => Object.keys(r || {})))].filter((c) => c !== 'created_at');
 
   return (
     <div style={box}>
@@ -217,51 +151,25 @@ export default function Admin() {
         <button className="btn btn-primary" type="submit">Add</button>
       </form>
 
-      <h3 style={{ marginTop: 36 }}>Combined exports</h3>
-      {['events', 'transcript', 'questions'].map((s) => (
-        <button key={s} className="btn btn-outline-secondary" style={{ marginRight: 8 }}
-          onClick={() => download(`/api/study-log/download/${s}`, `${s}-logs.csv`)}>{s}.csv</button>
-      ))}
-      <button className="btn btn-outline-secondary"
-        onClick={() => download('/api/study-log/download-sessions', 'sessions.csv')}>sessions.csv</button>
-
-      <h3 style={{ marginTop: 36 }}>
-        Log files ({visibleFiles.length}{visibleFiles.length !== files.length ? ` of ${files.length}` : ''})
-      </h3>
-
-      <div style={{ marginBottom: 12 }}>
-        <FilterRow label="Participant" options={idOptions} picked={pickedIds} onToggle={toggle(setPickedIds)} />
-        <FilterRow label="Type" options={typeOptions} picked={pickedTypes} onToggle={toggle(setPickedTypes)} />
-        {(pickedIds.length > 0 || pickedTypes.length > 0) && (
-          <button className="btn btn-sm btn-link" style={{ padding: 0 }}
-            onClick={() => { setPickedIds([]); setPickedTypes([]); }}>
-            Clear filters
-          </button>
-        )}
-      </div>
-
+      <h3 style={{ marginTop: 36 }}>Recent sessions ({sessions.length})</h3>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr><th style={th}>Participant</th><th style={th}>File</th><th style={th}>Size</th><th style={th}>Modified</th><th style={th} /></tr></thead>
+        <thead><tr>
+          <th style={th}>Participant</th><th style={th}>Session</th><th style={th}>Book</th>
+          <th style={th}>Training</th><th style={th}>Started</th><th style={th}>Ended</th><th style={th}>Pages</th>
+        </tr></thead>
         <tbody>
-          {visibleFiles.map((f) => (
-            <tr key={f.file}>
-              <td style={td}>{f.participant || '—'}</td>
-              <td style={td}>{f.file}</td>
-              <td style={td}>{KB(f.bytes)}</td>
-              <td style={td}>{WHEN(f.modified)}</td>
-              <td style={{ ...td, textAlign: 'right' }}>
-                <button className="btn btn-sm btn-outline-secondary"
-                  onClick={() => download(`/api/admin/logs/download?file=${encodeURIComponent(f.file)}`, f.file.replace(/[/\\]/g, '_'))}>
-                  Download
-                </button>
-              </td>
+          {sessions.map((s) => (
+            <tr key={`${s.user_id}/${s.session_id}`}>
+              <td style={td}>{s.user_id}</td>
+              <td style={td}>{s.session_id}</td>
+              <td style={td}>{s.book_name || '—'}</td>
+              <td style={td}>{String(s.is_training ?? '')}</td>
+              <td style={td}>{WHEN(s.started_at)}</td>
+              <td style={td}>{WHEN(s.ended_at)}</td>
+              <td style={td}>{s.pages_reached ?? '—'}</td>
             </tr>
           ))}
-          {visibleFiles.length === 0 && (
-            <tr><td style={td} colSpan={5}>
-              {files.length === 0 ? 'No log files yet.' : 'No files match these filters.'}
-            </td></tr>
-          )}
+          {sessions.length === 0 && <tr><td style={td} colSpan={7}>No sessions yet.</td></tr>}
         </tbody>
       </table>
     </div>

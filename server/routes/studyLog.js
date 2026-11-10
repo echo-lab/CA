@@ -1,81 +1,60 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const { execSync } = require('child_process');
 
 const participants = require('../lib/participants');
-const { requireAdmin } = require('../lib/adminAuth');
-const { appendRows, upsertRow, concatBodies } = require('../lib/csv');
+const { db } = require('../lib/db');
+const imageCache = require('../lib/cache/imageCache');
+const {
+    PROMPT_VERSION, OPENAI_OFFSCRIPT_MODEL, OPENAI_OFFSCRIPT_REASONING_EFFORT, BEDROCK_OFFSCRIPT_MODEL,
+} = require('../lib/openai');
 
 const router = express.Router();
-const SERVER_ROOT = path.join(__dirname, '..');
-const LOGS_DIR = path.join(SERVER_ROOT, 'logs');
 
 const SCHEMA_VERSION = 1;
 
-const SESSION_HEADERS = [
-    'session_id', 'user_id', 'book_id', 'book_name', 'is_training', 'schema_version',
-    'started_at', 'ended_at', 'duration_ms', 'manual_interventions_total', 'pages_reached',
-    'character_1_name', 'character_1_role', 'character_2_name', 'character_2_role', 'character_3_name', 'character_3_role'
-];
-
-const STREAM_HEADERS = {
-    events: [
-        'session_id', 'user_id', 'book_id', 'role', 'event_seq', 'event_type', 'timestamp',
-        'page_number', 'line_index', 'latency_ms', 'manual_interventions',
-        'intervention_source', 'direction', 'trigger', 'detail'
-    ],
-    transcript: [
-        'session_id', 'user_id', 'book_id', 'utt_seq', 'timestamp', 'dg_start', 'dg_duration', 
-        'speaker', 'speech_final', 'transcript', 'avg_confidence', 'page_number', 'line_index', 
-        'expected_character', 'expected_role', 'expected_role_kind'
-    ],
-    questions: [
-        'session_id', 'user_id', 'book_id', 'q_seq', 'timestamp', 'question_id', 
-        'question_type', 'event', 'reason', 'question_text', 'expected_answer', 
-        'page_number', 'line_index', 'user_answer'
-    ]
-};
-
 const SEQ_FIELD = { events: 'event_seq', transcript: 'utt_seq', questions: 'q_seq' };
 
-// session_id reaches path.join, so it must be constrained before use.
 const SESSION_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
-const {
-    participantDirName, participantDir, ensureParticipantDir,
-    collectLogFiles, filterToParticipant,
-} = participants;
+const envValue = (name) => (process.env[name] || '').split('#')[0].trim();
+const gitSha = (() => {
+    try { return execSync('git rev-parse --short HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); }
+    catch { return envValue('GIT_SHA'); }
+})();
+const useBedrock = process.env.OFFSCRIPT_PROVIDER === 'bedrock';
 
-const SESSIONS_FILE = 'sessions.csv';
-
-function collectStreamFiles(stream) {
-    const suffix = `_${stream}.csv`;
-    return collectLogFiles((name) => name.startsWith('session_') && name.endsWith(suffix));
-}
-
-function collectSessionFiles() {
-    return collectLogFiles((name) => name === SESSIONS_FILE);
-}
-
-const acceptedSeq = new Map();
-
-function seqStateFor(sessionId) {
-    if (!acceptedSeq.has(sessionId)) {
-        acceptedSeq.set(sessionId, { events: 0, transcript: 0, questions: 0 });
-    }
-    return acceptedSeq.get(sessionId);
-}
+// What this server process runs with; stamped once on each new session so analysis can tell configurations apart.
+const RUN_SETTINGS = {
+    tts_backend: (envValue('TTS_BACKEND') || 'gemini').toLowerCase(),
+    tts_model: envValue('VERTEX_MODEL') || 'gemini-3.8-flash-lite-tts',
+    gemini_tts_model: envValue('GEMINI_LIVE_MODEL') || 'gemini-2.5-flash-preview-tts',
+    child_voice_id: envValue('VERTEX_CHILD_VOICE_ID'),
+    offscript_provider: useBedrock ? 'bedrock' : 'openai',
+    offscript_model: useBedrock ? BEDROCK_OFFSCRIPT_MODEL : OPENAI_OFFSCRIPT_MODEL,
+    offscript_reasoning_effort: OPENAI_OFFSCRIPT_REASONING_EFFORT,
+    prompt_version: PROMPT_VERSION,
+    image_tag_model: 'gemini-2.5-flash',
+    image_cache_version: imageCache.CFG.version,
+    stt_model: 'nova-3',
+    git_sha: gitSha,
+};
 
 // Resolves the roster record for a user id, or an error response payload.
-function resolveUser(userId) {
-    const record = participants.lookup(userId);
-    if (participants.isEnforced() && !record) {
+async function resolveUser(userId) {
+    const record = await participants.lookup(userId);
+    if (!record && await participants.isEnforced()) {
         return { error: { message: `Unknown participant ID: ${userId}`, unknown: [userId] } };
     }
     return { userId: record?.user_id ?? userId };
 }
 
-router.post('/api/study-log/session', (req, res) => {
+// 503 tells the client to requeue and retry, so a DB outage loses nothing.
+function dbUnavailable(res, where, err) {
+    console.error(`[study-log ${where}] database error:`, err.message);
+    res.status(503).json({ message: 'Database unavailable' });
+}
+
+router.post('/api/study-log/session', async (req, res) => {
     const session = req.body?.session;
     if (!session || typeof session !== 'object') {
         return res.status(400).json({ message: 'Provide {session}' });
@@ -84,25 +63,32 @@ router.post('/api/study-log/session', (req, res) => {
         return res.status(400).json({ message: 'Invalid session_id' });
     }
 
-    const resolved = resolveUser(session.user_id);
-    if (resolved.error) return res.status(400).json(resolved.error);
+    try {
+        const resolved = await resolveUser(session.user_id);
+        if (resolved.error) return res.status(400).json(resolved.error);
 
-    ensureParticipantDir(resolved.userId);
+        const { _id, question_voice, ...fields } = session;
+        // Empty fields are skipped so a late or repeated start row can't blank ended_at.
+        const set = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== '' && v != null));
+        Object.assign(set, { user_id: resolved.userId, schema_version: SCHEMA_VERSION, updated_at: new Date() });
 
-    const row = { ...session, user_id: resolved.userId, schema_version: SCHEMA_VERSION };
-
-    const outcome = upsertRow(
-        path.join(participantDir(resolved.userId), SESSIONS_FILE),
-        SESSION_HEADERS,
-        row,
-        'session_id'
-    );
-
-    console.log(`[study-log session] ${outcome} ${participantDirName(resolved.userId)}/${row.session_id} (book ${row.book_id})`);
-    res.json({ success: true, outcome });
+        const result = await db.collection('sessions').updateOne(
+            { user_id: resolved.userId, session_id: String(session.session_id) },
+            {
+                $set: set,
+                $setOnInsert: { run_settings: { ...RUN_SETTINGS, question_voice: question_voice || null }, created_at: new Date() },
+            },
+            { upsert: true }
+        );
+        const outcome = result.upsertedCount ? 'created' : 'updated';
+        console.log(`[study-log session] ${outcome} ${resolved.userId}/${session.session_id} (book ${session.book_id})`);
+        res.json({ success: true, outcome });
+    } catch (err) {
+        dbUnavailable(res, 'session', err);
+    }
 });
 
-router.post('/api/study-log/batch', (req, res) => {
+router.post('/api/study-log/batch', async (req, res) => {
     const { sessionId, userId, streams } = req.body || {};
 
     if (!SESSION_ID_RE.test(String(sessionId || ''))) {
@@ -112,95 +98,38 @@ router.post('/api/study-log/batch', (req, res) => {
         return res.status(400).json({ message: 'Provide {sessionId, userId, streams}' });
     }
 
-    const resolved = resolveUser(userId);
-    if (resolved.error) return res.status(400).json(resolved.error);
+    try {
+        const resolved = await resolveUser(userId);
+        if (resolved.error) return res.status(400).json(resolved.error);
 
-    ensureParticipantDir(resolved.userId);
+        const counts = {};
+        for (const [stream, seqField] of Object.entries(SEQ_FIELD)) {
+            const rows = streams[stream];
+            if (!Array.isArray(rows) || rows.length === 0) continue;
 
-    const state = seqStateFor(sessionId);
-    const counts = {};
+            const docs = rows
+                .filter((r) => r && Number.isFinite(Number(r[seqField])))
+                .map(({ _id, ...r }) => ({ ...r, [seqField]: Number(r[seqField]), session_id: String(sessionId), user_id: resolved.userId }));
+            if (docs.length === 0) { counts[stream] = 0; continue; }
 
-    for (const [stream, headers] of Object.entries(STREAM_HEADERS)) {
-        const rows = streams[stream];
-        if (!Array.isArray(rows) || rows.length === 0) continue;
-
-        const seqField = SEQ_FIELD[stream];
-        const fresh = rows.filter((r) => Number(r?.[seqField]) > state[stream]);
-        if (fresh.length === 0) {
-            counts[stream] = 0;
-            continue;
+            try {
+                counts[stream] = (await db.collection(stream).insertMany(docs, { ordered: false })).insertedCount;
+            } catch (err) {
+                // Duplicate keys are retried rows that are already stored; anything else is a real failure.
+                const writeErrors = [].concat(err.writeErrors || []);
+                if (!writeErrors.length || !writeErrors.every((e) => e.code === 11000)) throw err;
+                counts[stream] = err.insertedCount ?? err.result?.insertedCount ?? 0;
+            }
         }
 
-        // The stream headers no longer carry schema_version; only sessions.csv
-        // does. Anything not in `headers` is dropped by appendRows anyway.
-        const stamped = fresh.map((r) => ({
-            ...r,
-            session_id: sessionId,
-            user_id: resolved.userId,
-        }));
-
-        const filePath = path.join(participantDir(resolved.userId), `session_${sessionId}_${stream}.csv`);
-        counts[stream] = appendRows(filePath, headers, stamped);
-        state[stream] = Math.max(state[stream], ...fresh.map((r) => Number(r[seqField]) || 0));
+        const written = Object.values(counts).reduce((a, b) => a + b, 0);
+        if (written) console.log(`[study-log batch] ${resolved.userId}/${sessionId} ${JSON.stringify(counts)}`);
+        res.json({ success: true, counts });
+    } catch (err) {
+        dbUnavailable(res, 'batch', err);
     }
-
-    const written = Object.values(counts).reduce((a, b) => a + b, 0);
-    if (written) {
-        console.log(`[study-log batch] ${participantDirName(resolved.userId)}/${sessionId} ${JSON.stringify(counts)}`);
-    }
-    res.json({ success: true, counts, accepted_seq: { ...state } });
-});
-
-router.get('/api/study-log/download/:stream', requireAdmin, (req, res) => {
-    const { stream } = req.params;
-    const headers = STREAM_HEADERS[stream];
-    if (!headers) {
-        return res.status(404).json({ message: `Unknown stream: ${stream}` });
-    }
-    if (!fs.existsSync(LOGS_DIR)) {
-        return res.status(404).json({ message: 'No logs found' });
-    }
-
-    // ?participant=T001 exports just that participant's folder.
-    const participant = req.query.participant;
-    let files = collectStreamFiles(stream);
-    if (participant) files = filterToParticipant(files, participant);
-    if (files.length === 0) {
-        return res.status(404).json({
-            message: participant
-                ? `No ${stream} logs found for ${participant}`
-                : `No ${stream} logs found`
-        });
-    }
-
-    const filename = participant
-        ? `${participantDirName(participant)}-${stream}-logs.csv`
-        : `${stream}-logs.csv`;
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.send(headers.join(',') + '\n' + concatBodies(files));
-});
-
-// Session metadata concatenated across participant folders; there's no single global sessions.csv any more.
-router.get('/api/study-log/download-sessions', requireAdmin, (req, res) => {
-    const participant = req.query.participant;
-    let files = collectSessionFiles();
-    if (participant) files = filterToParticipant(files, participant);
-    if (files.length === 0) {
-        return res.status(404).json({
-            message: participant
-                ? `No sessions log found for ${participant}`
-                : 'No sessions log found'
-        });
-    }
-
-    const filename = participant
-        ? `${participantDirName(participant)}-sessions.csv`
-        : 'sessions.csv';
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.send(SESSION_HEADERS.join(',') + '\n' + concatBodies(files));
 });
 
 module.exports = router;
 module.exports.SCHEMA_VERSION = SCHEMA_VERSION;
+module.exports.RUN_SETTINGS = RUN_SETTINGS;

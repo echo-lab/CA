@@ -166,6 +166,11 @@ function trimForKeepalive(snapshot) {
 export async function flush({ keepalive = false } = {}) {
   if (!sessionId) return;
   if (inFlight && !keepalive) return;
+  if (pendingSession && !keepalive) {
+    const retry = pendingSession;
+    pendingSession = null;
+    sendSessionRow(retry);
+  }
   if (totalBuffered() === 0) return;
 
   let snapshot = {
@@ -204,24 +209,35 @@ export async function flush({ keepalive = false } = {}) {
   }
 }
 
-async function postSessionRow(extra) {
-  if (!sessionMeta) return;
-  const session = { ...sessionMeta, ...extra, user_id: userId() };
+// A session row that failed to send (e.g. 503 while the DB is down); the next flush tick re-sends it.
+let pendingSession = null;
+
+async function sendSessionRow(session) {
   try {
     const res = await fetch(`${API_BASE}/api/study-log/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session }),
-      keepalive: Boolean(extra?.ended_at),
+      keepalive: Boolean(session.ended_at),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       console.error(`[studyLog] session row rejected ${res.status}:`, body);
       state.lastError = { status: res.status, body, at: now() };
+      pendingSession = session;
+      return;
     }
+    // Every row carries the full session metadata, so a later success covers an earlier failure.
+    if (pendingSession?.session_id === session.session_id) pendingSession = null;
   } catch (err) {
     console.warn("[studyLog] session row failed:", err?.message || err);
+    pendingSession = session;
   }
+}
+
+function postSessionRow(extra) {
+  if (!sessionMeta) return;
+  sendSessionRow({ ...sessionMeta, ...extra, user_id: userId() });
 }
 
 // characterRoles is the selectedOptions array from CharacterSelecter.
@@ -236,7 +252,7 @@ function encodeRoles(characterRoles) {
   return row;
 }
 
-export function startSession({ bookId: book, bookName, isTraining, characterRoles } = {}) {
+export function startSession({ bookId: book, bookName, isTraining, characterRoles, questionVoice } = {}) {
   sessionId = mintSessionId();
   bookId = book === null || book === undefined ? "" : String(book);
   buffers = { events: [], transcript: [], questions: [] };
@@ -256,6 +272,8 @@ export function startSession({ bookId: book, bookName, isTraining, characterRole
     duration_ms: "",
     manual_interventions_total: "",
     pages_reached: "",
+    // The question mate's TTS voice; the server files it under the session's run_settings.
+    question_voice: questionVoice ?? "",
     ...encodeRoles(characterRoles),
   };
 

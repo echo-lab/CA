@@ -1,5 +1,4 @@
 import { useRef, useCallback, useEffect } from "react";
-import { lineChange, aiDecidedToTurnPage } from "../logGeneration";
 import { resetOffScriptStateForPage } from "../utils/utteranceProcessor";
 import * as studyLog from "../utils/studyLog";
 import { getRoleLabel, isHumanRead } from "../utils/roles";
@@ -205,7 +204,6 @@ export function useStoryNavigation({
         }
         // The missing call site that left latency_ms blank on every row: mark
         // the decision instant so the resulting page_turn can be timed.
-        aiDecidedToTurnPage();
         studyLog.noteAiDecision();
         handleNextClick("auto");
         setAudioHasEnded(false);
@@ -227,8 +225,6 @@ export function useStoryNavigation({
     if (!targetedTrigger) {
       pendingUntargetedLineTriggerRef.current = null;
     }
-    lineChange(state.page, state.index, { trigger });
-
     const prevPage = prevPageRef.current;
     if (prevPage !== null && prevPage !== state.page) {
       studyLog.pushEvent({

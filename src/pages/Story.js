@@ -534,6 +534,7 @@ function Reader() {
       bookName: CurrentBook.name,
       isTraining,
       characterRoles: selectedOptions,
+      questionVoice: QUESTION_MATE?.VA,
     });
     return () => {
       studyLog.endSession({ pagesReached: stateRef.current?.page ?? "" });

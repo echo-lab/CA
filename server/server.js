@@ -202,6 +202,13 @@ function setupDeepgramProxy(server) {
     console.log(`Deepgram WebSocket proxy ready at ${DEEPGRAM_PATH} (using nova-3 with diarization)`);
 }
 
+// The unique indexes created in connect() dedupe study-log retries, so don't serve before the DB is ready.
+require('./lib/db').connect().then(start, (err) => {
+    console.error('[db] connect failed:', err.message);
+    process.exit(1);   // PM2 restarts the app until mongod is reachable
+});
+
+function start() {
 if(process.env.DEVMODE){
     const port = process.env.REACT_APP_PORT || 5001;
     const server = app.listen(port, () => console.log(`Server started on port ${port}`));
@@ -225,4 +232,5 @@ else{
 
     setupDeepgramProxy(server);
     setupGeminiLiveProxy(server);
+}
 }

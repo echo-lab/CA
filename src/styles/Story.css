@@ -15,7 +15,7 @@
   gap: 8px;
 }
 
-/* Hide (not remove) the chevron at the first/last page so the label stays put; it stays disabled, which logGeneration.js reads. */
+/* Hide (not remove) the chevron at the first/last page so the label stays put; it also stays disabled. */
 .storybar-pager .storybar-btn:disabled {
   visibility: hidden;
 }

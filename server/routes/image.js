@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const imageCache = require('../lib/cache/imageCache');
+const { db } = require('../lib/db');
 const {
   GEMINI_IMAGE_CHARACTER_RULES,
   GEMINI_IMAGE_ANALYSIS_PROMPT,
@@ -189,18 +190,20 @@ router.post('/tag-image', async (req, res) => {
 
     const MODEL = 'gemini-2.5-flash';
     const bypass = req.headers[imageCache.CFG.bypassHeader] === '1';
-    const { base } = imageCache.buildKey({
-      kind: 'tag',
+    // Tags are study data (click questions are graded against them), so they live in image_tags with no expiry.
+    const tagKey = {
       book: String(book),
       page: String(page),
       model: MODEL,
-      pageText,
-    });
+      version: imageCache.CFG.version,
+      page_text_hash: crypto.createHash('sha256').update(normalizePageTextForCache(pageText)).digest('hex'),
+    };
     if (!bypass) {
-      const cached = await imageCache.readIfFresh(base);
-      if (cached.state === 'HIT') {
+      const stored = await db.collection('image_tags').findOne(tagKey)
+        .catch((err) => { console.warn('[image_tags] read failed, regenerating:', err.message); return null; });
+      if (stored) {
         res.setHeader('x-cache', 'HIT');
-        return res.json({ ...cached.data, tags: normalizeTags(cached.data?.tags) });
+        return res.json({ tags: normalizeTags(stored.tags) });
       }
     }
 
@@ -302,8 +305,8 @@ Return a JSON array only. Each item must be:
 
     const tags = normalizeTags(parseJsonFromModelText(response.text, []));
     const payload = { tags };
-    imageCache.write(base, payload, { book: String(book), page: String(page) })
-      .catch(err => console.warn('[image cache] tag write failed', err));
+    db.collection('image_tags').updateOne(tagKey, { $set: { tags, created_at: new Date() } }, { upsert: true })
+      .catch(err => console.warn('[image_tags] write failed', err.message));
     res.setHeader('x-cache', 'MISS');
     res.json(payload);
   } catch (error) {
