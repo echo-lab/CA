@@ -11,6 +11,7 @@ const { registerLiveTtsRoutes } = require('./liveTTS');
 const { setupEducationalQuestionRoutes } = require('./ModelsCommunication');
 const { setupGeminiLiveProxy } = require('./geminiLiveProxy');
 const { startPruner } = require('./lib/cache/prune');
+const mongo = require('./db/mongo');
 
 // Route modules
 const bookRoutes = require('./routes/book');
@@ -23,6 +24,12 @@ const studyLogRoutes = require('./routes/studyLog');
 const adminRoutes = require('./routes/admin');
 
 startPruner();
+
+// Mongo mirrors the CSV study logs. A failed connect is logged and the server
+// keeps running on CSV alone (the mirror calls skip while Mongo isn't ready).
+mongo.connect().catch((err) => {
+    console.error('[mongo] connect failed:', err.message || err);
+});
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 const keyPath = process.env.KEYPATH;

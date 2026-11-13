@@ -5,6 +5,7 @@ const path = require('path');
 const participants = require('../lib/participants');
 const { requireAdmin } = require('../lib/adminAuth');
 const { appendRows, upsertRow, concatBodies } = require('../lib/csv');
+const { mirrorBatch, mirrorSession } = require('../db/studyLogMongo');
 
 const router = express.Router();
 const SERVER_ROOT = path.join(__dirname, '..');
@@ -97,6 +98,7 @@ router.post('/api/study-log/session', (req, res) => {
         row,
         'session_id'
     );
+    mirrorSession(row);
 
     console.log(`[study-log session] ${outcome} ${participantDirName(resolved.userId)}/${row.session_id} (book ${row.book_id})`);
     res.json({ success: true, outcome });
@@ -143,6 +145,10 @@ router.post('/api/study-log/batch', (req, res) => {
         counts[stream] = appendRows(filePath, headers, stamped);
         state[stream] = Math.max(state[stream], ...fresh.map((r) => Number(r[seqField]) || 0));
     }
+
+    // All rows, not just `fresh`: Mongo's unique indexes reject duplicates, so
+    // it doesn't depend on the in-memory acceptedSeq that resets on restart.
+    mirrorBatch(sessionId, resolved.userId, streams);
 
     const written = Object.values(counts).reduce((a, b) => a + b, 0);
     if (written) {
